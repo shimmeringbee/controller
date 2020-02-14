@@ -31,7 +31,7 @@ This piece of software is not ready for general use.
 
 Feel free to dive in! [Open an issue](https://github.com/shimmeringbee/controller/issues/new) or submit PRs.
 
-All Shimmering Bee projects follow the [Contributor Covenant](http://contributor-covenant.org/version/1/3/0/) Code of Conduct.
+All Shimmering Bee projects follow the [Contributor Covenant](https://shimmeringbee.io/docs/code_of_conduct/) Code of Conduct.
 
 ## License
 
