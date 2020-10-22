@@ -50,17 +50,17 @@ func enumerateDirectories(ctx context.Context, l lw.Logger) Directories {
 
 	defaultConfigDirectory, err := defaultDirectory("config")
 	if err != nil {
-		l.LogFatal(ctx, "failed to construct default configuration directory", lw.Err(err))
+		l.LogFatal(ctx, "Failed to construct default configuration directory.", lw.Err(err))
 	}
 
 	defaultDataDirectory, err := defaultDirectory("data")
 	if err != nil {
-		l.LogFatal(ctx, "failed to construct default data directory", lw.Err(err))
+		l.LogFatal(ctx, "Failed to construct default data directory.", lw.Err(err))
 	}
 
 	defaultLogDirectory, err := defaultDirectory("log")
 	if err != nil {
-		l.LogFatal(ctx, "failed to construct default log directory", lw.Err(err))
+		l.LogFatal(ctx, "Failed to construct default log directory.", lw.Err(err))
 	}
 
 	configDirectory := fs.String("config-directory", defaultConfigDirectory, "location of configuration files")
@@ -68,19 +68,19 @@ func enumerateDirectories(ctx context.Context, l lw.Logger) Directories {
 	logDirectory := fs.String("log-directory", defaultLogDirectory, "location of log files")
 
 	if err := ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
-		l.LogFatal(ctx, "failed to parse environment/command line arguments", lw.Err(err))
+		l.LogFatal(ctx, "Failed to parse environment/command line arguments.", lw.Err(err))
 	}
 
 	if err := os.MkdirAll(*configDirectory, 0700); err != nil {
-		l.LogFatal(ctx, "failed to initialise configuration directory", lw.Err(err))
+		l.LogFatal(ctx, "Failed to initialise configuration directory.", lw.Err(err))
 	}
 
 	if err := os.MkdirAll(*dataDirectory, 0700); err != nil {
-		l.LogFatal(ctx, "failed to initialise data directory", lw.Err(err))
+		l.LogFatal(ctx, "Failed to initialise data directory.", lw.Err(err))
 	}
 
 	if err := os.MkdirAll(*logDirectory, 0700); err != nil {
-		l.LogFatal(ctx, "failed to initialise log directory", lw.Err(err))
+		l.LogFatal(ctx, "Failed to initialise log directory.", lw.Err(err))
 	}
 
 	return Directories{
