@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"github.com/peterbourgon/ff/v3"
+	"github.com/shimmeringbee/da"
 	lw "github.com/shimmeringbee/logwrap"
 	"github.com/shimmeringbee/logwrap/impl/golog"
 	"log"
@@ -27,12 +28,19 @@ func main() {
 
 	// Load configuration
 
+	gwMux := GatewayMux{
+		gatewayByIdentifier: map[string]da.Gateway{},
+		gatewayByName:       map[string]da.Gateway{},
+	}
+
 	// Start interfaces
 
 	// Start gateways
 
 	s := <-signalCh
 	l.LogInfo(ctx, "Shutting down.", lw.Datum("signal", s.String()))
+
+	gwMux.Stop()
 
 	// Shutdown interfaces
 
