@@ -8,6 +8,7 @@ import (
 )
 
 type Gateway struct {
+	Name   string `json:"-"`
 	Type   string
 	Config interface{}
 }
@@ -53,7 +54,7 @@ func (g *ZDAProvider) UnmarshalJSON(data []byte) error {
 	switch g.Type {
 	case "zstack":
 		if result := gjson.GetBytes(data, "Config"); result.Exists() {
-			g.Config = &ZStackZDAProviderConfig{}
+			g.Config = &ZStackProvider{}
 			return json.Unmarshal([]byte(result.Raw), g.Config)
 		} else {
 			return fmt.Errorf("unable to find Config stanza: %s", g.Type)
@@ -63,7 +64,7 @@ func (g *ZDAProvider) UnmarshalJSON(data []byte) error {
 	}
 }
 
-type ZStackZDAProviderConfig struct {
+type ZStackProvider struct {
 	Port struct {
 		Name string
 		Baud int

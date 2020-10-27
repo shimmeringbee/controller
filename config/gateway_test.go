@@ -42,7 +42,7 @@ func TestParseGateway(t *testing.T) {
 			zdaGw, ok := gw.Config.(*ZDAConfig)
 			assert.True(t, ok)
 
-			_, ok = zdaGw.Provider.Config.(*ZStackZDAProviderConfig)
+			_, ok = zdaGw.Provider.Config.(*ZStackProvider)
 			assert.True(t, ok)
 		})
 	})

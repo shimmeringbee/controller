@@ -1,0 +1,12 @@
+{
+  "Type": "zda",
+  "Config": {
+    "Provider": {
+      "Type": "zstack",
+      "Config": {}
+    },
+    "Network": {
+      "PANID": 1
+    }
+  }
+}

@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
-	"github.com/peterbourgon/ff/v3"
 	"github.com/shimmeringbee/da"
 	lw "github.com/shimmeringbee/logwrap"
 	"github.com/shimmeringbee/logwrap/impl/golog"
@@ -23,10 +21,12 @@ func main() {
 
 	l.LogInfo(ctx, "Directory enumeration complete.", lw.Datum("directories", directories))
 
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, os.Interrupt, os.Kill)
+	gatewayCfgs, err := loadGatewayConfigurations(strings.Join([]string{directories.Config, "gateways"}, string(os.PathSeparator)))
+	if err != nil {
+		l.LogFatal(ctx, "Failed to load gateway configurations.", lw.Err(err))
+	}
 
-	// Load configuration
+	l.LogInfo(ctx, "Loaded gateway configurations.", lw.Datum("gatewayConfigCount", len(gatewayCfgs)))
 
 	gwMux := GatewayMux{
 		gatewayByIdentifier: map[string]da.Gateway{},
@@ -35,73 +35,33 @@ func main() {
 
 	// Start interfaces
 
-	// Start gateways
+	gws, err := startGateways(gatewayCfgs, &gwMux, directories)
+	if err != nil {
+		l.LogFatal(ctx, "Failed to start gateways.", lw.Err(err))
+	}
+
+	l.LogInfo(ctx, "Started gateways.")
+
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, os.Kill)
 
 	s := <-signalCh
-	l.LogInfo(ctx, "Shutting down.", lw.Datum("signal", s.String()))
-
-	gwMux.Stop()
+	l.LogInfo(ctx, "Signal received, shutting down.", lw.Datum("signal", s.String()))
 
 	// Shutdown interfaces
 
-	// Shutdown gateways
-}
+	for _, gw := range gws {
+		l.LogInfo(ctx, "Shutting down gateway.", lw.Datum("gateway", gw.Name))
 
-type Directories struct {
-	Config string
-	Data   string
-	Log    string
-}
+		if err := gw.Gateway.Stop(); err != nil {
+			l.LogError(ctx, "Failed to shutdown gateway.", lw.Err(err), lw.Datum("gateway", gw.Name))
+		}
 
-func enumerateDirectories(ctx context.Context, l lw.Logger) Directories {
-	fs := flag.NewFlagSet("controller", flag.ExitOnError)
-
-	defaultConfigDirectory, err := defaultDirectory("config")
-	if err != nil {
-		l.LogFatal(ctx, "Failed to construct default configuration directory.", lw.Err(err))
+		gw.Shutdown()
 	}
 
-	defaultDataDirectory, err := defaultDirectory("data")
-	if err != nil {
-		l.LogFatal(ctx, "Failed to construct default data directory.", lw.Err(err))
-	}
+	l.LogInfo(ctx, "Shutting gateway mux.")
+	gwMux.Stop()
 
-	defaultLogDirectory, err := defaultDirectory("log")
-	if err != nil {
-		l.LogFatal(ctx, "Failed to construct default log directory.", lw.Err(err))
-	}
-
-	configDirectory := fs.String("config-directory", defaultConfigDirectory, "location of configuration files")
-	dataDirectory := fs.String("data-directory", defaultDataDirectory, "location of data files")
-	logDirectory := fs.String("log-directory", defaultLogDirectory, "location of log files")
-
-	if err := ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
-		l.LogFatal(ctx, "Failed to parse environment/command line arguments.", lw.Err(err))
-	}
-
-	if err := os.MkdirAll(*configDirectory, 0700); err != nil {
-		l.LogFatal(ctx, "Failed to initialise configuration directory.", lw.Err(err))
-	}
-
-	if err := os.MkdirAll(*dataDirectory, 0700); err != nil {
-		l.LogFatal(ctx, "Failed to initialise data directory.", lw.Err(err))
-	}
-
-	if err := os.MkdirAll(*logDirectory, 0700); err != nil {
-		l.LogFatal(ctx, "Failed to initialise log directory.", lw.Err(err))
-	}
-
-	return Directories{
-		Config: *configDirectory,
-		Data:   *dataDirectory,
-		Log:    *logDirectory,
-	}
-}
-
-func defaultDirectory(t string) (string, error) {
-	if configDir, err := os.UserConfigDir(); err != nil {
-		return "", err
-	} else {
-		return strings.Join([]string{configDir, "shimmeringbee", "controller", t}, string(os.PathSeparator)), nil
-	}
+	l.LogInfo(ctx, "Shutting complete.")
 }
