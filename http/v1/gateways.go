@@ -81,7 +81,7 @@ func (g *gatewayController) listDevicesOnGateway(w http.ResponseWriter, r *http.
 	apiDevices := make(map[string]device)
 
 	for _, daDevice := range gw.Devices() {
-		d := g.deviceConverter(daDevice)
+		d := g.deviceConverter(r.Context(), daDevice)
 		d.Gateway = id
 
 		apiDevices[d.Identifier] = d

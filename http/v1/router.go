@@ -21,6 +21,7 @@ func ConstructRouter(mapper GatewayMapper) http.Handler {
 
 	r.HandleFunc("/devices", dc.listDevices).Methods("GET")
 	r.HandleFunc("/devices/{identifier}", dc.getDevice).Methods("GET")
+	r.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", dc.useDeviceCapability).Methods("POST")
 
 	r.HandleFunc("/gateways", gc.listGateways).Methods("GET")
 	r.HandleFunc("/gateways/{identifier}", gc.getGateway).Methods("GET")

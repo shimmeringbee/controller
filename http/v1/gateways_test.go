@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/da"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -178,7 +179,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 
 		mdc := mockDeviceConverter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("convertDADeviceToDevice", daDeviceOne).Return(expectedDeviceOne)
+		mdc.On("convertDADeviceToDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
 
 		controller := gatewayController{gatewayMapper: &mgm, deviceConverter: mdc.convertDADeviceToDevice}
 

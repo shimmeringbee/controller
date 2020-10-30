@@ -5,6 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/da"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -62,8 +63,8 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 		mdc := mockDeviceConverter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("convertDADeviceToDevice", daDeviceOne).Return(expectedDeviceOne)
-		mdc.On("convertDADeviceToDevice", daDeviceTwo).Return(expectedDeviceTwo)
+		mdc.On("convertDADeviceToDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
+		mdc.On("convertDADeviceToDevice", mock.Anything, daDeviceTwo).Return(expectedDeviceTwo)
 
 		controller := deviceController{gatewayMapper: &mgm, deviceConverter: mdc.convertDADeviceToDevice}
 
@@ -129,7 +130,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 		mdc := mockDeviceConverter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("convertDADeviceToDevice", daDeviceOne).Return(expectedDeviceOne)
+		mdc.On("convertDADeviceToDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
 
 		controller := deviceController{gatewayMapper: &mgm, deviceConverter: mdc.convertDADeviceToDevice}
 

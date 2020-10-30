@@ -1,13 +1,14 @@
 package v1
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/da"
 	"net/http"
 )
 
-type deviceConverter func(da.Device) device
+type deviceConverter func(context.Context, da.Device) device
 
 type deviceController struct {
 	gatewayMapper   GatewayMapper
@@ -19,7 +20,7 @@ func (d *deviceController) listDevices(w http.ResponseWriter, r *http.Request) {
 
 	for name, gateway := range d.gatewayMapper.Gateways() {
 		for _, daDevice := range gateway.Devices() {
-			d := d.deviceConverter(daDevice)
+			d := d.deviceConverter(r.Context(), daDevice)
 			d.Gateway = name
 
 			apiDevices[d.Identifier] = d
@@ -51,7 +52,7 @@ func (d *deviceController) getDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiDevice := d.deviceConverter(daDevice)
+	apiDevice := d.deviceConverter(r.Context(), daDevice)
 
 	for gwId, gw := range d.gatewayMapper.Gateways() {
 		if gw == daDevice.Gateway() {
@@ -68,4 +69,7 @@ func (d *deviceController) getDevice(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("content-type", "application/json")
 	w.Write(data)
+}
+
+func (d *deviceController) useDeviceCapability(w http.ResponseWriter, r *http.Request) {
 }
