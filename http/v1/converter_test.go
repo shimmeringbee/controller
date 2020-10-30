@@ -45,7 +45,7 @@ func Test_convertDADeviceToDevice(t *testing.T) {
 
 		expected := device{
 			Identifier:   "one-one",
-			Capabilities: []string{"capOne"},
+			Capabilities: map[string]interface{}{"capOne": struct{}{}},
 		}
 
 		actual := convertDADeviceToDevice(input)

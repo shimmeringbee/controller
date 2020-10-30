@@ -2,7 +2,7 @@ package v1
 
 type device struct {
 	Identifier   string
-	Capabilities []string
+	Capabilities map[string]interface{}
 	Gateway      string
 }
 

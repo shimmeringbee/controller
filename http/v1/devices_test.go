@@ -42,7 +42,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 		expectedDeviceOne := device{
 			Identifier:   "one-one",
-			Capabilities: []string{"capOne"},
+			Capabilities: map[string]interface{}{"capOne": struct{}{}},
 		}
 
 		mgwOne.On("Devices").Return([]da.Device{daDeviceOne})
@@ -55,7 +55,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 		expectedDeviceTwo := device{
 			Identifier:   "two-two",
-			Capabilities: []string{"capTwo"},
+			Capabilities: map[string]interface{}{"capTwo": struct{}{}},
 		}
 
 		mgwTwo.On("Devices").Return([]da.Device{daDeviceTwo})
@@ -70,12 +70,12 @@ func Test_deviceController_listDevices(t *testing.T) {
 		expectedDevices := map[string]device{
 			"one-one": {
 				Identifier:   "one-one",
-				Capabilities: []string{"capOne"},
+				Capabilities: map[string]interface{}{"capOne": map[string]interface{}{}},
 				Gateway:      "one",
 			},
 			"two-two": {
 				Identifier:   "two-two",
-				Capabilities: []string{"capTwo"},
+				Capabilities: map[string]interface{}{"capTwo": map[string]interface{}{}},
 				Gateway:      "two",
 			},
 		}
@@ -124,7 +124,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 		expectedDeviceOne := device{
 			Identifier:   "one-one",
-			Capabilities: []string{"capOne"},
+			Capabilities: map[string]interface{}{"capOne": struct{}{}},
 		}
 
 		mdc := mockDeviceConverter{}
@@ -135,7 +135,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 		expectedDevice := device{
 			Identifier:   "one-one",
-			Capabilities: []string{"capOne"},
+			Capabilities: map[string]interface{}{"capOne": map[string]interface{}{}},
 			Gateway:      "one",
 		}
 

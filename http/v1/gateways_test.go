@@ -171,7 +171,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 
 		expectedDeviceOne := device{
 			Identifier:   "one-one",
-			Capabilities: []string{"capOne"},
+			Capabilities: map[string]interface{}{"capOne": struct{}{}},
 		}
 
 		mgwOne.On("Devices").Return([]da.Device{daDeviceOne})
@@ -185,7 +185,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 		expectedDevices := map[string]device{
 			"one-one": {
 				Identifier:   "one-one",
-				Capabilities: []string{"capOne"},
+				Capabilities: map[string]interface{}{"capOne": map[string]interface{}{}},
 				Gateway:      "one",
 			},
 		}
