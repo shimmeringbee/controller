@@ -35,6 +35,34 @@ func (g *gatewayController) listGateways(w http.ResponseWriter, r *http.Request)
 	w.Write(data)
 }
 
+func (g *gatewayController) getGateway(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	id, ok := params["identifier"]
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	gw, ok := g.gatewayMapper.Gateways()[id]
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	outputGw := g.gatewayConverter(gw)
+	outputGw.Identifier = id
+
+	data, err := json.Marshal(outputGw)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Add("content-type", "application/json")
+	w.Write(data)
+}
+
 func (g *gatewayController) listDevicesOnGateway(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 

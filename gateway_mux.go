@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/shimmeringbee/da"
+	"github.com/shimmeringbee/da/capabilities"
 	"sync"
 	"time"
 )
@@ -10,6 +11,7 @@ import (
 type GatewayMapper interface {
 	Gateways() map[string]da.Gateway
 	Capability(string, da.Capability) interface{}
+	Device(string) (da.Device, bool)
 }
 
 type GatewaySubscriber interface {
@@ -22,9 +24,9 @@ var _ GatewaySubscriber = (*GatewayMux)(nil)
 type GatewayMux struct {
 	lock sync.RWMutex
 
-	gatewayByIdentifier map[string]da.Gateway
-	gatewayByName       map[string]da.Gateway
-	shutdownCh          []chan struct{}
+	deviceByIdentifier map[string]da.Device
+	gatewayByName      map[string]da.Gateway
+	shutdownCh         []chan struct{}
 
 	listeners []chan interface{}
 }
@@ -52,11 +54,19 @@ func (m *GatewayMux) monitorGateway(g da.Gateway, shutCh chan struct{}) {
 			switch e := event.(type) {
 			case da.DeviceAdded:
 				m.lock.Lock()
-				m.gatewayByIdentifier[e.Identifier().String()] = e.Gateway()
+				m.deviceByIdentifier[e.Identifier().String()] = e.Device
 				m.lock.Unlock()
 			case da.DeviceRemoved:
 				m.lock.Lock()
-				delete(m.gatewayByIdentifier, e.Identifier().String())
+				delete(m.deviceByIdentifier, e.Identifier().String())
+				m.lock.Unlock()
+			case da.DeviceLoaded:
+				m.lock.Lock()
+				m.deviceByIdentifier[e.Identifier().String()] = e.Device
+				m.lock.Unlock()
+			case capabilities.EnumerateDeviceSuccess:
+				m.lock.Lock()
+				m.deviceByIdentifier[e.Identifier().String()] = e.Device
 				m.lock.Unlock()
 			}
 
@@ -88,11 +98,18 @@ func (m *GatewayMux) Capability(d string, c da.Capability) interface{} {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
-	if gw, found := m.gatewayByIdentifier[d]; found {
-		return gw.Capability(c)
+	if daDevice, found := m.deviceByIdentifier[d]; found {
+		return daDevice.Gateway().Capability(c)
 	}
 
 	return nil
+}
+func (m *GatewayMux) Device(id string) (da.Device, bool) {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+
+	d, found := m.deviceByIdentifier[id]
+	return d, found
 }
 
 func (m *GatewayMux) sendToListeners(e interface{}) {

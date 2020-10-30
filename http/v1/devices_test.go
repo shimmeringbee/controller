@@ -102,3 +102,62 @@ func Test_deviceController_listDevices(t *testing.T) {
 		assert.Equal(t, expectedDevices, actualDevices)
 	})
 }
+
+func Test_deviceController_getDevice(t *testing.T) {
+	t.Run("returns a device if present", func(t *testing.T) {
+		mgm := mockGatewayMapper{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mockGateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		daDeviceOne := da.BaseDevice{
+			DeviceGateway:      &mgwOne,
+			DeviceIdentifier:   SimpleIdentifier{id: "one-one"},
+			DeviceCapabilities: []da.Capability{},
+		}
+
+		mgm.On("Gateways").Return(map[string]da.Gateway{
+			"one": &mgwOne,
+		})
+		mgm.On("Device", "one").Return(daDeviceOne, true)
+
+		expectedDeviceOne := device{
+			Identifier:   "one-one",
+			Capabilities: []string{"capOne"},
+		}
+
+		mdc := mockDeviceConverter{}
+		defer mdc.AssertExpectations(t)
+		mdc.On("convertDADeviceToDevice", daDeviceOne).Return(expectedDeviceOne)
+
+		controller := deviceController{gatewayMapper: &mgm, deviceConverter: mdc.convertDADeviceToDevice}
+
+		expectedDevice := device{
+			Identifier:   "one-one",
+			Capabilities: []string{"capOne"},
+			Gateway:      "one",
+		}
+
+		req, err := http.NewRequest("GET", "/api/v1/devices/one", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/api/v1/devices/{identifier}", controller.getDevice)
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		actualData := []byte(rr.Body.String())
+		actualDevice := device{}
+
+		err = json.Unmarshal(actualData, &actualDevice)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedDevice, actualDevice)
+	})
+}

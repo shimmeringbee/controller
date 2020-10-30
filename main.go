@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"github.com/gorilla/mux"
+	v1 "github.com/shimmeringbee/controller/http/v1"
 	"github.com/shimmeringbee/da"
 	lw "github.com/shimmeringbee/logwrap"
 	"github.com/shimmeringbee/logwrap/impl/golog"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -29,11 +32,16 @@ func main() {
 	l.LogInfo(ctx, "Loaded gateway configurations.", lw.Datum("gatewayConfigCount", len(gatewayCfgs)))
 
 	gwMux := GatewayMux{
-		gatewayByIdentifier: map[string]da.Gateway{},
-		gatewayByName:       map[string]da.Gateway{},
+		deviceByIdentifier: map[string]da.Device{},
+		gatewayByName:      map[string]da.Gateway{},
 	}
 
 	// Start interfaces
+	r := mux.NewRouter()
+	v1Router := v1.ConstructRouter(&gwMux)
+	r.PathPrefix("/api/v1").Handler(http.StripPrefix("/api/v1", v1Router))
+
+	go http.ListenAndServe(":3000", r)
 
 	gws, err := startGateways(gatewayCfgs, &gwMux, directories)
 	if err != nil {

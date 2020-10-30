@@ -76,6 +76,60 @@ func Test_gatewayController_listGateways(t *testing.T) {
 	})
 }
 
+func Test_gatewayController_getGateway(t *testing.T) {
+	t.Run("returns a gateway if present", func(t *testing.T) {
+		mgm := mockGatewayMapper{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mockGateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		mgwTwo := mockGateway{}
+		mgwTwo.On("EnsureGatewaysAreNotEqual").Maybe()
+		defer mgwTwo.AssertExpectations(t)
+
+		mgm.On("Gateways").Return(map[string]da.Gateway{
+			"one": &mgwOne,
+		})
+
+		mdc := mockGatewayConverter{}
+		defer mdc.AssertExpectations(t)
+		mdc.On("convertDAGatewayToGateway", &mgwOne).Return(gateway{
+			Capabilities: []string{"capOne"},
+			SelfDevice:   "one",
+		})
+
+		controller := gatewayController{gatewayMapper: &mgm, gatewayConverter: mdc.convertDAGatewayToGateway}
+
+		expectedGateways := gateway{
+			Identifier:   "one",
+			Capabilities: []string{"capOne"},
+			SelfDevice:   "one",
+		}
+
+		req, err := http.NewRequest("GET", "/api/v1/gateways/one", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/api/v1/gateways/{identifier}", controller.getGateway)
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		actualData := []byte(rr.Body.String())
+		actualGateways := gateway{}
+
+		err = json.Unmarshal(actualData, &actualGateways)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedGateways, actualGateways)
+	})
+}
+
 func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 	t.Run("returns 404, not found when gateway does not exist", func(t *testing.T) {
 		mgm := mockGatewayMapper{}
