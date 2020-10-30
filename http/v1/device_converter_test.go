@@ -241,3 +241,38 @@ func Test_convertDeviceDiscovery(t *testing.T) {
 		assert.Equal(t, expected, actual)
 	})
 }
+
+type mockEnumerateDevice struct {
+	mock.Mock
+}
+
+func (m *mockEnumerateDevice) Status(c context.Context, d da.Device) (capabilities.EnumerationStatus, error) {
+	args := m.Called(c, d)
+	return args.Get(0).(capabilities.EnumerationStatus), args.Error(1)
+}
+
+func (m *mockEnumerateDevice) Enumerate(c context.Context, d da.Device) error {
+	args := m.Called(c, d)
+	return args.Error(0)
+}
+
+func Test_convertEnumerateDevice(t *testing.T) {
+	t.Run("retrieves and returns all data from EnumerateDevice", func(t *testing.T) {
+		d := da.BaseDevice{}
+
+		med := mockEnumerateDevice{}
+		defer med.AssertExpectations(t)
+
+		med.On("Status", mock.Anything, d).Return(capabilities.EnumerationStatus{
+			Enumerating: true,
+		}, nil)
+
+		expected := EnumerateDevice{
+			Enumerating: true,
+		}
+
+		actual := convertEnumerateDevice(context.Background(), d, &med)
+
+		assert.Equal(t, expected, actual)
+	})
+}

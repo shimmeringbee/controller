@@ -41,6 +41,8 @@ func convertDADeviceCapability(pctx context.Context, device da.Device, uncastCap
 		return convertPressureSensor(ctx, device, capability)
 	case capabilities.DeviceDiscovery:
 		return convertDeviceDiscovery(ctx, device, capability)
+	case capabilities.EnumerateDevice:
+		return convertEnumerateDevice(ctx, device, capability)
 	default:
 		return struct{}{}
 	}
@@ -126,5 +128,20 @@ func convertDeviceDiscovery(ctx context.Context, device da.Device, ts capabiliti
 	return DeviceDiscovery{
 		Discovering: discoveryState.Discovering,
 		Duration:    remainingMilliseconds,
+	}
+}
+
+type EnumerateDevice struct {
+	Enumerating bool
+}
+
+func convertEnumerateDevice(ctx context.Context, device da.Device, ts capabilities.EnumerateDevice) interface{} {
+	discoveryState, err := ts.Status(ctx, device)
+	if err != nil {
+		return nil
+	}
+
+	return EnumerateDevice{
+		Enumerating: discoveryState.Enumerating,
 	}
 }
