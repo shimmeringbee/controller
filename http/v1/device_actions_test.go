@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/da"
@@ -12,6 +13,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 type mockDeviceAction struct {
@@ -166,6 +168,52 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, rr.Code)
 	})
 
+	t.Run("returns a 400 if user provides invalid data", func(t *testing.T) {
+		mgm := mockGatewayMapper{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mockGateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		mbc := mockBasicCapability{}
+		defer mbc.AssertExpectations(t)
+		mbc.On("Name").Return("name")
+
+		capOne := da.Capability(1)
+
+		mgwOne.On("Capability", capOne).Return(&mbc)
+
+		device := da.BaseDevice{
+			DeviceCapabilities: []da.Capability{capOne},
+			DeviceGateway:      &mgwOne,
+		}
+		mgm.On("Device", "one").Return(device, true)
+
+		mda := mockDeviceAction{}
+		defer mda.AssertExpectations(t)
+
+		bodyText := "{}"
+
+		mda.On("doAction", mock.Anything, device, &mbc, "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("%w: unknown error", ActionUserError))
+
+		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction}
+
+		body := strings.NewReader(bodyText)
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
 	t.Run("returns a 200 with the body of the action", func(t *testing.T) {
 		mgm := mockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
@@ -212,5 +260,62 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 		bodyContent, _ := ioutil.ReadAll(rr.Body)
 		assert.Equal(t, "{}", string(bodyContent))
+	})
+}
+
+func Test_doDeviceCapabilityAction_DeviceDiscovery(t *testing.T) {
+	t.Run("Enable invokes the capability", func(t *testing.T) {
+		mockCapability := &mockDeviceDiscovery{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		expectedDuration := 10 * time.Minute
+		mockCapability.On("Enable", mock.Anything, device, expectedDuration).Return(nil)
+
+		inputBytes, _ := json.Marshal(DeviceDiscoveryEnable{Duration: 600000})
+		action := "Enable"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, inputBytes)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+
+	t.Run("Disable invokes the capability", func(t *testing.T) {
+		mockCapability := &mockDeviceDiscovery{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		mockCapability.On("Disable", mock.Anything, device).Return(nil)
+
+		action := "Disable"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, nil)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+}
+
+func Test_doDeviceCapabilityAction_EnumerateDevice(t *testing.T) {
+	t.Run("Enumerate invokes the capability", func(t *testing.T) {
+		mockCapability := &mockEnumerateDevice{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		mockCapability.On("Enumerate", mock.Anything, device).Return(nil)
+
+		action := "Enumerate"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, nil)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
 	})
 }

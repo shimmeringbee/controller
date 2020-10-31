@@ -34,11 +34,14 @@ func TestGatewayMux_Add(t *testing.T) {
 		mg := mockGateway{}
 		mg.On("ReadEvent", mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
 
+		d := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
+		mg.On("Self").Return(d)
+
 		defer mg.AssertExpectations(t)
 
 		name := "mock"
 
-		m := GatewayMux{gatewayByName: map[string]da.Gateway{}}
+		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
 		m.Add(name, &mg)
 		defer m.Stop()
 
@@ -46,6 +49,7 @@ func TestGatewayMux_Add(t *testing.T) {
 		actualGws := m.Gateways()
 
 		assert.Equal(t, expectedGws, actualGws)
+		assert.Contains(t, m.deviceByIdentifier, d.DeviceIdentifier.String())
 	})
 
 	t.Run("announced devices are added to the gateway mux cache for routing", func(t *testing.T) {
@@ -60,6 +64,9 @@ func TestGatewayMux_Add(t *testing.T) {
 		mg.On("ReadEvent", mock.Anything).Return(da.DeviceAdded{Device: d}, nil).Once()
 		mg.On("ReadEvent", mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
 		defer mg.AssertExpectations(t)
+
+		selfD := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
+		mg.On("Self").Return(selfD)
 
 		name := "mock"
 
@@ -98,6 +105,9 @@ func TestGatewayMux_Add(t *testing.T) {
 		mg.On("ReadEvent", mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
 		defer mg.AssertExpectations(t)
 
+		selfD := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
+		mg.On("Self").Return(selfD)
+
 		name := "mock"
 
 		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
@@ -133,6 +143,9 @@ func TestGatewayMux_Add(t *testing.T) {
 		mg.On("ReadEvent", mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
 		defer mg.AssertExpectations(t)
 
+		selfD := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
+		mg.On("Self").Return(selfD)
+
 		name := "mock"
 
 		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
@@ -159,6 +172,9 @@ func TestGatewayMux_Add(t *testing.T) {
 		mg.On("ReadEvent", mock.Anything).Return(da.DeviceRemoved{Device: d}, nil).Once()
 		mg.On("ReadEvent", mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
 		defer mg.AssertExpectations(t)
+
+		selfD := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
+		mg.On("Self").Return(selfD)
 
 		name := "mock"
 
@@ -190,6 +206,9 @@ func TestGatewayMux_Capability(t *testing.T) {
 		defer mg.AssertExpectations(t)
 		mg.On("Capability", capability).Return(expectedCapability)
 
+		selfD := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
+		mg.On("Self").Return(selfD)
+
 		name := "mock"
 
 		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
@@ -214,6 +233,10 @@ func TestGatewayMux_Capability(t *testing.T) {
 
 		mg.On("ReadEvent", mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
 		defer mg.AssertExpectations(t)
+
+		time.Sleep(1 * time.Millisecond)
+		selfD := da.BaseDevice{DeviceGateway: &mg, DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
+		mg.On("Self").Return(selfD)
 
 		name := "mock"
 

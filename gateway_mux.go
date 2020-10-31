@@ -40,6 +40,9 @@ func (m *GatewayMux) Add(n string, g da.Gateway) {
 	ch := make(chan struct{}, 1)
 	m.shutdownCh = append(m.shutdownCh, ch)
 
+	selfDevice := g.Self()
+	m.deviceByIdentifier[selfDevice.Identifier().String()] = selfDevice
+
 	go m.monitorGateway(g, ch)
 }
 

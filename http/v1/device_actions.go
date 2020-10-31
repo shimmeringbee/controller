@@ -3,11 +3,14 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 type ActionError string
@@ -17,6 +20,7 @@ func (e ActionError) Error() string {
 }
 
 const ActionNotSupported = ActionError("action not available on capability")
+const ActionUserError = ActionError("user provided bad data")
 
 func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
@@ -61,8 +65,8 @@ func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *h
 						if err == ActionNotSupported {
 							http.NotFound(w, r)
 							return
-						} else {
-							http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+						} else if errors.Is(err, ActionUserError) {
+							http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 							return
 						}
 					} else {
@@ -94,10 +98,32 @@ func doDeviceCapabilityAction(ctx context.Context, d da.Device, c interface{}, a
 	return nil, ActionNotSupported
 }
 
+type DeviceDiscoveryEnable struct {
+	Duration int
+}
+
 func doDeviceDiscovery(ctx context.Context, d da.Device, c capabilities.DeviceDiscovery, a string, b []byte) (interface{}, error) {
+	switch a {
+	case "Enable":
+		input := DeviceDiscoveryEnable{}
+		if err := json.Unmarshal(b, &input); err != nil {
+			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, err.Error())
+		}
+
+		duration := time.Duration(input.Duration) * time.Millisecond
+		return struct{}{}, c.Enable(ctx, d, duration)
+	case "Disable":
+		return struct{}{}, c.Disable(ctx, d)
+	}
+
 	return nil, ActionNotSupported
 }
 
 func doEnumerateDevice(ctx context.Context, d da.Device, c capabilities.EnumerateDevice, a string, b []byte) (interface{}, error) {
+	switch a {
+	case "Enumerate":
+		return struct{}{}, c.Enumerate(ctx, d)
+	}
+
 	return nil, ActionNotSupported
 }
