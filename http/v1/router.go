@@ -11,6 +11,7 @@ func ConstructRouter(mapper GatewayMapper) http.Handler {
 	dc := deviceController{
 		gatewayMapper:   mapper,
 		deviceConverter: convertDADeviceToDevice,
+		deviceAction:    doDeviceCapabilityAction,
 	}
 
 	gc := gatewayController{

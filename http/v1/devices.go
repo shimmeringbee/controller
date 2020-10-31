@@ -10,9 +10,12 @@ import (
 
 type deviceConverter func(context.Context, da.Device) device
 
+type deviceAction func(context.Context, da.Device, interface{}, string, []byte) (interface{}, error)
+
 type deviceController struct {
 	gatewayMapper   GatewayMapper
 	deviceConverter deviceConverter
+	deviceAction    deviceAction
 }
 
 func (d *deviceController) listDevices(w http.ResponseWriter, r *http.Request) {

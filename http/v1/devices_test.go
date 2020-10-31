@@ -81,7 +81,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 			},
 		}
 
-		req, err := http.NewRequest("GET", "/api/v1/devices", nil)
+		req, err := http.NewRequest("GET", "/devices", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -89,7 +89,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		router := mux.NewRouter()
-		router.HandleFunc("/api/v1/devices", controller.listDevices)
+		router.HandleFunc("/devices", controller.listDevices)
 		router.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -140,7 +140,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 			Gateway:      "one",
 		}
 
-		req, err := http.NewRequest("GET", "/api/v1/devices/one", nil)
+		req, err := http.NewRequest("GET", "/devices/one", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -148,7 +148,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		router := mux.NewRouter()
-		router.HandleFunc("/api/v1/devices/{identifier}", controller.getDevice)
+		router.HandleFunc("/devices/{identifier}", controller.getDevice)
 		router.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -170,7 +170,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 		controller := deviceController{gatewayMapper: &mgm}
 
-		req, err := http.NewRequest("GET", "/api/v1/devices/one", nil)
+		req, err := http.NewRequest("GET", "/devices/one", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -178,10 +178,9 @@ func Test_deviceController_getDevice(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		router := mux.NewRouter()
-		router.HandleFunc("/api/v1/devices/{identifier}", controller.getDevice)
+		router.HandleFunc("/devices/{identifier}", controller.getDevice)
 		router.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
-
 }

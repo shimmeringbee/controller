@@ -54,7 +54,7 @@ func Test_gatewayController_listGateways(t *testing.T) {
 			},
 		}
 
-		req, err := http.NewRequest("GET", "/api/v1/gateways", nil)
+		req, err := http.NewRequest("GET", "/gateways", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -62,7 +62,7 @@ func Test_gatewayController_listGateways(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		router := mux.NewRouter()
-		router.HandleFunc("/api/v1/gateways", controller.listGateways)
+		router.HandleFunc("/gateways", controller.listGateways)
 		router.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -89,7 +89,7 @@ func Test_gatewayController_getGateway(t *testing.T) {
 
 		controller := gatewayController{gatewayMapper: &mgm}
 
-		req, err := http.NewRequest("GET", "/api/v1/gateways/one", nil)
+		req, err := http.NewRequest("GET", "/gateways/one", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -97,7 +97,7 @@ func Test_gatewayController_getGateway(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		router := mux.NewRouter()
-		router.HandleFunc("/api/v1/gateways/{identifier}", controller.getGateway)
+		router.HandleFunc("/gateways/{identifier}", controller.getGateway)
 		router.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
@@ -129,7 +129,7 @@ func Test_gatewayController_getGateway(t *testing.T) {
 			SelfDevice:   "one",
 		}
 
-		req, err := http.NewRequest("GET", "/api/v1/gateways/one", nil)
+		req, err := http.NewRequest("GET", "/gateways/one", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -137,7 +137,7 @@ func Test_gatewayController_getGateway(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		router := mux.NewRouter()
-		router.HandleFunc("/api/v1/gateways/{identifier}", controller.getGateway)
+		router.HandleFunc("/gateways/{identifier}", controller.getGateway)
 		router.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
@@ -160,7 +160,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 
 		controller := gatewayController{gatewayMapper: &mgm}
 
-		req, err := http.NewRequest("GET", "/api/v1/gateways/non-existent/devices", nil)
+		req, err := http.NewRequest("GET", "/gateways/non-existent/devices", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -168,7 +168,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		router := mux.NewRouter()
-		router.HandleFunc("/api/v1/gateways/{identifier}/devices", controller.listDevicesOnGateway)
+		router.HandleFunc("/gateways/{identifier}/devices", controller.listDevicesOnGateway)
 		router.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusNotFound, rr.Code)
@@ -212,7 +212,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 			},
 		}
 
-		req, err := http.NewRequest("GET", "/api/v1/gateways/one/devices", nil)
+		req, err := http.NewRequest("GET", "/gateways/one/devices", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -220,7 +220,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		router := mux.NewRouter()
-		router.HandleFunc("/api/v1/gateways/{identifier}/devices", controller.listDevicesOnGateway)
+		router.HandleFunc("/gateways/{identifier}/devices", controller.listDevicesOnGateway)
 		router.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code)
