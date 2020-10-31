@@ -78,16 +78,37 @@ func Test_gatewayController_listGateways(t *testing.T) {
 }
 
 func Test_gatewayController_getGateway(t *testing.T) {
-	t.Run("returns a gateway if present", func(t *testing.T) {
+	t.Run("returns a 404 if gateway is not present", func(t *testing.T) {
 		mgm := mockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mockGateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		mgwTwo := mockGateway{}
-		mgwTwo.On("EnsureGatewaysAreNotEqual").Maybe()
-		defer mgwTwo.AssertExpectations(t)
+		mgm.On("Gateways").Return(map[string]da.Gateway{})
+
+		controller := gatewayController{gatewayMapper: &mgm}
+
+		req, err := http.NewRequest("GET", "/api/v1/gateways/one", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/api/v1/gateways/{identifier}", controller.getGateway)
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("returns a gateway if present", func(t *testing.T) {
+		mgm := mockGatewayMapper{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mockGateway{}
+		defer mgwOne.AssertExpectations(t)
 
 		mgm.On("Gateways").Return(map[string]da.Gateway{
 			"one": &mgwOne,

@@ -161,4 +161,27 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 		assert.Equal(t, expectedDevice, actualDevice)
 	})
+
+	t.Run("returns a 404 if device is not present", func(t *testing.T) {
+		mgm := mockGatewayMapper{}
+		defer mgm.AssertExpectations(t)
+
+		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
+
+		controller := deviceController{gatewayMapper: &mgm}
+
+		req, err := http.NewRequest("GET", "/api/v1/devices/one", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/api/v1/devices/{identifier}", controller.getDevice)
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
 }
