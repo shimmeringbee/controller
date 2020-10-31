@@ -106,7 +106,7 @@ func startZDAGateway(cfg config.ZDAConfig, cfgDig string) (da.Gateway, func(), e
 		for {
 			select {
 			case <-t.C:
-				if err := loadZDAState(gw, zdaStateFile); err != nil {
+				if err := saveZDAState(gw, zdaStateFile); err != nil {
 				}
 			case <-shutCh:
 				if err := saveZDAState(gw, zdaStateFile); err != nil {
@@ -128,6 +128,10 @@ func saveZDAState(gw *zda.ZigbeeGateway, file string) error {
 	if data, err := json.MarshalIndent(state, "", "\t"); err != nil {
 		return fmt.Errorf("failed to marshal zda state: %w", err)
 	} else {
+		if len(data) < 2 {
+			return fmt.Errorf("failed to save zda state, no content in data")
+		}
+
 		if err := ioutil.WriteFile(file, data, DefaultFilePermissions); err != nil {
 			return fmt.Errorf("failed to save zda state: %w", err)
 		}
@@ -247,6 +251,10 @@ func saveZStackNodeCache(cache *zstack.NodeTable, file string) error {
 	if data, err := json.MarshalIndent(cache.Nodes(), "", "\t"); err != nil {
 		return fmt.Errorf("failed to marshal zstack node cache: %w", err)
 	} else {
+		if len(data) < 2 {
+			return fmt.Errorf("failed to save zstack node cache, no content in data")
+		}
+
 		if err := ioutil.WriteFile(file, data, DefaultFilePermissions); err != nil {
 			return fmt.Errorf("failed to save zstack node cache: %w", err)
 		}
