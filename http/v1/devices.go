@@ -70,6 +70,3 @@ func (d *deviceController) getDevice(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("content-type", "application/json")
 	w.Write(data)
 }
-
-func (d *deviceController) useDeviceCapability(w http.ResponseWriter, r *http.Request) {
-}

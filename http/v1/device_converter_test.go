@@ -51,7 +51,7 @@ func Test_convertDADeviceToDevice(t *testing.T) {
 			Capabilities: map[string]interface{}{"capOne": struct{}{}},
 		}
 
-		actual := convertDADeviceToDevice(nil, input)
+		actual := convertDADeviceToDevice(context.Background(), input)
 
 		assert.Equal(t, expected, actual)
 	})
