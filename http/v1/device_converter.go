@@ -162,8 +162,8 @@ func convertAlarmSensor(ctx context.Context, device da.Device, as capabilities.A
 
 	alarms := map[string]bool{}
 
-	for _, v := range alarmSensorState {
-		alarms[v.SensorType.String()] = v.InAlarm
+	for k, v := range alarmSensorState {
+		alarms[k.String()] = v
 	}
 
 	return AlarmSensor{

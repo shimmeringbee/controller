@@ -281,9 +281,9 @@ type mockAlarmSensor struct {
 	mock.Mock
 }
 
-func (m *mockAlarmSensor) Status(c context.Context, d da.Device) ([]capabilities.AlarmSensorState, error) {
+func (m *mockAlarmSensor) Status(c context.Context, d da.Device) (map[capabilities.SensorType]bool, error) {
 	args := m.Called(c, d)
-	return args.Get(0).([]capabilities.AlarmSensorState), args.Error(1)
+	return args.Get(0).(map[capabilities.SensorType]bool), args.Error(1)
 }
 
 func Test_convertAlarmSensor(t *testing.T) {
@@ -293,15 +293,9 @@ func Test_convertAlarmSensor(t *testing.T) {
 		mas := mockAlarmSensor{}
 		defer mas.AssertExpectations(t)
 
-		mas.On("Status", mock.Anything, d).Return([]capabilities.AlarmSensorState{
-			{
-				SensorType: capabilities.FireBreakGlass,
-				InAlarm:    true,
-			},
-			{
-				SensorType: capabilities.DeviceBatteryFailure,
-				InAlarm:    false,
-			},
+		mas.On("Status", mock.Anything, d).Return(map[capabilities.SensorType]bool{
+			capabilities.FireBreakGlass:       true,
+			capabilities.DeviceBatteryFailure: false,
 		}, nil)
 
 		expected := AlarmSensor{

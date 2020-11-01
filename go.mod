@@ -6,7 +6,7 @@ require (
 	github.com/creack/goselect v0.1.1 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/peterbourgon/ff/v3 v3.0.0
-	github.com/shimmeringbee/da v0.0.0-20201101185751-6f108dd8399f
+	github.com/shimmeringbee/da v0.0.0-20201101194122-245380c6b41f
 	github.com/shimmeringbee/logwrap v0.0.0-20201027101852-edf650186bcb
 	github.com/shimmeringbee/zda v0.0.0-20201101162504-6d64bf8cedcc
 	github.com/shimmeringbee/zigbee v0.0.0-20201027194100-4e53cafc0f7a
