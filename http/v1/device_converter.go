@@ -45,6 +45,8 @@ func convertDADeviceCapability(pctx context.Context, device da.Device, uncastCap
 		return convertEnumerateDevice(ctx, device, capability)
 	case capabilities.AlarmSensor:
 		return convertAlarmSensor(ctx, device, capability)
+	case capabilities.OnOff:
+		return convertOnOff(ctx, device, capability)
 	default:
 		return struct{}{}
 	}
@@ -166,5 +168,20 @@ func convertAlarmSensor(ctx context.Context, device da.Device, as capabilities.A
 
 	return AlarmSensor{
 		Alarms: alarms,
+	}
+}
+
+type OnOff struct {
+	State bool
+}
+
+func convertOnOff(ctx context.Context, device da.Device, oo capabilities.OnOff) interface{} {
+	state, err := oo.State(ctx, device)
+	if err != nil {
+		return nil
+	}
+
+	return OnOff{
+		State: state,
 	}
 }

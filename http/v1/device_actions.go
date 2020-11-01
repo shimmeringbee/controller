@@ -68,6 +68,9 @@ func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *h
 						} else if errors.Is(err, ActionUserError) {
 							http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 							return
+						} else {
+							http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+							return
 						}
 					} else {
 						if jsonData, err := json.Marshal(data); err != nil {

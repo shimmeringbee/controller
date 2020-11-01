@@ -316,3 +316,41 @@ func Test_convertAlarmSensor(t *testing.T) {
 		assert.Equal(t, expected, actual)
 	})
 }
+
+type mockOnOff struct {
+	mock.Mock
+}
+
+func (m *mockOnOff) State(c context.Context, d da.Device) (bool, error) {
+	args := m.Called(c, d)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockOnOff) On(c context.Context, d da.Device) error {
+	args := m.Called(c, d)
+	return args.Error(0)
+}
+
+func (m *mockOnOff) Off(c context.Context, d da.Device) error {
+	args := m.Called(c, d)
+	return args.Error(0)
+}
+
+func Test_convertOnOff(t *testing.T) {
+	t.Run("retrieves and returns all data from OnOff", func(t *testing.T) {
+		d := da.BaseDevice{}
+
+		moo := mockOnOff{}
+		defer moo.AssertExpectations(t)
+
+		moo.Mock.On("State", mock.Anything, d).Return(true, nil)
+
+		expected := OnOff{
+			State: true,
+		}
+
+		actual := convertOnOff(context.Background(), d, &moo)
+
+		assert.Equal(t, expected, actual)
+	})
+}
