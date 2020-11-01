@@ -276,3 +276,43 @@ func Test_convertEnumerateDevice(t *testing.T) {
 		assert.Equal(t, expected, actual)
 	})
 }
+
+type mockAlarmSensor struct {
+	mock.Mock
+}
+
+func (m *mockAlarmSensor) Status(c context.Context, d da.Device) ([]capabilities.AlarmSensorState, error) {
+	args := m.Called(c, d)
+	return args.Get(0).([]capabilities.AlarmSensorState), args.Error(1)
+}
+
+func Test_convertAlarmSensor(t *testing.T) {
+	t.Run("retrieves and returns all data from AlarmSensor", func(t *testing.T) {
+		d := da.BaseDevice{}
+
+		mas := mockAlarmSensor{}
+		defer mas.AssertExpectations(t)
+
+		mas.On("Status", mock.Anything, d).Return([]capabilities.AlarmSensorState{
+			{
+				SensorType: capabilities.FireBreakGlass,
+				InAlarm:    true,
+			},
+			{
+				SensorType: capabilities.DeviceBatteryFailure,
+				InAlarm:    false,
+			},
+		}, nil)
+
+		expected := AlarmSensor{
+			Alarms: map[string]bool{
+				"FireBreakGlass":       true,
+				"DeviceBatteryFailure": false,
+			},
+		}
+
+		actual := convertAlarmSensor(context.Background(), d, &mas)
+
+		assert.Equal(t, expected, actual)
+	})
+}

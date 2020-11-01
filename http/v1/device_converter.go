@@ -43,6 +43,8 @@ func convertDADeviceCapability(pctx context.Context, device da.Device, uncastCap
 		return convertDeviceDiscovery(ctx, device, capability)
 	case capabilities.EnumerateDevice:
 		return convertEnumerateDevice(ctx, device, capability)
+	case capabilities.AlarmSensor:
+		return convertAlarmSensor(ctx, device, capability)
 	default:
 		return struct{}{}
 	}
@@ -86,14 +88,14 @@ type RelativeHumiditySensor struct {
 	Readings []capabilities.RelativeHumidityReading
 }
 
-func convertRelativeHumiditySensor(ctx context.Context, device da.Device, ts capabilities.RelativeHumiditySensor) interface{} {
-	tsReadings, err := ts.Reading(ctx, device)
+func convertRelativeHumiditySensor(ctx context.Context, device da.Device, rhs capabilities.RelativeHumiditySensor) interface{} {
+	rhReadings, err := rhs.Reading(ctx, device)
 	if err != nil {
 		return nil
 	}
 
 	return RelativeHumiditySensor{
-		Readings: tsReadings,
+		Readings: rhReadings,
 	}
 }
 
@@ -101,14 +103,14 @@ type PressureSensor struct {
 	Readings []capabilities.PressureReading
 }
 
-func convertPressureSensor(ctx context.Context, device da.Device, ts capabilities.PressureSensor) interface{} {
-	tsReadings, err := ts.Reading(ctx, device)
+func convertPressureSensor(ctx context.Context, device da.Device, ps capabilities.PressureSensor) interface{} {
+	psReadings, err := ps.Reading(ctx, device)
 	if err != nil {
 		return nil
 	}
 
 	return PressureSensor{
-		Readings: tsReadings,
+		Readings: psReadings,
 	}
 }
 
@@ -117,8 +119,8 @@ type DeviceDiscovery struct {
 	Duration    int `json:",omitempty"`
 }
 
-func convertDeviceDiscovery(ctx context.Context, device da.Device, ts capabilities.DeviceDiscovery) interface{} {
-	discoveryState, err := ts.Status(ctx, device)
+func convertDeviceDiscovery(ctx context.Context, device da.Device, dd capabilities.DeviceDiscovery) interface{} {
+	discoveryState, err := dd.Status(ctx, device)
 	if err != nil {
 		return nil
 	}
@@ -135,13 +137,34 @@ type EnumerateDevice struct {
 	Enumerating bool
 }
 
-func convertEnumerateDevice(ctx context.Context, device da.Device, ts capabilities.EnumerateDevice) interface{} {
-	discoveryState, err := ts.Status(ctx, device)
+func convertEnumerateDevice(ctx context.Context, device da.Device, ed capabilities.EnumerateDevice) interface{} {
+	enumerateDeviceState, err := ed.Status(ctx, device)
 	if err != nil {
 		return nil
 	}
 
 	return EnumerateDevice{
-		Enumerating: discoveryState.Enumerating,
+		Enumerating: enumerateDeviceState.Enumerating,
+	}
+}
+
+type AlarmSensor struct {
+	Alarms map[string]bool
+}
+
+func convertAlarmSensor(ctx context.Context, device da.Device, as capabilities.AlarmSensor) interface{} {
+	alarmSensorState, err := as.Status(ctx, device)
+	if err != nil {
+		return nil
+	}
+
+	alarms := map[string]bool{}
+
+	for _, v := range alarmSensorState {
+		alarms[v.SensorType.String()] = v.InAlarm
+	}
+
+	return AlarmSensor{
+		Alarms: alarms,
 	}
 }
