@@ -176,7 +176,7 @@ type OnOff struct {
 }
 
 func convertOnOff(ctx context.Context, device da.Device, oo capabilities.OnOff) interface{} {
-	state, err := oo.State(ctx, device)
+	state, err := oo.Status(ctx, device)
 	if err != nil {
 		return nil
 	}

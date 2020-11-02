@@ -7,6 +7,7 @@ import (
 	"github.com/shimmeringbee/controller/config"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/zda"
+	"github.com/shimmeringbee/zda/capability/alarm_sensor"
 	"github.com/shimmeringbee/zda/capability/has_product_information"
 	"github.com/shimmeringbee/zda/capability/on_off"
 	"github.com/shimmeringbee/zda/capability/pressure_sensor"
@@ -83,6 +84,7 @@ func startZDAGateway(cfg config.ZDAConfig, cfgDig string) (da.Gateway, func(), e
 	gw.CapabilityManager.Add(&temperature_sensor.Implementation{})
 	gw.CapabilityManager.Add(&relative_humidity_sensor.Implementation{})
 	gw.CapabilityManager.Add(&pressure_sensor.Implementation{})
+	gw.CapabilityManager.Add(&alarm_sensor.Implementation{})
 
 	if err := gw.Start(); err != nil {
 		return nil, nil, fmt.Errorf("failed to start zda: %w", err)

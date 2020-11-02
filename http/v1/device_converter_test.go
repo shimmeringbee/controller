@@ -315,7 +315,7 @@ type mockOnOff struct {
 	mock.Mock
 }
 
-func (m *mockOnOff) State(c context.Context, d da.Device) (bool, error) {
+func (m *mockOnOff) Status(c context.Context, d da.Device) (bool, error) {
 	args := m.Called(c, d)
 	return args.Bool(0), args.Error(1)
 }
@@ -337,7 +337,7 @@ func Test_convertOnOff(t *testing.T) {
 		moo := mockOnOff{}
 		defer moo.AssertExpectations(t)
 
-		moo.Mock.On("State", mock.Anything, d).Return(true, nil)
+		moo.Mock.On("Status", mock.Anything, d).Return(true, nil)
 
 		expected := OnOff{
 			State: true,
