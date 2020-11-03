@@ -348,3 +348,72 @@ func Test_convertOnOff(t *testing.T) {
 		assert.Equal(t, expected, actual)
 	})
 }
+
+type mockPowerSupply struct {
+	mock.Mock
+}
+
+func (m *mockPowerSupply) Status(c context.Context, d da.Device) (capabilities.PowerStatus, error) {
+	args := m.Called(c, d)
+	return args.Get(0).(capabilities.PowerStatus), args.Error(1)
+}
+
+func Test_convertPowerStatus(t *testing.T) {
+	t.Run("retrieves and returns all data from PowerSupply", func(t *testing.T) {
+		d := da.BaseDevice{}
+
+		mps := mockPowerSupply{}
+		defer mps.AssertExpectations(t)
+
+		mps.Mock.On("Status", mock.Anything, d).Return(capabilities.PowerStatus{
+			Mains: []capabilities.PowerMainsStatus{
+				{
+					Voltage:   250,
+					Frequency: 50.1,
+					Available: true,
+					Present:   capabilities.Voltage | capabilities.Frequency | capabilities.Available,
+				},
+			},
+			Battery: []capabilities.PowerBatteryStatus{
+				{
+					Voltage:        3.2,
+					NominalVoltage: 3.7,
+					Remaining:      0.21,
+					Available:      true,
+					Present:        capabilities.Voltage | capabilities.NominalVoltage | capabilities.Remaining | capabilities.Available,
+				},
+			},
+		}, nil)
+
+		mainsVoltage := 250.0
+		mainsFrequency := 50.1
+		mainsAvailable := true
+
+		batteryVoltage := 3.2
+		batteryNominalVoltage := 3.7
+		batteryRemaining := 0.21
+		batteryAvailable := true
+
+		expected := PowerStatus{
+			Mains: []PowerMainsStatus{
+				{
+					Voltage:   &mainsVoltage,
+					Frequency: &mainsFrequency,
+					Available: &mainsAvailable,
+				},
+			},
+			Battery: []PowerBatteryStatus{
+				{
+					Voltage:        &batteryVoltage,
+					NominalVoltage: &batteryNominalVoltage,
+					Remaining:      &batteryRemaining,
+					Available:      &batteryAvailable,
+				},
+			},
+		}
+
+		actual := convertPowerSupply(context.Background(), d, &mps)
+
+		assert.Equal(t, expected, actual)
+	})
+}

@@ -47,6 +47,8 @@ func convertDADeviceCapability(pctx context.Context, device da.Device, uncastCap
 		return convertAlarmSensor(ctx, device, capability)
 	case capabilities.OnOff:
 		return convertOnOff(ctx, device, capability)
+	case capabilities.PowerSupply:
+		return convertPowerSupply(ctx, device, capability)
 	default:
 		return struct{}{}
 	}
@@ -183,5 +185,78 @@ func convertOnOff(ctx context.Context, device da.Device, oo capabilities.OnOff) 
 
 	return OnOff{
 		State: state,
+	}
+}
+
+type PowerStatus struct {
+	Mains   []PowerMainsStatus   `json:",omitempty"`
+	Battery []PowerBatteryStatus `json:",omitempty"`
+}
+
+type PowerMainsStatus struct {
+	Voltage   *float64 `json:",omitempty"`
+	Frequency *float64 `json:",omitempty"`
+	Available *bool    `json:",omitempty"`
+}
+
+type PowerBatteryStatus struct {
+	Voltage        *float64 `json:",omitempty"`
+	NominalVoltage *float64 `json:",omitempty"`
+	Remaining      *float64 `json:",omitempty"`
+	Available      *bool    `json:",omitempty"`
+}
+
+func convertPowerSupply(ctx context.Context, d da.Device, capability capabilities.PowerSupply) interface{} {
+	state, err := capability.Status(ctx, d)
+	if err != nil {
+		return nil
+	}
+
+	var mains []PowerMainsStatus
+	var battery []PowerBatteryStatus
+
+	for _, m := range state.Mains {
+		newMains := PowerMainsStatus{}
+
+		if m.Present&capabilities.Voltage == capabilities.Voltage {
+			newMains.Voltage = &m.Voltage
+		}
+
+		if m.Present&capabilities.Frequency == capabilities.Frequency {
+			newMains.Frequency = &m.Frequency
+		}
+
+		if m.Present&capabilities.Available == capabilities.Available {
+			newMains.Available = &m.Available
+		}
+
+		mains = append(mains, newMains)
+	}
+
+	for _, b := range state.Battery {
+		newBattery := PowerBatteryStatus{}
+
+		if b.Present&capabilities.Voltage == capabilities.Voltage {
+			newBattery.Voltage = &b.Voltage
+		}
+
+		if b.Present&capabilities.NominalVoltage == capabilities.NominalVoltage {
+			newBattery.NominalVoltage = &b.NominalVoltage
+		}
+
+		if b.Present&capabilities.Remaining == capabilities.Remaining {
+			newBattery.Remaining = &b.Remaining
+		}
+
+		if b.Present&capabilities.Available == capabilities.Available {
+			newBattery.Available = &b.Available
+		}
+
+		battery = append(battery, newBattery)
+	}
+
+	return PowerStatus{
+		Mains:   mains,
+		Battery: battery,
 	}
 }
