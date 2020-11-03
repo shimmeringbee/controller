@@ -319,3 +319,39 @@ func Test_doDeviceCapabilityAction_EnumerateDevice(t *testing.T) {
 		assert.Equal(t, expectedResult, actualResult)
 	})
 }
+
+func Test_doDeviceCapabilityAction_OnOff(t *testing.T) {
+	t.Run("On invokes the capability", func(t *testing.T) {
+		mockCapability := &mockOnOff{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		mockCapability.Mock.On("On", mock.Anything, device).Return(nil)
+
+		action := "On"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, nil)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+
+	t.Run("Off invokes the capability", func(t *testing.T) {
+		mockCapability := &mockOnOff{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		mockCapability.Mock.On("Off", mock.Anything, device).Return(nil)
+
+		action := "Off"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, nil)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+}

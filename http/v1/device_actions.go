@@ -62,7 +62,7 @@ func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *h
 					}
 
 					if data, err := d.deviceAction(r.Context(), daDevice, uncastCap, capabilityAction, body); err != nil {
-						if err == ActionNotSupported {
+						if errors.Is(err, ActionNotSupported) {
 							http.NotFound(w, r)
 							return
 						} else if errors.Is(err, ActionUserError) {
@@ -96,6 +96,8 @@ func doDeviceCapabilityAction(ctx context.Context, d da.Device, c interface{}, a
 		return doDeviceDiscovery(ctx, d, cast, a, b)
 	case capabilities.EnumerateDevice:
 		return doEnumerateDevice(ctx, d, cast, a, b)
+	case capabilities.OnOff:
+		return doOnOff(ctx, d, cast, a, b)
 	}
 
 	return nil, ActionNotSupported
@@ -126,6 +128,17 @@ func doEnumerateDevice(ctx context.Context, d da.Device, c capabilities.Enumerat
 	switch a {
 	case "Enumerate":
 		return struct{}{}, c.Enumerate(ctx, d)
+	}
+
+	return nil, ActionNotSupported
+}
+
+func doOnOff(ctx context.Context, d da.Device, c capabilities.OnOff, a string, b []byte) (interface{}, error) {
+	switch a {
+	case "On":
+		return struct{}{}, c.On(ctx, d)
+	case "Off":
+		return struct{}{}, c.Off(ctx, d)
 	}
 
 	return nil, ActionNotSupported
