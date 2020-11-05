@@ -73,7 +73,9 @@ func startZDAGateway(cfg config.ZDAConfig, cfgDig string) (da.Gateway, func(), e
 
 	var r *rules.Rule
 	if len(cfg.Rules) > 0 {
-		r, err = loadZDARules(cfg.Rules)
+		rulesFile := strings.Join([]string{cfgDig, cfg.Rules}, string(os.PathSeparator))
+
+		r, err = loadZDARules(rulesFile)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to load zda rules '%s': %w", cfg.Rules, err)
 		}
