@@ -377,10 +377,11 @@ func Test_convertPowerStatus(t *testing.T) {
 			Battery: []capabilities.PowerBatteryStatus{
 				{
 					Voltage:        3.2,
-					NominalVoltage: 3.7,
+					MaximumVoltage: 3.7,
+					MinimumVoltage: 3.1,
 					Remaining:      0.21,
 					Available:      true,
-					Present:        capabilities.Voltage | capabilities.NominalVoltage | capabilities.Remaining | capabilities.Available,
+					Present:        capabilities.Voltage | capabilities.MaximumVoltage | capabilities.MinimumVoltage | capabilities.Remaining | capabilities.Available,
 				},
 			},
 		}, nil)
@@ -390,7 +391,8 @@ func Test_convertPowerStatus(t *testing.T) {
 		mainsAvailable := true
 
 		batteryVoltage := 3.2
-		batteryNominalVoltage := 3.7
+		batteryMaximumVoltage := 3.7
+		batteryMinimumVoltage := 3.1
 		batteryRemaining := 0.21
 		batteryAvailable := true
 
@@ -405,7 +407,8 @@ func Test_convertPowerStatus(t *testing.T) {
 			Battery: []PowerBatteryStatus{
 				{
 					Voltage:        &batteryVoltage,
-					NominalVoltage: &batteryNominalVoltage,
+					MaximumVoltage: &batteryMaximumVoltage,
+					MinimumVoltage: &batteryMinimumVoltage,
 					Remaining:      &batteryRemaining,
 					Available:      &batteryAvailable,
 				},

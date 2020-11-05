@@ -201,7 +201,8 @@ type PowerMainsStatus struct {
 
 type PowerBatteryStatus struct {
 	Voltage        *float64 `json:",omitempty"`
-	NominalVoltage *float64 `json:",omitempty"`
+	MaximumVoltage *float64 `json:",omitempty"`
+	MinimumVoltage *float64 `json:",omitempty"`
 	Remaining      *float64 `json:",omitempty"`
 	Available      *bool    `json:",omitempty"`
 }
@@ -240,8 +241,12 @@ func convertPowerSupply(ctx context.Context, d da.Device, capability capabilitie
 			newBattery.Voltage = &b.Voltage
 		}
 
-		if b.Present&capabilities.NominalVoltage == capabilities.NominalVoltage {
-			newBattery.NominalVoltage = &b.NominalVoltage
+		if b.Present&capabilities.MaximumVoltage == capabilities.MaximumVoltage {
+			newBattery.MaximumVoltage = &b.MaximumVoltage
+		}
+
+		if b.Present&capabilities.MinimumVoltage == capabilities.MinimumVoltage {
+			newBattery.MinimumVoltage = &b.MinimumVoltage
 		}
 
 		if b.Present&capabilities.Remaining == capabilities.Remaining {
