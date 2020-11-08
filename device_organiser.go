@@ -192,9 +192,10 @@ func (d *DeviceOrganiser) enumerateZoneDescendents(id int) []int {
 
 	var children []int
 
+	children = append(children, zone.ChildZones...)
+
 	for _, childId := range zone.ChildZones {
 		grandChildren := d.enumerateZoneDescendents(childId)
-		children = append(children, childId)
 		children = append(children, grandChildren...)
 	}
 
