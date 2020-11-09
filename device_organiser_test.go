@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestDeviceOrganiser(t *testing.T) {
+func TestDeviceOrganiser_Zones(t *testing.T) {
 	t.Run("NewZone generates a new zone creates it at the root with an incrementing id", func(t *testing.T) {
 		startId := int64(0)
 		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
@@ -251,5 +251,169 @@ func TestDeviceOrganiser(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotContains(t, do.zones, zoneOne.Identifier)
 		assert.NotContains(t, do.rootZones, zoneOne.Identifier)
+	})
+}
+
+func TestDeviceOrganiser_Devices(t *testing.T) {
+	t.Run("AddDevice adds a device", func(t *testing.T) {
+		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do.AddDevice("id")
+
+		_, found := do.Device("id")
+		assert.True(t, found)
+	})
+
+	t.Run("Device returns false if device is not present", func(t *testing.T) {
+		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		_, found := do.Device("id")
+		assert.False(t, found)
+	})
+
+	t.Run("Device returns true if device is present", func(t *testing.T) {
+		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do.AddDevice("id")
+		_, found := do.Device("id")
+		assert.True(t, found)
+	})
+
+	t.Run("NameDevice errors if device doesn't exist", func(t *testing.T) {
+		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		err := do.NameDevice("id", "name")
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrNotFound))
+	})
+
+	t.Run("NameDevice sets a name on a device", func(t *testing.T) {
+		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do.AddDevice("id")
+
+		err := do.NameDevice("id", "name")
+		assert.NoError(t, err)
+
+		dm, found := do.Device("id")
+		assert.True(t, found)
+		assert.Equal(t, "name", dm.Name)
+	})
+
+	t.Run("NameDevice errors if the device does not exist", func(t *testing.T) {
+		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		err := do.NameDevice("id", "name")
+		assert.True(t, errors.Is(err, ErrNotFound))
+	})
+
+	t.Run("AddDevice does not overwrite an existing device", func(t *testing.T) {
+		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do.AddDevice("id")
+
+		err := do.NameDevice("id", "name")
+		assert.NoError(t, err)
+
+		do.AddDevice("id")
+
+		dm, found := do.Device("id")
+		assert.True(t, found)
+		assert.Equal(t, "name", dm.Name)
+	})
+
+	t.Run("RemoveDevice removes an added device", func(t *testing.T) {
+		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do.AddDevice("id")
+
+		do.RemoveDevice("id")
+		_, found := do.Device("id")
+		assert.False(t, found)
+	})
+
+	t.Run("AddDeviceToZone errors if the device can not be found", func(t *testing.T) {
+		startId := int64(0)
+		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		err := do.AddDeviceToZone("id", 1)
+		assert.True(t, errors.Is(err, ErrNotFound))
+	})
+
+	t.Run("AddDeviceToZone errors if the zone can not be found", func(t *testing.T) {
+		startId := int64(0)
+		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		do.AddDevice("id")
+
+		err := do.AddDeviceToZone("id", 1)
+		assert.True(t, errors.Is(err, ErrNotFound))
+	})
+
+	t.Run("AddDeviceToZone adds the zone to the device and device to zone", func(t *testing.T) {
+		startId := int64(0)
+		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		do.AddDevice("id")
+		zone := do.NewZone("name")
+
+		err := do.AddDeviceToZone("id", zone.Identifier)
+		assert.NoError(t, err)
+
+		checkDevice, _ := do.Device("id")
+		checkZone, _ := do.Zone(zone.Identifier)
+
+		assert.Contains(t, checkDevice.Zones, zone.Identifier)
+		assert.Contains(t, checkZone.Devices, "id")
+	})
+
+	t.Run("RemoveDeviceFromZone errors if the device can not be found", func(t *testing.T) {
+		startId := int64(0)
+		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		err := do.RemoveDeviceFromZone("id", 1)
+		assert.True(t, errors.Is(err, ErrNotFound))
+	})
+
+	t.Run("RemoveDeviceFromZone errors if the zone can not be found", func(t *testing.T) {
+		startId := int64(0)
+		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		do.AddDevice("id")
+
+		err := do.RemoveDeviceFromZone("id", 1)
+		assert.True(t, errors.Is(err, ErrNotFound))
+	})
+
+	t.Run("RemoveDeviceFromZone removes the devices from the zone and zone from device", func(t *testing.T) {
+		startId := int64(0)
+		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		do.AddDevice("id")
+		zone := do.NewZone("name")
+
+		err := do.AddDeviceToZone("id", zone.Identifier)
+		assert.NoError(t, err)
+
+		err = do.RemoveDeviceFromZone("id", zone.Identifier)
+		assert.NoError(t, err)
+
+		checkDevice, _ := do.Device("id")
+		checkZone, _ := do.Zone(zone.Identifier)
+
+		assert.NotContains(t, checkDevice.Zones, zone.Identifier)
+		assert.NotContains(t, checkZone.Devices, "id")
+	})
+
+	t.Run("RemoveDevice removes the device from any zones that its in", func(t *testing.T) {
+		startId := int64(0)
+		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		do.AddDevice("id")
+		zone := do.NewZone("name")
+
+		err := do.AddDeviceToZone("id", zone.Identifier)
+		assert.NoError(t, err)
+
+		do.RemoveDevice("id")
+
+		checkZone, found := do.Zone(zone.Identifier)
+		assert.True(t, found)
+
+		assert.NotContains(t, checkZone.Devices, "id")
 	})
 }

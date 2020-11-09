@@ -16,12 +16,20 @@ type Zone struct {
 	Devices []string
 }
 
+type DeviceMetadata struct {
+	Name  string
+	Zones []int
+}
+
 type DeviceOrganiser struct {
 	nextZoneId *int64
 
 	zoneLock  *sync.Mutex
-	rootZones []int
 	zones     map[int]*Zone
+	rootZones []int
+
+	deviceLock *sync.Mutex
+	devices    map[string]*DeviceMetadata
 }
 
 type ZoneError string
@@ -32,7 +40,7 @@ func (z ZoneError) Error() string {
 
 const (
 	ErrCircularReference = ZoneError("operation would result in circular reference in zone")
-	ErrNotFound          = ZoneError("zone not found")
+	ErrNotFound          = ZoneError("not found")
 	ErrMoveSameZone      = ZoneError("zone can not be moved to itself")
 	ErrOrphanZone        = ZoneError("operation would result in orphaned zone")
 	ErrHasDevices        = ZoneError("zone has devices")
@@ -85,6 +93,18 @@ func (d *DeviceOrganiser) NewZone(name string) Zone {
 
 func filterInt(haystack []int, needle int) []int {
 	var result []int
+
+	for _, check := range haystack {
+		if check != needle {
+			result = append(result, check)
+		}
+	}
+
+	return result
+}
+
+func filterString(haystack []string, needle string) []string {
+	var result []string
 
 	for _, check := range haystack {
 		if check != needle {
@@ -185,6 +205,110 @@ func (d *DeviceOrganiser) NameZone(id int, name string) error {
 	} else {
 		return ErrNotFound
 	}
+}
+
+func (d *DeviceOrganiser) AddDevice(id string) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	if _, found := d.devices[id]; found {
+		return
+	}
+
+	d.devices[id] = &DeviceMetadata{}
+}
+
+func (d *DeviceOrganiser) Device(id string) (DeviceMetadata, bool) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	if dm, found := d.devices[id]; found {
+		return *dm, true
+	} else {
+		return DeviceMetadata{}, false
+	}
+}
+
+func (d *DeviceOrganiser) NameDevice(id string, name string) error {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	if dm, found := d.devices[id]; found {
+		dm.Name = name
+		return nil
+	} else {
+		return ErrNotFound
+	}
+}
+
+func (d *DeviceOrganiser) RemoveDevice(id string) {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	device, found := d.devices[id]
+	if !found {
+		return
+	}
+
+	if len(device.Zones) > 0 {
+		d.zoneLock.Lock()
+		defer d.zoneLock.Unlock()
+
+		for _, zoneId := range device.Zones {
+			zone, zoneFound := d.zones[zoneId]
+			if zoneFound {
+				zone.Devices = filterString(zone.Devices, id)
+			}
+		}
+	}
+
+	delete(d.devices, id)
+}
+
+func (d *DeviceOrganiser) AddDeviceToZone(deviceId string, zoneId int) error {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	device, found := d.devices[deviceId]
+	if !found {
+		return ErrNotFound
+	}
+
+	d.zoneLock.Lock()
+	defer d.zoneLock.Unlock()
+
+	zone, found := d.zones[zoneId]
+	if !found {
+		return ErrNotFound
+	}
+
+	device.Zones = append(device.Zones, zoneId)
+	zone.Devices = append(zone.Devices, deviceId)
+
+	return nil
+}
+
+func (d *DeviceOrganiser) RemoveDeviceFromZone(deviceId string, zoneId int) error {
+	d.deviceLock.Lock()
+	defer d.deviceLock.Unlock()
+
+	device, found := d.devices[deviceId]
+	if !found {
+		return ErrNotFound
+	}
+
+	d.zoneLock.Lock()
+	defer d.zoneLock.Unlock()
+
+	zone, found := d.zones[zoneId]
+	if !found {
+		return ErrNotFound
+	}
+
+	device.Zones = filterInt(device.Zones, zoneId)
+	zone.Devices = filterString(zone.Devices, deviceId)
+
+	return nil
 }
 
 func (d *DeviceOrganiser) enumerateZoneDescendents(id int) []int {
