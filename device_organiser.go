@@ -11,7 +11,7 @@ type Zone struct {
 	Name       string
 
 	ParentZone int
-	ChildZones []int
+	SubZones   []int
 
 	Devices []string
 }
@@ -78,7 +78,7 @@ func (d *DeviceOrganiser) NewZone(name string) Zone {
 	newZone := &Zone{
 		Identifier: newId,
 		Name:       name,
-		ChildZones: nil,
+		SubZones:   nil,
 		Devices:    nil,
 	}
 
@@ -124,7 +124,7 @@ func (d *DeviceOrganiser) DeleteZone(id int) error {
 		return fmt.Errorf("zone not found: %w", ErrNotFound)
 	}
 
-	if len(zone.ChildZones) > 0 {
+	if len(zone.SubZones) > 0 {
 		return ErrOrphanZone
 	}
 
@@ -139,7 +139,7 @@ func (d *DeviceOrganiser) DeleteZone(id int) error {
 	} else {
 		parent, found := d.zones[zone.ParentZone]
 		if found {
-			parent.ChildZones = filterInt(parent.ChildZones, id)
+			parent.SubZones = filterInt(parent.SubZones, id)
 		}
 	}
 
@@ -168,8 +168,8 @@ func (d *DeviceOrganiser) MoveZone(id int, newParentId int) error {
 		}
 	}
 
-	for _, childId := range d.enumerateZoneDescendents(id) {
-		if newParentId == childId {
+	for _, subId := range d.enumerateZoneDescendents(id) {
+		if newParentId == subId {
 			return ErrCircularReference
 		}
 	}
@@ -180,7 +180,7 @@ func (d *DeviceOrganiser) MoveZone(id int, newParentId int) error {
 		if oldParent, found := d.zones[zone.ParentZone]; !found {
 			return fmt.Errorf("old parent not found: %w", ErrNotFound)
 		} else {
-			oldParent.ChildZones = filterInt(oldParent.ChildZones, id)
+			oldParent.SubZones = filterInt(oldParent.SubZones, id)
 		}
 	}
 
@@ -189,7 +189,7 @@ func (d *DeviceOrganiser) MoveZone(id int, newParentId int) error {
 	if newParent == nil {
 		d.rootZones = append(d.rootZones, id)
 	} else {
-		newParent.ChildZones = append(newParent.ChildZones, id)
+		newParent.SubZones = append(newParent.SubZones, id)
 	}
 
 	return nil
@@ -314,14 +314,14 @@ func (d *DeviceOrganiser) RemoveDeviceFromZone(deviceId string, zoneId int) erro
 func (d *DeviceOrganiser) enumerateZoneDescendents(id int) []int {
 	zone := d.zones[id]
 
-	var children []int
+	var subZones []int
 
-	children = append(children, zone.ChildZones...)
+	subZones = append(subZones, zone.SubZones...)
 
-	for _, childId := range zone.ChildZones {
-		grandChildren := d.enumerateZoneDescendents(childId)
-		children = append(children, grandChildren...)
+	for _, subId := range zone.SubZones {
+		descendentZones := d.enumerateZoneDescendents(subId)
+		subZones = append(subZones, descendentZones...)
 	}
 
-	return children
+	return subZones
 }

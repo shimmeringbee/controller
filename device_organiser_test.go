@@ -119,11 +119,11 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		afterOne, _ := do.Zone(zoneOne.Identifier)
 		afterTwo, _ := do.Zone(zoneTwo.Identifier)
 
-		assert.Contains(t, afterOne.ChildZones, zoneTwo.Identifier)
+		assert.Contains(t, afterOne.SubZones, zoneTwo.Identifier)
 		assert.Equal(t, afterOne.Identifier, afterTwo.ParentZone)
 	})
 
-	t.Run("MoveZone succeeds in moving a child node under another child node", func(t *testing.T) {
+	t.Run("MoveZone succeeds in moving a sub zone under another sub zone", func(t *testing.T) {
 		startId := int64(0)
 		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
 
@@ -143,13 +143,13 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		checkTwo, _ := do.Zone(zoneTwo.Identifier)
 		checkThree, _ := do.Zone(zoneThree.Identifier)
 
-		assert.Len(t, checkOne.ChildZones, 1)
-		assert.Len(t, checkTwo.ChildZones, 1)
-		assert.Contains(t, checkTwo.ChildZones, checkThree.Identifier)
+		assert.Len(t, checkOne.SubZones, 1)
+		assert.Len(t, checkTwo.SubZones, 1)
+		assert.Contains(t, checkTwo.SubZones, checkThree.Identifier)
 		assert.Equal(t, checkTwo.Identifier, checkThree.ParentZone)
 	})
 
-	t.Run("MoveZone errors if moving a node to be under one of its children", func(t *testing.T) {
+	t.Run("MoveZone errors if moving a zone to be under one of its sub zones", func(t *testing.T) {
 		startId := int64(0)
 		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
 
@@ -166,7 +166,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		assert.True(t, errors.Is(err, ErrCircularReference))
 	})
 
-	t.Run("MoveZone succeeds in moving a child node back to root", func(t *testing.T) {
+	t.Run("MoveZone succeeds in moving a sub zone back to root", func(t *testing.T) {
 		startId := int64(0)
 		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
 
@@ -180,7 +180,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		assert.NoError(t, err)
 
 		checkOne, _ := do.Zone(zoneOne.Identifier)
-		assert.Len(t, checkOne.ChildZones, 0)
+		assert.Len(t, checkOne.SubZones, 0)
 
 		roots := do.rootZones
 		assert.Len(t, roots, 2)
@@ -197,7 +197,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
-	t.Run("DeleteZone errors if zone has children found", func(t *testing.T) {
+	t.Run("DeleteZone errors if zone has subzone found", func(t *testing.T) {
 		startId := int64(0)
 		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
 
@@ -222,7 +222,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		assert.True(t, errors.Is(err, ErrHasDevices))
 	})
 
-	t.Run("DeleteZone succeeds deleting a child zone", func(t *testing.T) {
+	t.Run("DeleteZone succeeds deleting a subzone", func(t *testing.T) {
 		startId := int64(0)
 		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
 
@@ -238,7 +238,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		checkOne, _ := do.Zone(zoneOne.Identifier)
 
 		assert.NotContains(t, do.zones, zoneTwo.Identifier)
-		assert.NotContains(t, checkOne.ChildZones, zoneTwo.Identifier)
+		assert.NotContains(t, checkOne.SubZones, zoneTwo.Identifier)
 	})
 
 	t.Run("DeleteZone succeeds deleting a root zone", func(t *testing.T) {
