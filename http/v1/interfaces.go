@@ -10,6 +10,7 @@ type GatewayMapper interface {
 	Gateways() map[string]da.Gateway
 	Capability(string, da.Capability) interface{}
 	Device(string) (da.Device, bool)
+	GatewayName(da.Gateway) (string, bool)
 }
 
 type mockGatewayMapper struct {
@@ -29,6 +30,11 @@ func (m *mockGatewayMapper) Capability(id string, cap da.Capability) interface{}
 func (m *mockGatewayMapper) Device(id string) (da.Device, bool) {
 	args := m.Called(id)
 	return args.Get(0).(da.Device), args.Bool(1)
+}
+
+func (m *mockGatewayMapper) GatewayName(gw da.Gateway) (string, bool) {
+	args := m.Called(gw)
+	return args.String(0), args.Bool(1)
 }
 
 type mockGateway struct {

@@ -3,12 +3,17 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/gorilla/mux"
+	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
+	"io/ioutil"
 	"net/http"
 )
 
-type deviceConverter func(context.Context, da.Device) device
+type deviceConverter interface {
+	convertDevice(context.Context, da.Device) device
+}
 
 type deviceAction func(context.Context, da.Device, interface{}, string, []byte) (interface{}, error)
 
@@ -16,16 +21,15 @@ type deviceController struct {
 	gatewayMapper   GatewayMapper
 	deviceConverter deviceConverter
 	deviceAction    deviceAction
+	deviceOrganiser *metadata.DeviceOrganiser
 }
 
 func (d *deviceController) listDevices(w http.ResponseWriter, r *http.Request) {
 	apiDevices := make(map[string]device)
 
-	for name, gateway := range d.gatewayMapper.Gateways() {
+	for _, gateway := range d.gatewayMapper.Gateways() {
 		for _, daDevice := range gateway.Devices() {
-			d := d.deviceConverter(r.Context(), daDevice)
-			d.Gateway = name
-
+			d := d.deviceConverter.convertDevice(r.Context(), daDevice)
 			apiDevices[d.Identifier] = d
 		}
 	}
@@ -55,15 +59,7 @@ func (d *deviceController) getDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiDevice := d.deviceConverter(r.Context(), daDevice)
-
-	for gwId, gw := range d.gatewayMapper.Gateways() {
-		if gw == daDevice.Gateway() {
-			apiDevice.Gateway = gwId
-			break
-		}
-	}
-
+	apiDevice := d.deviceConverter.convertDevice(r.Context(), daDevice)
 	data, err := json.Marshal(apiDevice)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -72,4 +68,46 @@ func (d *deviceController) getDevice(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("content-type", "application/json")
 	w.Write(data)
+}
+
+type updateDeviceRequest struct {
+	Name *string
+}
+
+func (d *deviceController) updateDevice(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	id, ok := params["identifier"]
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	request := updateDeviceRequest{}
+
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	err = json.Unmarshal(data, &request)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	if request.Name != nil {
+		if err := d.deviceOrganiser.NameDevice(id, *request.Name); err != nil {
+			if errors.Is(err, metadata.ErrNotFound) {
+				http.NotFound(w, r)
+			} else {
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			}
+
+			return
+		}
+	}
+
+	http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
 }

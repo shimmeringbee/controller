@@ -194,15 +194,16 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 		expectedDeviceOne := device{
 			Identifier:   "one-one",
 			Capabilities: map[string]interface{}{"capOne": struct{}{}},
+			Gateway:      "one",
 		}
 
 		mgwOne.On("Devices").Return([]da.Device{daDeviceOne})
 
 		mdc := mockDeviceConverter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("convertDADeviceToDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
+		mdc.On("convertDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
 
-		controller := gatewayController{gatewayMapper: &mgm, deviceConverter: mdc.convertDADeviceToDevice}
+		controller := gatewayController{gatewayMapper: &mgm, deviceConverter: &mdc}
 
 		expectedDevices := map[string]device{
 			"one-one": {

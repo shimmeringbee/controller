@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +15,7 @@ type mockDeviceConverter struct {
 	mock.Mock
 }
 
-func (m *mockDeviceConverter) convertDADeviceToDevice(ctx context.Context, daDevice da.Device) device {
+func (m *mockDeviceConverter) convertDevice(ctx context.Context, daDevice da.Device) device {
 	args := m.Called(ctx, daDevice)
 	return args.Get(0).(device)
 }
@@ -40,6 +41,12 @@ func Test_convertDADeviceToDevice(t *testing.T) {
 		mockCapOne.On("Name").Return("capOne")
 		mgwOne.On("Capability", capOne).Return(&mockCapOne)
 
+		do := metadata.NewDeviceOrganiser()
+		do.NewZone("one")
+		do.AddDevice("one-one")
+		do.NameDevice("one-one", "fancyname")
+		do.AddDeviceToZone("one-one", 1)
+
 		input := da.BaseDevice{
 			DeviceGateway:      &mgwOne,
 			DeviceIdentifier:   SimpleIdentifier{id: "one-one"},
@@ -49,9 +56,20 @@ func Test_convertDADeviceToDevice(t *testing.T) {
 		expected := device{
 			Identifier:   "one-one",
 			Capabilities: map[string]interface{}{"capOne": struct{}{}},
+			Metadata: metadata.DeviceMetadata{
+				Name:  "fancyname",
+				Zones: []int{1},
+			},
+			Gateway: "gw",
 		}
 
-		actual := convertDADeviceToDevice(context.Background(), input)
+		mgm := mockGatewayMapper{}
+		defer mgm.AssertExpectations(t)
+
+		mgm.On("GatewayName", mock.Anything).Return("gw", true)
+
+		dc := DeviceConverter{deviceOrganiser: &do, gatewayMapper: &mgm}
+		actual := dc.convertDevice(context.Background(), input)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -86,7 +104,8 @@ func Test_convertHasProductInformation(t *testing.T) {
 			Serial:       "serial",
 		}
 
-		actual := convertHasProductInformation(context.Background(), d, &mhpi)
+		dc := DeviceConverter{}
+		actual := dc.convertHasProductInformation(context.Background(), d, &mhpi)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -122,7 +141,8 @@ func Test_convertTemperatureSensor(t *testing.T) {
 			},
 		}
 
-		actual := convertTemperatureSensor(context.Background(), d, &mts)
+		dc := DeviceConverter{}
+		actual := dc.convertTemperatureSensor(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -158,7 +178,8 @@ func Test_convertRelativeHumiditySensor(t *testing.T) {
 			},
 		}
 
-		actual := convertRelativeHumiditySensor(context.Background(), d, &mts)
+		dc := DeviceConverter{}
+		actual := dc.convertRelativeHumiditySensor(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -194,7 +215,8 @@ func Test_convertPressureSensor(t *testing.T) {
 			},
 		}
 
-		actual := convertPressureSensor(context.Background(), d, &mts)
+		dc := DeviceConverter{}
+		actual := dc.convertPressureSensor(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -236,7 +258,8 @@ func Test_convertDeviceDiscovery(t *testing.T) {
 			Duration:    12000,
 		}
 
-		actual := convertDeviceDiscovery(context.Background(), d, &mdd)
+		dc := DeviceConverter{}
+		actual := dc.convertDeviceDiscovery(context.Background(), d, &mdd)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -271,7 +294,8 @@ func Test_convertEnumerateDevice(t *testing.T) {
 			Enumerating: true,
 		}
 
-		actual := convertEnumerateDevice(context.Background(), d, &med)
+		dc := DeviceConverter{}
+		actual := dc.convertEnumerateDevice(context.Background(), d, &med)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -305,7 +329,8 @@ func Test_convertAlarmSensor(t *testing.T) {
 			},
 		}
 
-		actual := convertAlarmSensor(context.Background(), d, &mas)
+		dc := DeviceConverter{}
+		actual := dc.convertAlarmSensor(context.Background(), d, &mas)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -343,7 +368,8 @@ func Test_convertOnOff(t *testing.T) {
 			State: true,
 		}
 
-		actual := convertOnOff(context.Background(), d, &moo)
+		dc := DeviceConverter{}
+		actual := dc.convertOnOff(context.Background(), d, &moo)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -415,7 +441,8 @@ func Test_convertPowerStatus(t *testing.T) {
 			},
 		}
 
-		actual := convertPowerSupply(context.Background(), d, &mps)
+		dc := DeviceConverter{}
+		actual := dc.convertPowerSupply(context.Background(), d, &mps)
 
 		assert.Equal(t, expected, actual)
 	})

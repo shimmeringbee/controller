@@ -12,6 +12,7 @@ type GatewayMapper interface {
 	Gateways() map[string]da.Gateway
 	Capability(string, da.Capability) interface{}
 	Device(string) (da.Device, bool)
+	GatewayName(da.Gateway) (string, bool)
 }
 
 type GatewaySubscriber interface {
@@ -95,6 +96,16 @@ func (m *GatewayMux) Gateways() map[string]da.Gateway {
 		result[k] = v
 	}
 	return result
+}
+
+func (m *GatewayMux) GatewayName(gw da.Gateway) (string, bool) {
+	for name, gwByName := range m.gatewayByName {
+		if gwByName == gw {
+			return name, true
+		}
+	}
+
+	return "", false
 }
 
 func (m *GatewayMux) Capability(d string, c da.Capability) interface{} {

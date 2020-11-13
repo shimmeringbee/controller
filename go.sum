@@ -15,6 +15,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/shimmeringbee/bytecodec v0.0.0-20200216120857-49d677293817/go.mod h1:J/gvzi9IgGBHP1cBn++bqJ4tchSbgS10N2lmGMlqD3M=
 github.com/shimmeringbee/bytecodec v0.0.0-20201010084809-f41297878cdb h1:eIpxXfxOLwQAQ6/C+Vaq/wILOTG/os+WruItCFdXXFU=
 github.com/shimmeringbee/bytecodec v0.0.0-20201010084809-f41297878cdb/go.mod h1:WYnxfxTJ45UQ+xeAuuTSIalcEepgP8Rb7T/OhCaDdgo=
+github.com/shimmeringbee/bytecodec v0.0.0-20201107142444-94bb5c0baaee h1:LGPf3nQB0b+k/zxaSPqwcW1Zd3cBGcEqREwqT7CWmw8=
+github.com/shimmeringbee/bytecodec v0.0.0-20201107142444-94bb5c0baaee/go.mod h1:WYnxfxTJ45UQ+xeAuuTSIalcEepgP8Rb7T/OhCaDdgo=
 github.com/shimmeringbee/callbacks v0.0.0-20201009192759-a81dc46c692d h1:zjblETt5RHDVHQFedyKq5c2BFEIgkRs4/o00RdLqcaw=
 github.com/shimmeringbee/callbacks v0.0.0-20201009192759-a81dc46c692d/go.mod h1:1AzT3lP4dAEaqWDdWsldhRtcl0+jyCGcZaBTHTjtA9w=
 github.com/shimmeringbee/da v0.0.0-20201105190359-c355495a1695 h1:RUO956GNZUaNPYOoA7rJggPlB/3PD1YjSg4bcM0yca0=
@@ -25,6 +27,8 @@ github.com/shimmeringbee/retry v0.0.0-20201009192801-17b4f327c3e1 h1:XHZWCYRj+2l
 github.com/shimmeringbee/retry v0.0.0-20201009192801-17b4f327c3e1/go.mod h1:FFeFkkqdD9vdDFr2la9PkSTQr6qgU9aBiGU3QKn8ZKY=
 github.com/shimmeringbee/unpi v0.0.0-20201106170609-f4c2e4b55202 h1:7kQalW+nsFt3/LByuF175uPr/LDhf/ExHC9nfmJBQCk=
 github.com/shimmeringbee/unpi v0.0.0-20201106170609-f4c2e4b55202/go.mod h1:iAt5R5HT+VC7B9U77uBmN5Z6+DJo4U0z6ag68NH2mMw=
+github.com/shimmeringbee/unpi v0.0.0-20201113155239-428f51b7d679 h1:qR+3BqOzrwCJ7XvDtitcbiWdgKclYDcpBCawadQ3XSc=
+github.com/shimmeringbee/unpi v0.0.0-20201113155239-428f51b7d679/go.mod h1:iAt5R5HT+VC7B9U77uBmN5Z6+DJo4U0z6ag68NH2mMw=
 github.com/shimmeringbee/zcl v0.0.0-20201105184101-3910759fe121/go.mod h1:KiKoPJBBxw3eEvaHY4hDNHwHb8LVJUwRMwROm11T4bU=
 github.com/shimmeringbee/zcl v0.0.0-20201106081934-5d5d21c4fee4 h1:i93FFgl7tTdlKMbxpp3lTF/h59/owGaILEiHLDd9DZ8=
 github.com/shimmeringbee/zcl v0.0.0-20201106081934-5d5d21c4fee4/go.mod h1:KiKoPJBBxw3eEvaHY4hDNHwHb8LVJUwRMwROm11T4bU=
@@ -61,6 +65,8 @@ golang.org/x/sys v0.0.0-20190422165155-953cdadca894 h1:Cz4ceDQGXuKRnVBDTS23GTn/p
 golang.org/x/sys v0.0.0-20190422165155-953cdadca894/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201107080550-4d91cf3a1aaf h1:kt3wY1Lu5MJAnKTfoMR52Cu4gwvna4VTzNOiT8tY73s=
 golang.org/x/sys v0.0.0-20201107080550-4d91cf3a1aaf/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201113135734-0a15ea8d9b02 h1:5Ftd3YbC/kANXWCBjvppvUmv1BMakgFcBKA7MpYYp4M=
+golang.org/x/sys v0.0.0-20201113135734-0a15ea8d9b02/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=

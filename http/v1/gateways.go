@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"net/http"
 )
@@ -13,6 +14,7 @@ type gatewayController struct {
 	gatewayMapper    GatewayMapper
 	gatewayConverter gatewayConverter
 	deviceConverter  deviceConverter
+	deviceOrganiser  *metadata.DeviceOrganiser
 }
 
 func (g *gatewayController) listGateways(w http.ResponseWriter, r *http.Request) {
@@ -81,9 +83,7 @@ func (g *gatewayController) listDevicesOnGateway(w http.ResponseWriter, r *http.
 	apiDevices := make(map[string]device)
 
 	for _, daDevice := range gw.Devices() {
-		d := g.deviceConverter(r.Context(), daDevice)
-		d.Gateway = id
-
+		d := g.deviceConverter.convertDevice(r.Context(), daDevice)
 		apiDevices[d.Identifier] = d
 	}
 

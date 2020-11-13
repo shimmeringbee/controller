@@ -50,6 +50,10 @@ func TestGatewayMux_Add(t *testing.T) {
 
 		assert.Equal(t, expectedGws, actualGws)
 		assert.Contains(t, m.deviceByIdentifier, d.DeviceIdentifier.String())
+
+		gatewayName, found := m.GatewayName(&mg)
+		assert.True(t, found)
+		assert.Equal(t, name, gatewayName)
 	})
 
 	t.Run("announced devices are added to the gateway mux cache for routing", func(t *testing.T) {

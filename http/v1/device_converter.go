@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"time"
@@ -9,46 +10,56 @@ import (
 
 const DefaultCapabilityTimeout = 1 * time.Second
 
-func convertDADeviceToDevice(ctx context.Context, daDevice da.Device) device {
+type DeviceConverter struct {
+	deviceOrganiser *metadata.DeviceOrganiser
+	gatewayMapper   GatewayMapper
+}
+
+func (dc *DeviceConverter) convertDevice(ctx context.Context, daDevice da.Device) device {
 	capabilityList := map[string]interface{}{}
 
 	for _, capFlag := range daDevice.Capabilities() {
 		uncastCapability := daDevice.Gateway().Capability(capFlag)
 
 		if basicCapability, ok := uncastCapability.(da.BasicCapability); ok {
-			capabilityList[basicCapability.Name()] = convertDADeviceCapability(ctx, daDevice, uncastCapability)
+			capabilityList[basicCapability.Name()] = dc.convertDADeviceCapability(ctx, daDevice, uncastCapability)
 		}
 	}
+
+	md, _ := dc.deviceOrganiser.Device(daDevice.Identifier().String())
+	gwName, _ := dc.gatewayMapper.GatewayName(daDevice.Gateway())
 
 	return device{
 		Identifier:   daDevice.Identifier().String(),
 		Capabilities: capabilityList,
+		Metadata:     md,
+		Gateway:      gwName,
 	}
 }
 
-func convertDADeviceCapability(pctx context.Context, device da.Device, uncastCapability interface{}) interface{} {
+func (dc *DeviceConverter) convertDADeviceCapability(pctx context.Context, device da.Device, uncastCapability interface{}) interface{} {
 	ctx, cancel := context.WithTimeout(pctx, DefaultCapabilityTimeout)
 	defer cancel()
 
 	switch capability := uncastCapability.(type) {
 	case capabilities.HasProductInformation:
-		return convertHasProductInformation(ctx, device, capability)
+		return dc.convertHasProductInformation(ctx, device, capability)
 	case capabilities.TemperatureSensor:
-		return convertTemperatureSensor(ctx, device, capability)
+		return dc.convertTemperatureSensor(ctx, device, capability)
 	case capabilities.RelativeHumiditySensor:
-		return convertRelativeHumiditySensor(ctx, device, capability)
+		return dc.convertRelativeHumiditySensor(ctx, device, capability)
 	case capabilities.PressureSensor:
-		return convertPressureSensor(ctx, device, capability)
+		return dc.convertPressureSensor(ctx, device, capability)
 	case capabilities.DeviceDiscovery:
-		return convertDeviceDiscovery(ctx, device, capability)
+		return dc.convertDeviceDiscovery(ctx, device, capability)
 	case capabilities.EnumerateDevice:
-		return convertEnumerateDevice(ctx, device, capability)
+		return dc.convertEnumerateDevice(ctx, device, capability)
 	case capabilities.AlarmSensor:
-		return convertAlarmSensor(ctx, device, capability)
+		return dc.convertAlarmSensor(ctx, device, capability)
 	case capabilities.OnOff:
-		return convertOnOff(ctx, device, capability)
+		return dc.convertOnOff(ctx, device, capability)
 	case capabilities.PowerSupply:
-		return convertPowerSupply(ctx, device, capability)
+		return dc.convertPowerSupply(ctx, device, capability)
 	default:
 		return struct{}{}
 	}
@@ -60,7 +71,7 @@ type HasProductInformation struct {
 	Serial       string `json:",omitempty"`
 }
 
-func convertHasProductInformation(ctx context.Context, device da.Device, hpi capabilities.HasProductInformation) interface{} {
+func (dc *DeviceConverter) convertHasProductInformation(ctx context.Context, device da.Device, hpi capabilities.HasProductInformation) interface{} {
 	pi, err := hpi.ProductInformation(ctx, device)
 	if err != nil {
 		return nil
@@ -77,7 +88,7 @@ type TemperatureSensor struct {
 	Readings []capabilities.TemperatureReading
 }
 
-func convertTemperatureSensor(ctx context.Context, device da.Device, ts capabilities.TemperatureSensor) interface{} {
+func (dc *DeviceConverter) convertTemperatureSensor(ctx context.Context, device da.Device, ts capabilities.TemperatureSensor) interface{} {
 	tsReadings, err := ts.Reading(ctx, device)
 	if err != nil {
 		return nil
@@ -92,7 +103,7 @@ type RelativeHumiditySensor struct {
 	Readings []capabilities.RelativeHumidityReading
 }
 
-func convertRelativeHumiditySensor(ctx context.Context, device da.Device, rhs capabilities.RelativeHumiditySensor) interface{} {
+func (dc *DeviceConverter) convertRelativeHumiditySensor(ctx context.Context, device da.Device, rhs capabilities.RelativeHumiditySensor) interface{} {
 	rhReadings, err := rhs.Reading(ctx, device)
 	if err != nil {
 		return nil
@@ -107,7 +118,7 @@ type PressureSensor struct {
 	Readings []capabilities.PressureReading
 }
 
-func convertPressureSensor(ctx context.Context, device da.Device, ps capabilities.PressureSensor) interface{} {
+func (dc *DeviceConverter) convertPressureSensor(ctx context.Context, device da.Device, ps capabilities.PressureSensor) interface{} {
 	psReadings, err := ps.Reading(ctx, device)
 	if err != nil {
 		return nil
@@ -123,7 +134,7 @@ type DeviceDiscovery struct {
 	Duration    int `json:",omitempty"`
 }
 
-func convertDeviceDiscovery(ctx context.Context, device da.Device, dd capabilities.DeviceDiscovery) interface{} {
+func (dc *DeviceConverter) convertDeviceDiscovery(ctx context.Context, device da.Device, dd capabilities.DeviceDiscovery) interface{} {
 	discoveryState, err := dd.Status(ctx, device)
 	if err != nil {
 		return nil
@@ -141,7 +152,7 @@ type EnumerateDevice struct {
 	Enumerating bool
 }
 
-func convertEnumerateDevice(ctx context.Context, device da.Device, ed capabilities.EnumerateDevice) interface{} {
+func (dc *DeviceConverter) convertEnumerateDevice(ctx context.Context, device da.Device, ed capabilities.EnumerateDevice) interface{} {
 	enumerateDeviceState, err := ed.Status(ctx, device)
 	if err != nil {
 		return nil
@@ -156,7 +167,7 @@ type AlarmSensor struct {
 	Alarms map[string]bool
 }
 
-func convertAlarmSensor(ctx context.Context, device da.Device, as capabilities.AlarmSensor) interface{} {
+func (dc *DeviceConverter) convertAlarmSensor(ctx context.Context, device da.Device, as capabilities.AlarmSensor) interface{} {
 	alarmSensorState, err := as.Status(ctx, device)
 	if err != nil {
 		return nil
@@ -177,7 +188,7 @@ type OnOff struct {
 	State bool
 }
 
-func convertOnOff(ctx context.Context, device da.Device, oo capabilities.OnOff) interface{} {
+func (dc *DeviceConverter) convertOnOff(ctx context.Context, device da.Device, oo capabilities.OnOff) interface{} {
 	state, err := oo.Status(ctx, device)
 	if err != nil {
 		return nil
@@ -207,7 +218,7 @@ type PowerBatteryStatus struct {
 	Available      *bool    `json:",omitempty"`
 }
 
-func convertPowerSupply(ctx context.Context, d da.Device, capability capabilities.PowerSupply) interface{} {
+func (dc *DeviceConverter) convertPowerSupply(ctx context.Context, d da.Device, capability capabilities.PowerSupply) interface{} {
 	state, err := capability.Status(ctx, d)
 	if err != nil {
 		return nil

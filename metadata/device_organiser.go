@@ -1,7 +1,10 @@
-package main
+package metadata
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"sync"
 	"sync/atomic"
 )
@@ -9,16 +12,15 @@ import (
 type Zone struct {
 	Identifier int
 	Name       string
-
 	ParentZone int
-	SubZones   []int
 
-	Devices []string
+	SubZones []int    `json:"-"`
+	Devices  []string `json:"-"`
 }
 
 type DeviceMetadata struct {
-	Name  string
-	Zones []int
+	Name  string `json:",omitempty"`
+	Zones []int  `json:",omitempty"`
 }
 
 type DeviceOrganiser struct {
@@ -47,6 +49,19 @@ const (
 )
 
 const RootZoneId int = 0
+const DefaultFilePermissions = 0600
+
+func NewDeviceOrganiser() DeviceOrganiser {
+	initialZoneId := int64(0)
+	return DeviceOrganiser{
+		nextZoneId: &initialZoneId,
+		zoneLock:   &sync.Mutex{},
+		zones:      map[int]*Zone{},
+		rootZones:  nil,
+		deviceLock: &sync.Mutex{},
+		devices:    map[string]*DeviceMetadata{},
+	}
+}
 
 func (d *DeviceOrganiser) Zone(id int) (Zone, bool) {
 	d.zoneLock.Lock()
@@ -324,4 +339,118 @@ func (d *DeviceOrganiser) enumerateZoneDescendents(id int) []int {
 	}
 
 	return subZones
+}
+
+type SavedZones struct {
+	NextZoneId int64
+	Zones      []Zone
+}
+
+func SaveZones(fileLocation string, do *DeviceOrganiser) error {
+	do.zoneLock.Lock()
+	defer do.zoneLock.Unlock()
+
+	var saved SavedZones
+
+	for _, zone := range do.zones {
+		saved.Zones = append(saved.Zones, *zone)
+	}
+
+	saved.NextZoneId = *do.nextZoneId
+
+	data, err := json.Marshal(saved)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(fileLocation, data, DefaultFilePermissions)
+}
+
+func LoadZones(fileLocation string, do *DeviceOrganiser) error {
+	if _, err := os.Stat(fileLocation); err != nil {
+		return nil
+	}
+
+	data, err := ioutil.ReadFile(fileLocation)
+	if err != nil {
+		return err
+	}
+
+	var loaded SavedZones
+
+	if err := json.Unmarshal(data, &loaded); err != nil {
+		return err
+	}
+
+	do.zoneLock.Lock()
+
+	do.nextZoneId = &loaded.NextZoneId
+
+	for _, zone := range loaded.Zones {
+		copyZone := zone
+		copyZone.ParentZone = 0
+		do.zones[zone.Identifier] = &copyZone
+		do.rootZones = append(do.rootZones, zone.Identifier)
+	}
+
+	do.zoneLock.Unlock()
+
+	for _, zone := range loaded.Zones {
+		if zone.ParentZone != RootZoneId {
+			if err := do.MoveZone(zone.Identifier, zone.ParentZone); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func LoadDevices(fileLocation string, do *DeviceOrganiser) error {
+	if _, err := os.Stat(fileLocation); err != nil {
+		return nil
+	}
+
+	data, err := ioutil.ReadFile(fileLocation)
+	if err != nil {
+		return err
+	}
+
+	loaded := map[string]DeviceMetadata{}
+	if err := json.Unmarshal(data, &loaded); err != nil {
+		return err
+	}
+
+	for id, dm := range loaded {
+		do.AddDevice(id)
+		if err := do.NameDevice(id, dm.Name); err != nil {
+			return err
+		}
+
+		for _, zone := range dm.Zones {
+			if err := do.AddDeviceToZone(id, zone); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func SaveDevices(fileLocation string, do *DeviceOrganiser) error {
+	do.deviceLock.Lock()
+	defer do.deviceLock.Unlock()
+
+	saved := map[string]DeviceMetadata{}
+
+	for id, device := range do.devices {
+		saved[id] = *device
+	}
+
+	data, err := json.Marshal(saved)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(fileLocation, data, DefaultFilePermissions)
 }

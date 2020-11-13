@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/gorilla/mux"
 	v1 "github.com/shimmeringbee/controller/http/v1"
+	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	lw "github.com/shimmeringbee/logwrap"
 	"github.com/shimmeringbee/logwrap/impl/golog"
@@ -12,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -29,16 +32,27 @@ func main() {
 		l.LogFatal(ctx, "Failed to load gateway configurations.", lw.Err(err))
 	}
 
-	l.LogInfo(ctx, "Loaded gateway configurations.", lw.Datum("gatewayConfigCount", len(gatewayCfgs)))
+	l.LogInfo(ctx, "Initialising device organiser.")
+	deviceOrganiser := metadata.NewDeviceOrganiser()
 
+	shutdownDeviceOrganiser, err := initialiseDeviceOrganiser(l, directories.Data, &deviceOrganiser)
+	if err != nil {
+		l.LogFatal(ctx, "Failed to initialise device organiser.", lw.Err(err))
+	}
+
+	l.LogInfo(ctx, "Loaded gateway configurations.", lw.Datum("configCount", len(gatewayCfgs)))
 	gwMux := GatewayMux{
 		deviceByIdentifier: map[string]da.Device{},
 		gatewayByName:      map[string]da.Gateway{},
 	}
 
+	l.LogInfo(ctx, "Linking device organiser to mux.")
+	deviceOrganiserMuxCh := updateDeviceOrganiserFromMux(&deviceOrganiser)
+	gwMux.Listen(deviceOrganiserMuxCh)
+
 	// Start interfaces
 	r := mux.NewRouter()
-	v1Router := v1.ConstructRouter(&gwMux)
+	v1Router := v1.ConstructRouter(&gwMux, &deviceOrganiser)
 	r.PathPrefix("/api/v1").Handler(http.StripPrefix("/api/v1", v1Router))
 
 	go http.ListenAndServe(":3000", r)
@@ -68,8 +82,90 @@ func main() {
 		gw.Shutdown()
 	}
 
-	l.LogInfo(ctx, "Shutting gateway mux.")
+	l.LogInfo(ctx, "Shutting down gateway mux.")
 	gwMux.Stop()
 
-	l.LogInfo(ctx, "Shutting complete.")
+	l.LogInfo(ctx, "Shutting device organiser mux link.")
+	deviceOrganiserMuxCh <- nil
+
+	l.LogInfo(ctx, "Shutting down device organiser.")
+	shutdownDeviceOrganiser()
+
+	l.LogInfo(ctx, "Shut down complete.")
+}
+
+func initialiseDeviceOrganiser(l lw.Logger, dir string, d *metadata.DeviceOrganiser) (func(), error) {
+	zoneFile := strings.Join([]string{dir, "zones.json"}, string(os.PathSeparator))
+	deviceFile := strings.Join([]string{dir, "devices.json"}, string(os.PathSeparator))
+
+	if err := metadata.LoadZones(zoneFile, d); err != nil {
+		return func() {}, fmt.Errorf("failed to load zones: %w", err)
+	}
+
+	if err := metadata.LoadDevices(deviceFile, d); err != nil {
+		return func() {}, fmt.Errorf("failed to load devices: %w", err)
+	}
+
+	if err := metadata.SaveZones(zoneFile, d); err != nil {
+		return func() {}, fmt.Errorf("failed initial save of zones: %w", err)
+	}
+
+	if err := metadata.SaveDevices(deviceFile, d); err != nil {
+		return func() {}, fmt.Errorf("failed initial save of devices: %w", err)
+	}
+
+	shutCh := make(chan struct{}, 1)
+
+	go func() {
+		t := time.NewTicker(1 * time.Minute)
+
+		for {
+			select {
+			case <-t.C:
+				if err := metadata.SaveZones(zoneFile, d); err != nil {
+					l.LogError(context.Background(), "Failed to periodically save zones for device organiser.", lw.Err(err))
+				}
+
+				if err := metadata.SaveDevices(deviceFile, d); err != nil {
+					l.LogError(context.Background(), "Failed to periodically save devices for device organiser.", lw.Err(err))
+				}
+
+			case <-shutCh:
+				if err := metadata.SaveZones(zoneFile, d); err != nil {
+					l.LogError(context.Background(), "Failed to periodically save zones for device organiser.", lw.Err(err))
+				}
+
+				if err := metadata.SaveDevices(deviceFile, d); err != nil {
+					l.LogError(context.Background(), "Failed to periodically save devices for device organiser.", lw.Err(err))
+				}
+				return
+			}
+		}
+	}()
+
+	return func() {
+		shutCh <- struct{}{}
+	}, nil
+}
+
+func updateDeviceOrganiserFromMux(do *metadata.DeviceOrganiser) chan interface{} {
+	ch := make(chan interface{}, 100)
+
+	go func() {
+		for {
+			select {
+			case e := <-ch:
+				switch ce := e.(type) {
+				case da.DeviceAdded:
+					do.AddDevice(ce.Identifier().String())
+				case da.DeviceRemoved:
+					do.RemoveDevice(ce.Identifier().String())
+				case nil:
+					return
+				}
+			}
+		}
+	}()
+
+	return ch
 }

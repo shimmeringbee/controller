@@ -1,8 +1,10 @@
-package main
+package metadata
 
 import (
 	"errors"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"os"
 	"sync"
 	"testing"
 )
@@ -56,7 +58,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		startId := int64(0)
 		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
 
-		err := do.NameZone(1, "New Name")
+		err := do.NameZone(1, "NewDeviceOrganiser Name")
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
@@ -66,7 +68,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 
 		zoneOne := do.NewZone("one")
 
-		newName := "New Name"
+		newName := "NewDeviceOrganiser Name"
 		err := do.NameZone(zoneOne.Identifier, newName)
 		assert.NoError(t, err)
 
@@ -415,5 +417,69 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 		assert.True(t, found)
 
 		assert.NotContains(t, checkZone.Devices, "id")
+	})
+}
+
+func TestDeviceOrganiser_persistZones(t *testing.T) {
+	t.Run("saves and reloads zones successfully", func(t *testing.T) {
+		file, err := ioutil.TempFile(os.TempDir(), "shimmeringbeecontrollertest")
+		assert.NoError(t, err)
+		defer os.Remove(file.Name())
+
+		startId := int64(0)
+		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		one := do.NewZone("one")
+		two := do.NewZone("two")
+		three := do.NewZone("three")
+
+		err = do.MoveZone(two.Identifier, one.Identifier)
+		assert.NoError(t, err)
+		err = do.MoveZone(three.Identifier, two.Identifier)
+		assert.NoError(t, err)
+
+		err = SaveZones(file.Name(), &do)
+		assert.NoError(t, err)
+
+		newDo := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+
+		err = LoadZones(file.Name(), &newDo)
+
+		assert.Equal(t, do.nextZoneId, newDo.nextZoneId)
+		assert.Equal(t, do.zones, newDo.zones)
+	})
+}
+
+func TestDeviceOrganiser_persistDevices(t *testing.T) {
+	t.Run("saves and reloads devices successfully", func(t *testing.T) {
+		file, err := ioutil.TempFile(os.TempDir(), "shimmeringbeecontrollertest")
+		assert.NoError(t, err)
+		defer os.Remove(file.Name())
+
+		startId := int64(0)
+		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		zone := do.NewZone("one")
+
+		do.AddDevice("id")
+		do.NameDevice("id", "name")
+		do.AddDeviceToZone("id", zone.Identifier)
+
+		err = SaveDevices(file.Name(), &do)
+		assert.NoError(t, err)
+
+		newStartId := int64(0)
+		newDo := DeviceOrganiser{nextZoneId: &newStartId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		newDo.NewZone("one")
+
+		err = LoadDevices(file.Name(), &newDo)
+		assert.NoError(t, err)
+
+		device, found := newDo.Device("id")
+		assert.True(t, found)
+		assert.Equal(t, "name", device.Name)
+		assert.Contains(t, device.Zones, zone.Identifier)
+
+		zone, _ = newDo.Zone(zone.Identifier)
+		assert.Contains(t, zone.Devices, "id")
 	})
 }
