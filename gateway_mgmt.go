@@ -32,17 +32,17 @@ type StartedGateway struct {
 	Shutdown func()
 }
 
-func startGateways(cfgs []config.Gateway, mux *GatewayMux, directories Directories) ([]StartedGateway, error) {
+func startGateways(cfgs []config.GatewayConfig, mux *GatewayMux, directories Directories) ([]StartedGateway, error) {
 	var retGws []StartedGateway
 
 	for _, cfg := range cfgs {
-		cfgDig := strings.Join([]string{directories.Data, "gateways", cfg.Name}, string(os.PathSeparator))
+		dataDir := strings.Join([]string{directories.Data, "gateways", cfg.Name}, string(os.PathSeparator))
 
-		if err := os.MkdirAll(cfgDig, DefaultDirectoryPermissions); err != nil {
-			return nil, fmt.Errorf("failed to create gateway config directory '%s': %w", cfgDig, err)
+		if err := os.MkdirAll(dataDir, DefaultDirectoryPermissions); err != nil {
+			return nil, fmt.Errorf("failed to create gateway data directory '%s': %w", dataDir, err)
 		}
 
-		if gw, shutdown, err := startGateway(cfg, cfgDig); err != nil {
+		if gw, shutdown, err := startGateway(cfg, dataDir); err != nil {
 			return nil, fmt.Errorf("failed to start gateway '%s': %w", cfg.Name, err)
 		} else {
 			mux.Add(cfg.Name, gw)
@@ -57,7 +57,7 @@ func startGateways(cfgs []config.Gateway, mux *GatewayMux, directories Directori
 	return retGws, nil
 }
 
-func startGateway(cfg config.Gateway, cfgDig string) (da.Gateway, func(), error) {
+func startGateway(cfg config.GatewayConfig, cfgDig string) (da.Gateway, func(), error) {
 	switch gwCfg := cfg.Config.(type) {
 	case *config.ZDAConfig:
 		return startZDAGateway(*gwCfg, cfgDig)
@@ -291,7 +291,7 @@ func loadZStackNodeCache(cache *zstack.NodeTable, file string) error {
 	return nil
 }
 
-func loadGatewayConfigurations(dir string) ([]config.Gateway, error) {
+func loadGatewayConfigurations(dir string) ([]config.GatewayConfig, error) {
 	if err := os.MkdirAll(dir, DefaultDirectoryPermissions); err != nil {
 		return nil, fmt.Errorf("failed to ensure gateway configuration directory exists: %w", err)
 	}
@@ -301,7 +301,7 @@ func loadGatewayConfigurations(dir string) ([]config.Gateway, error) {
 		return nil, fmt.Errorf("failed to read directory listing for gateway configurations: %w", err)
 	}
 
-	var retCfgs []config.Gateway
+	var retCfgs []config.GatewayConfig
 
 	for _, file := range files {
 		if !strings.HasSuffix(file.Name(), ".json") {
@@ -314,7 +314,7 @@ func loadGatewayConfigurations(dir string) ([]config.Gateway, error) {
 			return nil, fmt.Errorf("failed to read gateway configuration file '%s': %w", fullPath, err)
 		}
 
-		cfg := config.Gateway{
+		cfg := config.GatewayConfig{
 			Name: strings.TrimSuffix(file.Name(), filepath.Ext(file.Name())),
 		}
 

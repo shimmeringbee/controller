@@ -7,13 +7,13 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-type Gateway struct {
+type GatewayConfig struct {
 	Name   string `json:"-"`
 	Type   string
 	Config interface{}
 }
 
-func (g *Gateway) UnmarshalJSON(data []byte) error {
+func (g *GatewayConfig) UnmarshalJSON(data []byte) error {
 	if result := gjson.GetBytes(data, "Type"); !result.Exists() {
 		return fmt.Errorf("failed to find gateway type information")
 	} else {

@@ -3,14 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gorilla/mux"
-	v1 "github.com/shimmeringbee/controller/http/v1"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	lw "github.com/shimmeringbee/logwrap"
 	"github.com/shimmeringbee/logwrap/impl/golog"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -32,6 +29,11 @@ func main() {
 		l.LogFatal(ctx, "Failed to load gateway configurations.", lw.Err(err))
 	}
 
+	interfaceCfgs, err := loadInterfaceConfigurations(strings.Join([]string{directories.Config, "interfaces"}, string(os.PathSeparator)))
+	if err != nil {
+		l.LogFatal(ctx, "Failed to load interface configurations.", lw.Err(err))
+	}
+
 	l.LogInfo(ctx, "Initialising device organiser.")
 	deviceOrganiser := metadata.NewDeviceOrganiser()
 
@@ -50,19 +52,19 @@ func main() {
 	deviceOrganiserMuxCh := updateDeviceOrganiserFromMux(&deviceOrganiser)
 	gwMux.Listen(deviceOrganiserMuxCh)
 
-	// Start interfaces
-	r := mux.NewRouter()
-	v1Router := v1.ConstructRouter(&gwMux, &deviceOrganiser)
-	r.PathPrefix("/api/v1").Handler(http.StripPrefix("/api/v1", v1Router))
+	l.LogInfo(ctx, "Starting interfaces.")
+	startedInterfaces, err := startInterfaces(interfaceCfgs, &gwMux, &deviceOrganiser, directories)
+	if err != nil {
+		l.LogFatal(ctx, "Failed to start interfaces.", lw.Err(err))
+	}
 
-	go http.ListenAndServe(":3000", r)
-
-	gws, err := startGateways(gatewayCfgs, &gwMux, directories)
+	l.LogInfo(ctx, "Starting gateways.")
+	startedGateways, err := startGateways(gatewayCfgs, &gwMux, directories)
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start gateways.", lw.Err(err))
 	}
 
-	l.LogInfo(ctx, "Started gateways.")
+	l.LogInfo(ctx, "Controller ready.")
 
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt, os.Kill)
@@ -70,9 +72,15 @@ func main() {
 	s := <-signalCh
 	l.LogInfo(ctx, "Signal received, shutting down.", lw.Datum("signal", s.String()))
 
-	// Shutdown interfaces
+	for _, intf := range startedInterfaces {
+		l.LogInfo(ctx, "Shutting down interface.", lw.Datum("interface", intf.Name))
 
-	for _, gw := range gws {
+		if err := intf.Shutdown(); err != nil {
+			l.LogError(ctx, "Failed to shutdown gateway.", lw.Err(err), lw.Datum("interface", intf.Name))
+		}
+	}
+
+	for _, gw := range startedGateways {
 		l.LogInfo(ctx, "Shutting down gateway.", lw.Datum("gateway", gw.Name))
 
 		if err := gw.Gateway.Stop(); err != nil {

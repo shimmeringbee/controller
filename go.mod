@@ -9,7 +9,7 @@ require (
 	github.com/shimmeringbee/da v0.0.0-20201121161325-3eaaadcd8488
 	github.com/shimmeringbee/logwrap v0.0.0-20201104114416-23aeb26f66f1
 	github.com/shimmeringbee/unpi v0.0.0-20201113155239-428f51b7d679 // indirect
-	github.com/shimmeringbee/zda v0.0.0-20201122114701-b9eb51ebb10f
+	github.com/shimmeringbee/zda v0.0.0-20201122164337-d08440bcbbd2
 	github.com/shimmeringbee/zigbee v0.0.0-20201027194100-4e53cafc0f7a
 	github.com/shimmeringbee/zstack v0.0.0-20201107104937-eab41e26444b
 	github.com/stretchr/testify v1.6.1

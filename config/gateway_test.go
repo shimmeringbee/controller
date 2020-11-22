@@ -9,7 +9,7 @@ import (
 func TestParseGateway(t *testing.T) {
 	t.Run("errors if json is invalid", func(t *testing.T) {
 		data := []byte(`"`)
-		gw := Gateway{}
+		gw := GatewayConfig{}
 
 		err := json.Unmarshal(data, &gw)
 		assert.Error(t, err)
@@ -17,7 +17,7 @@ func TestParseGateway(t *testing.T) {
 
 	t.Run("errors if type is unknown", func(t *testing.T) {
 		data := []byte(`{"Type":"unknown"}`)
-		gw := Gateway{}
+		gw := GatewayConfig{}
 
 		err := json.Unmarshal(data, &gw)
 		assert.Error(t, err)
@@ -26,7 +26,7 @@ func TestParseGateway(t *testing.T) {
 	t.Run("zda gateway", func(t *testing.T) {
 		t.Run("errors if provider type is not recognised", func(t *testing.T) {
 			data := []byte(`{"Type":"zda","Config":{"Provider":{"Type":"unknown"}}}`)
-			gw := Gateway{}
+			gw := GatewayConfig{}
 
 			err := json.Unmarshal(data, &gw)
 			assert.Error(t, err)
@@ -34,7 +34,7 @@ func TestParseGateway(t *testing.T) {
 
 		t.Run("parses successfully if zstack is found", func(t *testing.T) {
 			data := []byte(`{"Type":"zda","Config":{"Provider":{"Type":"zstack","Config":{}},"Network":{"PANID":1}}}`)
-			gw := Gateway{}
+			gw := GatewayConfig{}
 
 			err := json.Unmarshal(data, &gw)
 			assert.NoError(t, err)
