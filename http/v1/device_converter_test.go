@@ -447,3 +447,63 @@ func Test_convertPowerStatus(t *testing.T) {
 		assert.Equal(t, expected, actual)
 	})
 }
+
+type mockAlarmWarningDevice struct {
+	mock.Mock
+}
+
+func (m *mockAlarmWarningDevice) Alarm(c context.Context, d da.Device, a capabilities.AlarmType, vol float64, vis bool, dur time.Duration) error {
+	args := m.Called(c, d, a, vol, vis, dur)
+	return args.Error(0)
+}
+
+func (m *mockAlarmWarningDevice) Clear(c context.Context, d da.Device) error {
+	args := m.Called(c, d)
+	return args.Error(0)
+}
+
+func (m *mockAlarmWarningDevice) Alert(c context.Context, d da.Device, alarm capabilities.AlarmType, alert capabilities.AlertType, vol float64, vis bool) error {
+	args := m.Called(c, d, alarm, alert, vol, vis)
+	return args.Error(0)
+}
+
+func (m *mockAlarmWarningDevice) Status(c context.Context, d da.Device) (capabilities.WarningDeviceState, error) {
+	args := m.Called(c, d)
+	return args.Get(0).(capabilities.WarningDeviceState), args.Error(1)
+}
+
+func Test_convertAlarmWarningDevice(t *testing.T) {
+	t.Run("retrieves and returns all data from AlarmWarningDevice", func(t *testing.T) {
+		d := da.BaseDevice{}
+
+		mawd := mockAlarmWarningDevice{}
+		defer mawd.AssertExpectations(t)
+
+		retVal := capabilities.WarningDeviceState{
+			Warning:           true,
+			AlarmType:         capabilities.PanicAlarm,
+			Volume:            0.8,
+			Visual:            true,
+			DurationRemaining: 60 * time.Second,
+		}
+
+		mawd.Mock.On("Status", mock.Anything, d).Return(retVal, nil)
+
+		alarmTypeText := "Panic"
+
+		remainingDuration := int(retVal.DurationRemaining / time.Millisecond)
+
+		expected := AlarmWarningDeviceStatus{
+			Warning:   retVal.Warning,
+			AlarmType: &alarmTypeText,
+			Volume:    &retVal.Volume,
+			Visual:    &retVal.Visual,
+			Duration:  &remainingDuration,
+		}
+
+		dc := DeviceConverter{}
+		actual := dc.convertAlarmWarningDevice(context.Background(), d, &mawd)
+
+		assert.Equal(t, expected, actual)
+	})
+}

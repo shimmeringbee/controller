@@ -60,6 +60,8 @@ func (dc *DeviceConverter) convertDADeviceCapability(pctx context.Context, devic
 		return dc.convertOnOff(ctx, device, capability)
 	case capabilities.PowerSupply:
 		return dc.convertPowerSupply(ctx, device, capability)
+	case capabilities.AlarmWarningDevice:
+		return dc.convertAlarmWarningDevice(ctx, device, capability)
 	default:
 		return struct{}{}
 	}
@@ -275,4 +277,35 @@ func (dc *DeviceConverter) convertPowerSupply(ctx context.Context, d da.Device, 
 		Mains:   mains,
 		Battery: battery,
 	}
+}
+
+type AlarmWarningDeviceStatus struct {
+	Warning   bool
+	AlarmType *string  `json:",omitempty"`
+	Volume    *float64 `json:",omitempty"`
+	Visual    *bool    `json:",omitempty"`
+	Duration  *int     `json:",omitempty"`
+}
+
+func (dc *DeviceConverter) convertAlarmWarningDevice(ctx context.Context, d da.Device, capability capabilities.AlarmWarningDevice) interface{} {
+	state, err := capability.Status(ctx, d)
+	if err != nil {
+		return nil
+	}
+
+	status := AlarmWarningDeviceStatus{
+		Warning: state.Warning,
+	}
+
+	if state.Warning {
+		alarmType := state.AlarmType.String()
+		duration := int(state.DurationRemaining / time.Millisecond)
+
+		status.Volume = &state.Volume
+		status.Visual = &state.Visual
+		status.AlarmType = &alarmType
+		status.Duration = &duration
+	}
+
+	return status
 }

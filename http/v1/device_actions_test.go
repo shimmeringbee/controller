@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/da"
+	"github.com/shimmeringbee/da/capabilities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"io/ioutil"
@@ -346,6 +347,71 @@ func Test_doDeviceCapabilityAction_OnOff(t *testing.T) {
 		mockCapability.Mock.On("Off", mock.Anything, device).Return(nil)
 
 		action := "Off"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, nil)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+}
+
+func Test_doAlarmWarningDevice_Test_doAlarmWarningDevice(t *testing.T) {
+	t.Run("Alarm invokes the capability", func(t *testing.T) {
+		mockCapability := &mockAlarmWarningDevice{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		mockCapability.On("Alarm", mock.Anything, device, capabilities.PanicAlarm, 0.5, true, 60*time.Second).Return(nil)
+
+		action := "Alarm"
+
+		expectedResult := struct{}{}
+
+		inputBytes, _ := json.Marshal(AlarmWarningDeviceAlarm{
+			AlarmType: "Panic",
+			Volume:    0.5,
+			Visual:    true,
+			Duration:  60000,
+		})
+		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, inputBytes)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+
+	t.Run("Alert invokes the capability", func(t *testing.T) {
+		mockCapability := &mockAlarmWarningDevice{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		mockCapability.On("Alert", mock.Anything, device, capabilities.PanicAlarm, capabilities.PreAlarmAlert, 0.5, true).Return(nil)
+
+		action := "Alert"
+
+		expectedResult := struct{}{}
+
+		inputBytes, _ := json.Marshal(AlarmWarningDeviceAlert{
+			AlarmType: "Panic",
+			AlertType: "PreAlarm",
+			Volume:    0.5,
+			Visual:    true,
+		})
+		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, inputBytes)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+
+	t.Run("Clear invokes the capability", func(t *testing.T) {
+		mockCapability := &mockAlarmWarningDevice{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		mockCapability.On("Clear", mock.Anything, device).Return(nil)
+
+		action := "Clear"
 
 		expectedResult := struct{}{}
 
