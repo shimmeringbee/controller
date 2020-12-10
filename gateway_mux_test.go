@@ -90,9 +90,11 @@ func TestGatewayMux_Add(t *testing.T) {
 	t.Run("DeviceLoaded update the gateway mux cache for routing", func(t *testing.T) {
 		mg := mockGateway{}
 
+		addr := zigbee.GenerateLocalAdministeredIEEEAddress()
+
 		d1 := da.BaseDevice{
 			DeviceGateway:      &mg,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
+			DeviceIdentifier:   addr,
 			DeviceCapabilities: []da.Capability{},
 		}
 
@@ -100,7 +102,7 @@ func TestGatewayMux_Add(t *testing.T) {
 
 		d2 := da.BaseDevice{
 			DeviceGateway:      &mg,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
+			DeviceIdentifier:   addr,
 			DeviceCapabilities: []da.Capability{capOne},
 		}
 
@@ -128,9 +130,11 @@ func TestGatewayMux_Add(t *testing.T) {
 	t.Run("EnumerateDeviceSuccess update the gateway mux cache for routing", func(t *testing.T) {
 		mg := mockGateway{}
 
+		addr := zigbee.GenerateLocalAdministeredIEEEAddress()
+
 		d1 := da.BaseDevice{
 			DeviceGateway:      &mg,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
+			DeviceIdentifier:   addr,
 			DeviceCapabilities: []da.Capability{},
 		}
 
@@ -138,7 +142,7 @@ func TestGatewayMux_Add(t *testing.T) {
 
 		d2 := da.BaseDevice{
 			DeviceGateway:      &mg,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
+			DeviceIdentifier:   addr,
 			DeviceCapabilities: []da.Capability{capOne},
 		}
 

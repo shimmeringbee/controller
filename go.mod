@@ -10,10 +10,10 @@ require (
 	github.com/shimmeringbee/logwrap v0.0.0-20201104114416-23aeb26f66f1
 	github.com/shimmeringbee/zda v0.0.0-20201122170658-e7776449e5bc
 	github.com/shimmeringbee/zigbee v0.0.0-20201027194100-4e53cafc0f7a
-	github.com/shimmeringbee/zstack v0.0.0-20201123143207-8cb790086138
+	github.com/shimmeringbee/zstack v0.0.0-20201210170222-93ae1363ee09
 	github.com/stretchr/testify v1.6.1
-	github.com/tidwall/gjson v1.6.3
+	github.com/tidwall/gjson v1.6.4
 	github.com/tidwall/match v1.0.2 // indirect
 	go.bug.st/serial.v1 v0.0.0-20191202182710-24a6610f0541
-	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68 // indirect
+	golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d // indirect
 )
