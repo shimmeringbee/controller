@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"github.com/stretchr/testify/assert"
@@ -105,7 +106,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		mda.On("doAction", mock.Anything, device, &mbc, "action", []byte(bodyText)).Return(nil, ActionNotSupported)
 
-		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction}
+		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction, stack: layers.PassThruStack{}}
 
 		body := strings.NewReader(bodyText)
 
@@ -151,7 +152,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		mda.On("doAction", mock.Anything, device, &mbc, "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("unknown error"))
 
-		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction}
+		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction, stack: layers.PassThruStack{}}
 
 		body := strings.NewReader(bodyText)
 
@@ -197,7 +198,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		mda.On("doAction", mock.Anything, device, &mbc, "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("%w: unknown error", ActionUserError))
 
-		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction}
+		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction, stack: layers.PassThruStack{}}
 
 		body := strings.NewReader(bodyText)
 
@@ -243,7 +244,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		mda.On("doAction", mock.Anything, device, &mbc, "action", []byte(bodyText)).Return(struct{}{}, nil)
 
-		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction}
+		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction, stack: layers.PassThruStack{}}
 
 		body := strings.NewReader(bodyText)
 

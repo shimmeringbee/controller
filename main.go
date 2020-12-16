@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	lw "github.com/shimmeringbee/logwrap"
@@ -52,8 +53,10 @@ func main() {
 	deviceOrganiserMuxCh := updateDeviceOrganiserFromMux(&deviceOrganiser)
 	gwMux.Listen(deviceOrganiserMuxCh)
 
+	outputStack := layers.PassThruStack{}
+
 	l.LogInfo(ctx, "Starting interfaces.")
-	startedInterfaces, err := startInterfaces(interfaceCfgs, &gwMux, &deviceOrganiser, directories)
+	startedInterfaces, err := startInterfaces(interfaceCfgs, &gwMux, &deviceOrganiser, directories, outputStack)
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start interfaces.", lw.Err(err))
 	}

@@ -2,11 +2,12 @@ package v1
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"net/http"
 )
 
-func ConstructRouter(mapper GatewayMapper, deviceOrganiser *metadata.DeviceOrganiser) http.Handler {
+func ConstructRouter(mapper GatewayMapper, deviceOrganiser *metadata.DeviceOrganiser, stack layers.OutputStack) http.Handler {
 	r := mux.NewRouter()
 
 	deviceConverter := DeviceConverter{
@@ -19,6 +20,7 @@ func ConstructRouter(mapper GatewayMapper, deviceOrganiser *metadata.DeviceOrgan
 		deviceConverter: &deviceConverter,
 		deviceAction:    doDeviceCapabilityAction,
 		deviceOrganiser: deviceOrganiser,
+		stack:           stack,
 	}
 
 	gc := gatewayController{

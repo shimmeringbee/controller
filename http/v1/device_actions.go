@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"io/ioutil"
@@ -21,6 +22,8 @@ func (e ActionError) Error() string {
 
 const ActionNotSupported = ActionError("action not available on capability")
 const ActionUserError = ActionError("user provided bad data")
+
+const DefaultHttpOutputLayer string = "http"
 
 func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
@@ -50,7 +53,7 @@ func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *h
 	}
 
 	for _, capFlag := range daDevice.Capabilities() {
-		uncastCap := daDevice.Gateway().Capability(capFlag)
+		uncastCap := d.stack.Lookup(DefaultHttpOutputLayer).Capability(layers.OneShot, capFlag, daDevice)
 
 		if uncastCap != nil {
 			if castCap, ok := uncastCap.(da.BasicCapability); ok {

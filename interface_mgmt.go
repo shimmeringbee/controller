@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/config"
 	v1 "github.com/shimmeringbee/controller/http/v1"
+	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"io/ioutil"
 	"net/http"
@@ -57,7 +58,7 @@ func loadInterfaceConfigurations(dir string) ([]config.InterfaceConfig, error) {
 	return retCfgs, nil
 }
 
-func startInterfaces(cfgs []config.InterfaceConfig, g *GatewayMux, o *metadata.DeviceOrganiser, directories Directories) ([]StartedInterface, error) {
+func startInterfaces(cfgs []config.InterfaceConfig, g *GatewayMux, o *metadata.DeviceOrganiser, directories Directories, stack layers.OutputStack) ([]StartedInterface, error) {
 	var retGws []StartedInterface
 
 	for _, cfg := range cfgs {
@@ -67,7 +68,7 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *GatewayMux, o *metadata.D
 			return nil, fmt.Errorf("failed to create interface data directory '%s': %w", dataDir, err)
 		}
 
-		if shutdown, err := startInterface(cfg, g, o, dataDir); err != nil {
+		if shutdown, err := startInterface(cfg, g, o, dataDir, stack); err != nil {
 			return nil, fmt.Errorf("failed to start interface '%s': %w", cfg.Name, err)
 		} else {
 			retGws = append(retGws, StartedInterface{
@@ -80,10 +81,10 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *GatewayMux, o *metadata.D
 	return retGws, nil
 }
 
-func startInterface(cfg config.InterfaceConfig, g *GatewayMux, o *metadata.DeviceOrganiser, cfgDig string) (func() error, error) {
+func startInterface(cfg config.InterfaceConfig, g *GatewayMux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack) (func() error, error) {
 	switch gwCfg := cfg.Config.(type) {
 	case *config.HTTPInterfaceConfig:
-		return startHTTPInterface(*gwCfg, g, o, cfgDig)
+		return startHTTPInterface(*gwCfg, g, o, cfgDig, stack)
 	default:
 		return nil, fmt.Errorf("unknown gateway type loaded: %s", cfg.Type)
 	}
@@ -99,11 +100,11 @@ func containsString(haystack []string, needle string) bool {
 	return false
 }
 
-func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *GatewayMux, o *metadata.DeviceOrganiser, cfgDig string) (func() error, error) {
+func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *GatewayMux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack) (func() error, error) {
 	r := mux.NewRouter()
 
 	if containsString(cfg.EnabledAPIs, "v1") {
-		v1Router := v1.ConstructRouter(g, o)
+		v1Router := v1.ConstructRouter(g, o, stack)
 		r.PathPrefix("/api/v1").Handler(http.StripPrefix("/api/v1", v1Router))
 	}
 

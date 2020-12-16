@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gorilla/mux"
+	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"io/ioutil"
@@ -22,6 +23,7 @@ type deviceController struct {
 	deviceConverter deviceConverter
 	deviceAction    deviceAction
 	deviceOrganiser *metadata.DeviceOrganiser
+	stack           layers.OutputStack
 }
 
 func (d *deviceController) listDevices(w http.ResponseWriter, r *http.Request) {
