@@ -62,6 +62,8 @@ func (dc *DeviceConverter) convertDADeviceCapability(pctx context.Context, devic
 		return dc.convertPowerSupply(ctx, device, capability)
 	case capabilities.AlarmWarningDevice:
 		return dc.convertAlarmWarningDevice(ctx, device, capability)
+	case capabilities.Level:
+		return dc.convertLevel(ctx, device, capability)
 	default:
 		return struct{}{}
 	}
@@ -308,4 +310,25 @@ func (dc *DeviceConverter) convertAlarmWarningDevice(ctx context.Context, d da.D
 	}
 
 	return status
+}
+
+type Level struct {
+	CurrentLevel      float64
+	TargetLevel       float64 `json:",omitempty"`
+	DurationRemaining int     `json:",omitempty"`
+}
+
+func (dc *DeviceConverter) convertLevel(ctx context.Context, device da.Device, l capabilities.Level) interface{} {
+	state, err := l.Status(ctx, device)
+	if err != nil {
+		return nil
+	}
+
+	durationInMilliseconds := int(state.DurationRemaining / time.Millisecond)
+
+	return Level{
+		CurrentLevel:      state.CurrentLevel,
+		TargetLevel:       state.TargetLevel,
+		DurationRemaining: durationInMilliseconds,
+	}
 }

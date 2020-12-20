@@ -507,3 +507,43 @@ func Test_convertAlarmWarningDevice(t *testing.T) {
 		assert.Equal(t, expected, actual)
 	})
 }
+
+type mockLevel struct {
+	mock.Mock
+}
+
+func (m *mockLevel) Status(c context.Context, d da.Device) (capabilities.LevelStatus, error) {
+	args := m.Called(c, d)
+	return args.Get(0).(capabilities.LevelStatus), args.Error(1)
+}
+
+func (m *mockLevel) Change(c context.Context, d da.Device, l float64, t time.Duration) error {
+	args := m.Called(c, d, l, t)
+	return args.Error(0)
+}
+
+func Test_convertLevel(t *testing.T) {
+	t.Run("retrieves and returns all data from OnOff", func(t *testing.T) {
+		d := da.BaseDevice{}
+
+		ml := mockLevel{}
+		defer ml.AssertExpectations(t)
+
+		ml.Mock.On("Status", mock.Anything, d).Return(capabilities.LevelStatus{
+			CurrentLevel:      0.5,
+			TargetLevel:       0.7,
+			DurationRemaining: 100 * time.Millisecond,
+		}, nil)
+
+		expected := Level{
+			CurrentLevel:      0.5,
+			TargetLevel:       0.7,
+			DurationRemaining: 100,
+		}
+
+		dc := DeviceConverter{}
+		actual := dc.convertLevel(context.Background(), d, &ml)
+
+		assert.Equal(t, expected, actual)
+	})
+}

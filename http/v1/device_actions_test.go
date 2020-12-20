@@ -422,3 +422,25 @@ func Test_doAlarmWarningDevice_Test_doAlarmWarningDevice(t *testing.T) {
 		assert.Equal(t, expectedResult, actualResult)
 	})
 }
+
+func Test_doDeviceCapabilityAction_Level(t *testing.T) {
+	t.Run("Change invokes the capability", func(t *testing.T) {
+		mockCapability := &mockLevel{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		level := 0.5
+		expectedDuration := 1 * time.Second
+		mockCapability.On("Change", mock.Anything, device, level, expectedDuration).Return(nil)
+
+		inputBytes, _ := json.Marshal(LevelChange{Level: level, Duration: 1000})
+		action := "Change"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doLevel(context.Background(), device, mockCapability, action, inputBytes)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+}

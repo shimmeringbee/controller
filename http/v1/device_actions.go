@@ -103,6 +103,8 @@ func doDeviceCapabilityAction(ctx context.Context, d da.Device, c interface{}, a
 		return doOnOff(ctx, d, cast, a, b)
 	case capabilities.AlarmWarningDevice:
 		return doAlarmWarningDevice(ctx, d, cast, a, b)
+	case capabilities.Level:
+		return doLevel(ctx, d, cast, a, b)
 	}
 
 	return nil, ActionNotSupported
@@ -218,6 +220,26 @@ func doAlarmWarningDevice(ctx context.Context, d da.Device, c capabilities.Alarm
 		}
 
 		return struct{}{}, c.Alert(ctx, d, alarmType, alertType, input.Volume, input.Visual)
+	}
+
+	return nil, ActionNotSupported
+}
+
+type LevelChange struct {
+	Level    float64
+	Duration int
+}
+
+func doLevel(ctx context.Context, d da.Device, c capabilities.Level, a string, b []byte) (interface{}, error) {
+	switch a {
+	case "Change":
+		input := LevelChange{}
+		if err := json.Unmarshal(b, &input); err != nil {
+			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, err.Error())
+		}
+
+		duration := time.Duration(input.Duration) * time.Millisecond
+		return struct{}{}, c.Change(ctx, d, input.Level, duration)
 	}
 
 	return nil, ActionNotSupported
