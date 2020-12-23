@@ -9,6 +9,7 @@ import (
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
+	da_color "github.com/shimmeringbee/da/capabilities/color"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -105,6 +106,8 @@ func doDeviceCapabilityAction(ctx context.Context, d da.Device, c interface{}, a
 		return doAlarmWarningDevice(ctx, d, cast, a, b)
 	case capabilities.Level:
 		return doLevel(ctx, d, cast, a, b)
+	case capabilities.Color:
+		return doColor(ctx, d, cast, a, b)
 	}
 
 	return nil, ActionNotSupported
@@ -240,6 +243,83 @@ func doLevel(ctx context.Context, d da.Device, c capabilities.Level, a string, b
 
 		duration := time.Duration(input.Duration) * time.Millisecond
 		return struct{}{}, c.Change(ctx, d, input.Level, duration)
+	}
+
+	return nil, ActionNotSupported
+}
+
+type ColorChangeTemperature struct {
+	Temperature float64
+	Duration    int
+}
+
+type ColorChangeColorXYY struct {
+	X  float64
+	Y  float64
+	Y2 float64
+}
+
+type ColorChangeColorHSV struct {
+	Hue        float64
+	Saturation float64
+	Value      float64
+}
+
+type ColorChangeColorRGB struct {
+	R uint8
+	G uint8
+	B uint8
+}
+
+type ColorChangeColor struct {
+	XYY      *ColorChangeColorXYY
+	HSV      *ColorChangeColorHSV
+	RGB      *ColorChangeColorRGB
+	Duration int
+}
+
+func doColor(ctx context.Context, d da.Device, c capabilities.Color, a string, b []byte) (interface{}, error) {
+	switch a {
+	case "ChangeColor":
+		input := ColorChangeColor{}
+		if err := json.Unmarshal(b, &input); err != nil {
+			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, err.Error())
+		}
+
+		var color da_color.ConvertibleColor
+
+		if input.XYY != nil {
+			color = da_color.XYColor{
+				X:  input.XYY.X,
+				Y:  input.XYY.Y,
+				Y2: input.XYY.Y2,
+			}
+		} else if input.HSV != nil {
+			color = da_color.HSVColor{
+				Hue:   input.HSV.Hue,
+				Sat:   input.HSV.Saturation,
+				Value: input.HSV.Value,
+			}
+		} else if input.RGB != nil {
+			color = da_color.SRGBColor{
+				R: input.RGB.R,
+				G: input.RGB.G,
+				B: input.RGB.B,
+			}
+		} else {
+			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, fmt.Errorf("no recognised color"))
+		}
+
+		duration := time.Duration(input.Duration) * time.Millisecond
+		return struct{}{}, c.ChangeColor(ctx, d, color, duration)
+	case "ChangeTemperature":
+		input := ColorChangeTemperature{}
+		if err := json.Unmarshal(b, &input); err != nil {
+			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, err.Error())
+		}
+
+		duration := time.Duration(input.Duration) * time.Millisecond
+		return struct{}{}, c.ChangeTemperature(ctx, d, input.Temperature, duration)
 	}
 
 	return nil, ActionNotSupported

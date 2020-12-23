@@ -8,6 +8,7 @@ import (
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
+	color2 "github.com/shimmeringbee/da/capabilities/color"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"io/ioutil"
@@ -439,6 +440,130 @@ func Test_doDeviceCapabilityAction_Level(t *testing.T) {
 		expectedResult := struct{}{}
 
 		actualResult, err := doLevel(context.Background(), device, mockCapability, action, inputBytes)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+}
+
+func Test_doDeviceCapabilityAction_Color(t *testing.T) {
+	t.Run("ChangeColor invokes the capability, XYY", func(t *testing.T) {
+		mockCapability := &mockColor{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		color := color2.XYColor{
+			X:  0.25,
+			Y:  0.50,
+			Y2: 0.75,
+		}
+
+		expectedDuration := 1 * time.Second
+		mockCapability.On("ChangeColor", mock.Anything, device, color, expectedDuration).Return(nil)
+
+		inputBytes, _ := json.Marshal(ColorChangeColor{
+			XYY: &ColorChangeColorXYY{
+				X:  color.X,
+				Y:  color.Y,
+				Y2: color.Y2,
+			},
+			HSV:      nil,
+			RGB:      nil,
+			Duration: 1000,
+		})
+		action := "ChangeColor"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doColor(context.Background(), device, mockCapability, action, inputBytes)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+
+	t.Run("ChangeColor invokes the capability, HSV", func(t *testing.T) {
+		mockCapability := &mockColor{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		color := color2.HSVColor{
+			Hue:   180.0,
+			Sat:   0.5,
+			Value: 1.0,
+		}
+
+		expectedDuration := 1 * time.Second
+		mockCapability.On("ChangeColor", mock.Anything, device, color, expectedDuration).Return(nil)
+
+		inputBytes, _ := json.Marshal(ColorChangeColor{
+			XYY: nil,
+			HSV: &ColorChangeColorHSV{
+				Hue:        color.Hue,
+				Saturation: color.Sat,
+				Value:      color.Value,
+			},
+			RGB:      nil,
+			Duration: 1000,
+		})
+		action := "ChangeColor"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doColor(context.Background(), device, mockCapability, action, inputBytes)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+
+	t.Run("ChangeColor invokes the capability, RGB", func(t *testing.T) {
+		mockCapability := &mockColor{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		color := color2.SRGBColor{
+			R: 192,
+			G: 128,
+			B: 64,
+		}
+
+		expectedDuration := 1 * time.Second
+		mockCapability.On("ChangeColor", mock.Anything, device, color, expectedDuration).Return(nil)
+
+		inputBytes, _ := json.Marshal(ColorChangeColor{
+			XYY: nil,
+			HSV: nil,
+			RGB: &ColorChangeColorRGB{
+				R: color.R,
+				G: color.G,
+				B: color.B,
+			},
+			Duration: 1000,
+		})
+		action := "ChangeColor"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doColor(context.Background(), device, mockCapability, action, inputBytes)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+
+	t.Run("ChangeTemperature invokes the capability", func(t *testing.T) {
+		mockCapability := &mockColor{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		temperature := 2500.5
+		expectedDuration := 1 * time.Second
+		mockCapability.On("ChangeTemperature", mock.Anything, device, temperature, expectedDuration).Return(nil)
+
+		inputBytes, _ := json.Marshal(ColorChangeTemperature{Temperature: temperature, Duration: 1000})
+		action := "ChangeTemperature"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doColor(context.Background(), device, mockCapability, action, inputBytes)
 		assert.NoError(t, err)
 
 		assert.Equal(t, expectedResult, actualResult)
