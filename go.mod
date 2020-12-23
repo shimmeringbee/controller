@@ -17,5 +17,3 @@ require (
 	go.bug.st/serial.v1 v0.0.0-20191202182710-24a6610f0541
 	golang.org/x/sys v0.0.0-20201223074533-0d417f636930 // indirect
 )
-
-replace github.com/shimmeringbee/zda => ../zda
