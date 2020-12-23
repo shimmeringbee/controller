@@ -5,6 +5,7 @@ import (
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
+	"github.com/shimmeringbee/da/capabilities/color"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
@@ -536,13 +537,154 @@ func Test_convertLevel(t *testing.T) {
 		}, nil)
 
 		expected := Level{
-			CurrentLevel:      0.5,
-			TargetLevel:       0.7,
+			Current:           0.5,
+			Target:            0.7,
 			DurationRemaining: 100,
 		}
 
 		dc := DeviceConverter{}
 		actual := dc.convertLevel(context.Background(), d, &ml)
+
+		assert.Equal(t, expected, actual)
+	})
+}
+
+type mockColor struct {
+	mock.Mock
+}
+
+func (m *mockColor) ChangeColor(ctx context.Context, d da.Device, color color.ConvertibleColor, duration time.Duration) error {
+	args := m.Called(ctx, d, color, duration)
+	return args.Error(0)
+}
+
+func (m *mockColor) ChangeTemperature(ctx context.Context, d da.Device, f float64, duration time.Duration) error {
+	args := m.Called(ctx, d, f, duration)
+	return args.Error(0)
+}
+
+func (m *mockColor) SupportsColor(ctx context.Context, device da.Device) (bool, error) {
+	args := m.Called(ctx, device)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockColor) SupportsTemperature(ctx context.Context, device da.Device) (bool, error) {
+	args := m.Called(ctx, device)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockColor) Status(ctx context.Context, d da.Device) (capabilities.ColorStatus, error) {
+	args := m.Called(ctx, d)
+	return args.Get(0).(capabilities.ColorStatus), args.Error(1)
+}
+
+func Test_convertColor(t *testing.T) {
+	t.Run("retrieves and returns all data from Color, color output", func(t *testing.T) {
+		d := da.BaseDevice{}
+
+		mc := mockColor{}
+		defer mc.AssertExpectations(t)
+
+		mc.Mock.On("Status", mock.Anything, d).Return(capabilities.ColorStatus{
+			Mode: capabilities.ColorMode,
+			Color: capabilities.ColorSettings{
+				Current: color.SRGBColor{R: 255, G: 192, B: 128},
+				Target:  color.SRGBColor{R: 254, G: 191, B: 127},
+			},
+			DurationRemaining: 100 * time.Millisecond,
+		}, nil)
+
+		mc.Mock.On("SupportsColor", mock.Anything, d).Return(true, nil)
+		mc.Mock.On("SupportsTemperature", mock.Anything, d).Return(true, nil)
+
+		expected := Color{
+			DurationRemaining: 100,
+			Current: &ColorState{
+				Color: &ColorOutput{
+					XYY: ColorOutputXYY{
+						X:  0.4175721613449009,
+						Y:  0.394948027649306,
+						Y2: 0.6052201733975096,
+					},
+					HSV: ColorOutputHSV{
+						Hue:        30.236220472440944,
+						Saturation: 0.4980392156862745,
+						Value:      1,
+					},
+					RGB: ColorOutputRGB{
+						R: 255,
+						G: 192,
+						B: 128,
+					},
+					Hex: "ffc080",
+				},
+			},
+			Target: &ColorState{
+				Color: &ColorOutput{
+					XYY: ColorOutputXYY{
+						X:  0.4175721613449009,
+						Y:  0.394948027649306,
+						Y2: 0.6052201733975096,
+					},
+					HSV: ColorOutputHSV{
+						Hue:        30.236220472440944,
+						Saturation: 0.4980392156862745,
+						Value:      1,
+					},
+					RGB: ColorOutputRGB{
+						R: 255,
+						G: 192,
+						B: 128,
+					},
+					Hex: "ffc080",
+				},
+			},
+			Supports: ColorSupports{
+				Color:       true,
+				Temperature: true,
+			},
+		}
+
+		dc := DeviceConverter{}
+		actual := dc.convertColor(context.Background(), d, &mc)
+
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("retrieves and returns all data from Color, temperature output", func(t *testing.T) {
+		d := da.BaseDevice{}
+
+		mc := mockColor{}
+		defer mc.AssertExpectations(t)
+
+		mc.Mock.On("Status", mock.Anything, d).Return(capabilities.ColorStatus{
+			Mode: capabilities.TemperatureMode,
+			Temperature: capabilities.TemperatureSettings{
+				Current: 2400,
+				Target:  2500,
+			},
+			DurationRemaining: 100 * time.Millisecond,
+		}, nil)
+
+		mc.Mock.On("SupportsColor", mock.Anything, d).Return(true, nil)
+		mc.Mock.On("SupportsTemperature", mock.Anything, d).Return(true, nil)
+
+		expected := Color{
+			DurationRemaining: 100,
+			Current: &ColorState{
+				Temperature: 2400,
+			},
+			Target: &ColorState{
+				Temperature: 2500,
+			},
+			Supports: ColorSupports{
+				Color:       true,
+				Temperature: true,
+			},
+		}
+
+		dc := DeviceConverter{}
+		actual := dc.convertColor(context.Background(), d, &mc)
 
 		assert.Equal(t, expected, actual)
 	})

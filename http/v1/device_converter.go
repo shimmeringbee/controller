@@ -2,9 +2,11 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
+	"github.com/shimmeringbee/da/capabilities/color"
 	"time"
 )
 
@@ -64,6 +66,8 @@ func (dc *DeviceConverter) convertDADeviceCapability(pctx context.Context, devic
 		return dc.convertAlarmWarningDevice(ctx, device, capability)
 	case capabilities.Level:
 		return dc.convertLevel(ctx, device, capability)
+	case capabilities.Color:
+		return dc.convertColor(ctx, device, capability)
 	default:
 		return struct{}{}
 	}
@@ -313,8 +317,8 @@ func (dc *DeviceConverter) convertAlarmWarningDevice(ctx context.Context, d da.D
 }
 
 type Level struct {
-	CurrentLevel      float64
-	TargetLevel       float64 `json:",omitempty"`
+	Current           float64
+	Target            float64 `json:",omitempty"`
 	DurationRemaining int     `json:",omitempty"`
 }
 
@@ -327,8 +331,124 @@ func (dc *DeviceConverter) convertLevel(ctx context.Context, device da.Device, l
 	durationInMilliseconds := int(state.DurationRemaining / time.Millisecond)
 
 	return Level{
-		CurrentLevel:      state.CurrentLevel,
-		TargetLevel:       state.TargetLevel,
+		Current:           state.CurrentLevel,
+		Target:            state.TargetLevel,
 		DurationRemaining: durationInMilliseconds,
+	}
+}
+
+type ColorOutputXYY struct {
+	X  float64
+	Y  float64
+	Y2 float64
+}
+
+type ColorOutputHSV struct {
+	Hue        float64
+	Saturation float64
+	Value      float64
+}
+
+type ColorOutputRGB struct {
+	R uint8
+	G uint8
+	B uint8
+}
+
+type ColorOutput struct {
+	XYY ColorOutputXYY
+	HSV ColorOutputHSV
+	RGB ColorOutputRGB
+	Hex string
+}
+
+type ColorState struct {
+	Temperature float64      `json:",omitempty"`
+	Color       *ColorOutput `json:",omitempty"`
+}
+
+type ColorSupports struct {
+	Color       bool
+	Temperature bool
+}
+
+type Color struct {
+	Current           *ColorState
+	Target            *ColorState `json:",omitempty"`
+	DurationRemaining int         `json:",omitempty"`
+	Supports          ColorSupports
+}
+
+func (dc *DeviceConverter) convertColor(ctx context.Context, device da.Device, c capabilities.Color) interface{} {
+	state, err := c.Status(ctx, device)
+	if err != nil {
+		return nil
+	}
+
+	supportsColor, err := c.SupportsColor(ctx, device)
+	if err != nil {
+		return nil
+	}
+
+	supportsTemperature, err := c.SupportsTemperature(ctx, device)
+	if err != nil {
+		return nil
+	}
+
+	durationInMilliseconds := int(state.DurationRemaining / time.Millisecond)
+
+	currentColor := ColorState{}
+	var targetColor *ColorState
+
+	if state.Mode == capabilities.TemperatureMode {
+		currentColor.Temperature = state.Temperature.Current
+
+		if state.Temperature.Target > 0 {
+			targetColor = &ColorState{}
+			targetColor.Temperature = state.Temperature.Target
+		}
+	} else {
+		currentColor.Color = convertConvertibleColorToColorOutput(state.Color.Current)
+
+		if state.Color.Target != nil {
+			targetColor = &ColorState{}
+			targetColor.Color = convertConvertibleColorToColorOutput(state.Color.Current)
+		}
+	}
+
+	return Color{
+		Current:           &currentColor,
+		Target:            targetColor,
+		DurationRemaining: durationInMilliseconds,
+		Supports: ColorSupports{
+			Color:       supportsColor,
+			Temperature: supportsTemperature,
+		},
+	}
+}
+
+func convertConvertibleColorToColorOutput(current color.ConvertibleColor) *ColorOutput {
+	x, y, y2 := current.XYY()
+	h, s, v := current.HSV()
+	r, g, b := current.RGB()
+	hex := fmt.Sprintf("%02x%02x%02x", r, g, b)
+
+	return &ColorOutput{
+		XYY: ColorOutputXYY{
+			X:  x,
+			Y:  y,
+			Y2: y2,
+		},
+		HSV: ColorOutputHSV{
+			Hue:        h,
+			Saturation: s,
+			Value:      v,
+		},
+		RGB: ColorOutputRGB{
+			R: r,
+			G: g,
+			B: b,
+		},
+		Hex: hex,
 	}
 }
