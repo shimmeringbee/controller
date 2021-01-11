@@ -210,10 +210,6 @@ func startZStackProvider(cfg config.ZStackProvider, network zigbee.NetworkConfig
 		return nil, nil, fmt.Errorf("failed to open serial port for zstack '%s': %w", cfg.Port.Name, err)
 	}
 
-	if err := port.SetRTS(cfg.Port.RTS); err != nil {
-		return nil, nil, fmt.Errorf("failed to set RTS on serial port for zstack '%s': %w", cfg.Port.Name, err)
-	}
-
 	nodeCacheFile := strings.Join([]string{cfgDig, "zstack_node_cache.json"}, string(os.PathSeparator))
 	nodeCache := zstack.NewNodeTable()
 

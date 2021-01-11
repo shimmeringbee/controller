@@ -68,6 +68,5 @@ type ZStackProvider struct {
 	Port struct {
 		Name string
 		Baud int
-		RTS  bool
 	}
 }
