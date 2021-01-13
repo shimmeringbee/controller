@@ -569,3 +569,22 @@ func Test_doDeviceCapabilityAction_Color(t *testing.T) {
 		assert.Equal(t, expectedResult, actualResult)
 	})
 }
+
+func Test_doDeviceCapabilityAction_DeviceRemoval(t *testing.T) {
+	t.Run("Remove invokes the capability", func(t *testing.T) {
+		mockCapability := &mockDeviceRemoval{}
+		defer mockCapability.AssertExpectations(t)
+
+		device := da.BaseDevice{}
+		mockCapability.On("Remove", mock.Anything, device).Return(nil)
+
+		action := "Remove"
+
+		expectedResult := struct{}{}
+
+		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, nil)
+		assert.NoError(t, err)
+
+		assert.Equal(t, expectedResult, actualResult)
+	})
+}

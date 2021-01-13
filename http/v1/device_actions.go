@@ -108,6 +108,8 @@ func doDeviceCapabilityAction(ctx context.Context, d da.Device, c interface{}, a
 		return doLevel(ctx, d, cast, a, b)
 	case capabilities.Color:
 		return doColor(ctx, d, cast, a, b)
+	case capabilities.DeviceRemoval:
+		return doDeviceRemoval(ctx, d, cast, a, b)
 	}
 
 	return nil, ActionNotSupported
@@ -320,6 +322,15 @@ func doColor(ctx context.Context, d da.Device, c capabilities.Color, a string, b
 
 		duration := time.Duration(input.Duration) * time.Millisecond
 		return struct{}{}, c.ChangeTemperature(ctx, d, input.Temperature, duration)
+	}
+
+	return nil, ActionNotSupported
+}
+
+func doDeviceRemoval(ctx context.Context, d da.Device, c capabilities.DeviceRemoval, a string, b []byte) (interface{}, error) {
+	switch a {
+	case "Remove":
+		return struct{}{}, c.Remove(ctx, d)
 	}
 
 	return nil, ActionNotSupported

@@ -689,3 +689,12 @@ func Test_convertColor(t *testing.T) {
 		assert.Equal(t, expected, actual)
 	})
 }
+
+type mockDeviceRemoval struct {
+	mock.Mock
+}
+
+func (m *mockDeviceRemoval) Remove(c context.Context, d da.Device) error {
+	args := m.Called(c, d)
+	return args.Error(0)
+}
