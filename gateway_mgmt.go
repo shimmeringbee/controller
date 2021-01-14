@@ -76,7 +76,7 @@ func startZDAGateway(cfg config.ZDAConfig, cfgDig string) (da.Gateway, func(), e
 
 	var r *rules.Rule
 	if len(cfg.Rules) > 0 {
-		rulesFile := strings.Join([]string{cfgDig, cfg.Rules}, string(os.PathSeparator))
+		rulesFile := filepath.Join(cfgDig, cfg.Rules)
 
 		r, err = loadZDARules(rulesFile)
 		if err != nil {
@@ -100,7 +100,7 @@ func startZDAGateway(cfg config.ZDAConfig, cfgDig string) (da.Gateway, func(), e
 		return nil, nil, fmt.Errorf("failed to start zda: %w", err)
 	}
 
-	zdaStateFile := strings.Join([]string{cfgDig, "zda_state.json"}, string(os.PathSeparator))
+	zdaStateFile := filepath.Join(cfgDig, "zda_state.json")
 
 	if err := loadZDAState(gw, zdaStateFile); err != nil {
 		return nil, nil, fmt.Errorf("failed to load zda state: %w", err)
@@ -210,7 +210,7 @@ func startZStackProvider(cfg config.ZStackProvider, network zigbee.NetworkConfig
 		return nil, nil, fmt.Errorf("failed to open serial port for zstack '%s': %w", cfg.Port.Name, err)
 	}
 
-	nodeCacheFile := strings.Join([]string{cfgDig, "zstack_node_cache.json"}, string(os.PathSeparator))
+	nodeCacheFile := filepath.Join(cfgDig, "zstack_node_cache.json")
 	nodeCache := zstack.NewNodeTable()
 
 	if err := loadZStackNodeCache(nodeCache, nodeCacheFile); err != nil {
@@ -308,7 +308,7 @@ func loadGatewayConfigurations(dir string) ([]config.GatewayConfig, error) {
 			continue
 		}
 
-		fullPath := fmt.Sprintf("%s%s%s", dir, string(os.PathSeparator), file.Name())
+		fullPath := filepath.Join(dir, file.Name())
 		data, err := ioutil.ReadFile(fullPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read gateway configuration file '%s': %w", fullPath, err)

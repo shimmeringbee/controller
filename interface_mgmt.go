@@ -62,7 +62,7 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *GatewayMux, o *metadata.D
 	var retGws []StartedInterface
 
 	for _, cfg := range cfgs {
-		dataDir := strings.Join([]string{directories.Data, "interfaces", cfg.Name}, string(os.PathSeparator))
+		dataDir := filepath.Join(directories.Data, "interfaces", cfg.Name)
 
 		if err := os.MkdirAll(dataDir, DefaultDirectoryPermissions); err != nil {
 			return nil, fmt.Errorf("failed to create interface data directory '%s': %w", dataDir, err)

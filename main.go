@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -107,8 +106,8 @@ func main() {
 }
 
 func initialiseDeviceOrganiser(l lw.Logger, dir string, d *metadata.DeviceOrganiser) (func(), error) {
-	zoneFile := strings.Join([]string{dir, "zones.json"}, string(os.PathSeparator))
-	deviceFile := strings.Join([]string{dir, "devices.json"}, string(os.PathSeparator))
+	zoneFile := filepath.Join(dir, "zones.json")
+	deviceFile := filepath.Join(dir, "devices.json")
 
 	if err := metadata.LoadZones(zoneFile, d); err != nil {
 		return func() {}, fmt.Errorf("failed to load zones: %w", err)
