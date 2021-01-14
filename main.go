@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -25,12 +26,12 @@ func main() {
 
 	l.LogInfo(ctx, "Directory enumeration complete.", lw.Datum("directories", directories))
 
-	gatewayCfgs, err := loadGatewayConfigurations(strings.Join([]string{directories.Config, "gateways"}, string(os.PathSeparator)))
+	gatewayCfgs, err := loadGatewayConfigurations(filepath.Join(directories.Config, "gateways"))
 	if err != nil {
 		l.LogFatal(ctx, "Failed to load gateway configurations.", lw.Err(err))
 	}
 
-	interfaceCfgs, err := loadInterfaceConfigurations(strings.Join([]string{directories.Config, "interfaces"}, string(os.PathSeparator)))
+	interfaceCfgs, err := loadInterfaceConfigurations(filepath.Join(directories.Config, "interfaces"))
 	if err != nil {
 		l.LogFatal(ctx, "Failed to load interface configurations.", lw.Err(err))
 	}

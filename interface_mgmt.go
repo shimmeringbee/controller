@@ -38,7 +38,7 @@ func loadInterfaceConfigurations(dir string) ([]config.InterfaceConfig, error) {
 			continue
 		}
 
-		fullPath := fmt.Sprintf("%s%s%s", dir, string(os.PathSeparator), file.Name())
+		fullPath := filepath.Join(dir, file.Name())
 		data, err := ioutil.ReadFile(fullPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read interface configuration file '%s': %w", fullPath, err)

@@ -6,7 +6,7 @@ import (
 	"github.com/peterbourgon/ff/v3"
 	"github.com/shimmeringbee/logwrap"
 	"os"
-	"strings"
+	"path/filepath"
 )
 
 const DefaultDirectoryPermissions = 0700
@@ -67,6 +67,6 @@ func defaultDirectory(t string) (string, error) {
 	if configDir, err := os.UserConfigDir(); err != nil {
 		return "", err
 	} else {
-		return strings.Join([]string{configDir, "shimmeringbee", "controller", t}, string(os.PathSeparator)), nil
+		return filepath.Join(configDir, "shimmeringbee", "controller", t), nil
 	}
 }
