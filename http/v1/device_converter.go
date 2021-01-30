@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
@@ -101,20 +102,34 @@ type SettableChangeTime interface {
 	SetChangeTime(time.Time)
 }
 
-type LastUpdateTime struct {
-	LastUpdateTime *time.Time `json:",omitempty"`
+type NullableTime time.Time
+
+func (n NullableTime) MarshalJSON() ([]byte, error) {
+	under := time.Time(n)
+
+	if under.IsZero() {
+		return []byte("null"), nil
+	} else {
+		return json.Marshal(under)
+	}
 }
 
-func (lut *LastUpdateTime) SetUpdateTime(t time.Time) {
-	lut.LastUpdateTime = &t
+type LastUpdate struct {
+	LastUpdate *NullableTime `json:",omitempty"`
 }
 
-type LastChangeTime struct {
-	LastChangeTime *time.Time `json:",omitempty"`
+func (lut *LastUpdate) SetUpdateTime(t time.Time) {
+	nullableTime := NullableTime(t)
+	lut.LastUpdate = &nullableTime
 }
 
-func (lct *LastChangeTime) SetChangeTime(t time.Time) {
-	lct.LastChangeTime = &t
+type LastChange struct {
+	LastChange *NullableTime `json:",omitempty"`
+}
+
+func (lct *LastChange) SetChangeTime(t time.Time) {
+	nullableTime := NullableTime(t)
+	lct.LastChange = &nullableTime
 }
 
 type HasProductInformation struct {
@@ -138,8 +153,8 @@ func (dc *DeviceConverter) convertHasProductInformation(ctx context.Context, dev
 
 type TemperatureSensor struct {
 	Readings []capabilities.TemperatureReading
-	LastUpdateTime
-	LastChangeTime
+	LastUpdate
+	LastChange
 }
 
 func (dc *DeviceConverter) convertTemperatureSensor(ctx context.Context, device da.Device, ts capabilities.TemperatureSensor) interface{} {
@@ -155,8 +170,8 @@ func (dc *DeviceConverter) convertTemperatureSensor(ctx context.Context, device 
 
 type RelativeHumiditySensor struct {
 	Readings []capabilities.RelativeHumidityReading
-	LastUpdateTime
-	LastChangeTime
+	LastUpdate
+	LastChange
 }
 
 func (dc *DeviceConverter) convertRelativeHumiditySensor(ctx context.Context, device da.Device, rhs capabilities.RelativeHumiditySensor) interface{} {
@@ -172,8 +187,8 @@ func (dc *DeviceConverter) convertRelativeHumiditySensor(ctx context.Context, de
 
 type PressureSensor struct {
 	Readings []capabilities.PressureReading
-	LastUpdateTime
-	LastChangeTime
+	LastUpdate
+	LastChange
 }
 
 func (dc *DeviceConverter) convertPressureSensor(ctx context.Context, device da.Device, ps capabilities.PressureSensor) interface{} {
@@ -190,6 +205,8 @@ func (dc *DeviceConverter) convertPressureSensor(ctx context.Context, device da.
 type DeviceDiscovery struct {
 	Discovering bool
 	Duration    int `json:",omitempty"`
+	LastUpdate
+	LastChange
 }
 
 func (dc *DeviceConverter) convertDeviceDiscovery(ctx context.Context, device da.Device, dd capabilities.DeviceDiscovery) interface{} {
@@ -208,6 +225,8 @@ func (dc *DeviceConverter) convertDeviceDiscovery(ctx context.Context, device da
 
 type EnumerateDevice struct {
 	Enumerating bool
+	LastUpdate
+	LastChange
 }
 
 func (dc *DeviceConverter) convertEnumerateDevice(ctx context.Context, device da.Device, ed capabilities.EnumerateDevice) interface{} {
@@ -223,6 +242,8 @@ func (dc *DeviceConverter) convertEnumerateDevice(ctx context.Context, device da
 
 type AlarmSensor struct {
 	Alarms map[string]bool
+	LastUpdate
+	LastChange
 }
 
 func (dc *DeviceConverter) convertAlarmSensor(ctx context.Context, device da.Device, as capabilities.AlarmSensor) interface{} {
@@ -244,6 +265,8 @@ func (dc *DeviceConverter) convertAlarmSensor(ctx context.Context, device da.Dev
 
 type OnOff struct {
 	State bool
+	LastUpdate
+	LastChange
 }
 
 func (dc *DeviceConverter) convertOnOff(ctx context.Context, device da.Device, oo capabilities.OnOff) interface{} {
@@ -260,8 +283,8 @@ func (dc *DeviceConverter) convertOnOff(ctx context.Context, device da.Device, o
 type PowerStatus struct {
 	Mains   []PowerMainsStatus   `json:",omitempty"`
 	Battery []PowerBatteryStatus `json:",omitempty"`
-	LastUpdateTime
-	LastChangeTime
+	LastUpdate
+	LastChange
 }
 
 type PowerMainsStatus struct {
@@ -343,8 +366,8 @@ type AlarmWarningDeviceStatus struct {
 	Volume    *float64 `json:",omitempty"`
 	Visual    *bool    `json:",omitempty"`
 	Duration  *int     `json:",omitempty"`
-	LastUpdateTime
-	LastChangeTime
+	LastUpdate
+	LastChange
 }
 
 func (dc *DeviceConverter) convertAlarmWarningDevice(ctx context.Context, d da.Device, capability capabilities.AlarmWarningDevice) interface{} {
@@ -374,8 +397,8 @@ type Level struct {
 	Current           float64
 	Target            float64 `json:",omitempty"`
 	DurationRemaining int     `json:",omitempty"`
-	LastUpdateTime
-	LastChangeTime
+	LastUpdate
+	LastChange
 }
 
 func (dc *DeviceConverter) convertLevel(ctx context.Context, device da.Device, l capabilities.Level) interface{} {
@@ -433,8 +456,8 @@ type Color struct {
 	Target            *ColorState `json:",omitempty"`
 	DurationRemaining int         `json:",omitempty"`
 	Supports          ColorSupports
-	LastUpdateTime
-	LastChangeTime
+	LastUpdate
+	LastChange
 }
 
 func (dc *DeviceConverter) convertColor(ctx context.Context, device da.Device, c capabilities.Color) interface{} {

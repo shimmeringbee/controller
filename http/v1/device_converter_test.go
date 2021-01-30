@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
@@ -734,7 +735,7 @@ func Test_convertCapabilityWithLastUpdateTime(t *testing.T) {
 		mts := mockTemperatureSensorWithUpdateTime{}
 		defer mts.AssertExpectations(t)
 
-		expectedTime := time.Now()
+		expectedTime := NullableTime(time.Now())
 
 		mts.On("Reading", mock.Anything, d).Return([]capabilities.TemperatureReading{
 			{
@@ -742,7 +743,7 @@ func Test_convertCapabilityWithLastUpdateTime(t *testing.T) {
 			},
 		}, nil)
 
-		mts.On("LastUpdateTime", mock.Anything, d).Return(expectedTime, nil)
+		mts.On("LastUpdate", mock.Anything, d).Return(expectedTime, nil)
 
 		expected := &TemperatureSensor{
 			Readings: []capabilities.TemperatureReading{
@@ -750,8 +751,8 @@ func Test_convertCapabilityWithLastUpdateTime(t *testing.T) {
 					Value: 100,
 				},
 			},
-			LastUpdateTime: LastUpdateTime{
-				LastUpdateTime: &expectedTime,
+			LastUpdate: LastUpdate{
+				LastUpdate: &expectedTime,
 			},
 		}
 
@@ -769,7 +770,7 @@ func Test_convertCapabilityWithLastChangeTime(t *testing.T) {
 		mts := mockTemperatureSensorWithChangeTime{}
 		defer mts.AssertExpectations(t)
 
-		expectedTime := time.Now()
+		expectedTime := NullableTime(time.Now())
 
 		mts.On("Reading", mock.Anything, d).Return([]capabilities.TemperatureReading{
 			{
@@ -777,7 +778,7 @@ func Test_convertCapabilityWithLastChangeTime(t *testing.T) {
 			},
 		}, nil)
 
-		mts.On("LastChangeTime", mock.Anything, d).Return(expectedTime, nil)
+		mts.On("LastChange", mock.Anything, d).Return(expectedTime, nil)
 
 		expected := &TemperatureSensor{
 			Readings: []capabilities.TemperatureReading{
@@ -785,8 +786,8 @@ func Test_convertCapabilityWithLastChangeTime(t *testing.T) {
 					Value: 100,
 				},
 			},
-			LastChangeTime: LastChangeTime{
-				LastChangeTime: &expectedTime,
+			LastChange: LastChange{
+				LastChange: &expectedTime,
 			},
 		}
 
@@ -794,5 +795,28 @@ func Test_convertCapabilityWithLastChangeTime(t *testing.T) {
 		actual := dc.convertDADeviceCapability(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
+	})
+}
+
+func TestNullableTime_MarshalJSON(t *testing.T) {
+	t.Run("empty time marshals as null", func(t *testing.T) {
+		n := NullableTime(time.Time{})
+
+		data, err := json.Marshal(n)
+
+		assert.NoError(t, err)
+		assert.Equal(t, []byte("null"), data)
+	})
+
+	t.Run("full time marshals as normal", func(t *testing.T) {
+		tn := time.Now()
+		expectedData, _ := json.Marshal(tn)
+
+		n := NullableTime(tn)
+
+		data, err := json.Marshal(n)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedData, data)
 	})
 }
