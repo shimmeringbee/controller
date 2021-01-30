@@ -168,9 +168,9 @@ func updateDeviceOrganiserFromMux(do *metadata.DeviceOrganiser) chan interface{}
 			case e := <-ch:
 				switch ce := e.(type) {
 				case da.DeviceAdded:
-					do.AddDevice(ce.Identifier().String())
+					do.AddDevice(ce.Device.Identifier().String())
 				case da.DeviceRemoved:
-					do.RemoveDevice(ce.Identifier().String())
+					do.RemoveDevice(ce.Device.Identifier().String())
 				case nil:
 					return
 				}

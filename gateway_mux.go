@@ -58,19 +58,19 @@ func (m *GatewayMux) monitorGateway(g da.Gateway, shutCh chan struct{}) {
 			switch e := event.(type) {
 			case da.DeviceAdded:
 				m.lock.Lock()
-				m.deviceByIdentifier[e.Identifier().String()] = e.Device
+				m.deviceByIdentifier[e.Device.Identifier().String()] = e.Device
 				m.lock.Unlock()
 			case da.DeviceRemoved:
 				m.lock.Lock()
-				delete(m.deviceByIdentifier, e.Identifier().String())
+				delete(m.deviceByIdentifier, e.Device.Identifier().String())
 				m.lock.Unlock()
 			case da.DeviceLoaded:
 				m.lock.Lock()
-				m.deviceByIdentifier[e.Identifier().String()] = e.Device
+				m.deviceByIdentifier[e.Device.Identifier().String()] = e.Device
 				m.lock.Unlock()
 			case capabilities.EnumerateDeviceSuccess:
 				m.lock.Lock()
-				m.deviceByIdentifier[e.Identifier().String()] = e.Device
+				m.deviceByIdentifier[e.Device.Identifier().String()] = e.Device
 				m.lock.Unlock()
 			}
 

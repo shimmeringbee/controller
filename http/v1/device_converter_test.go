@@ -602,9 +602,9 @@ func Test_convertColor(t *testing.T) {
 			Current: &ColorState{
 				Color: &ColorOutput{
 					XYY: ColorOutputXYY{
-						X:  0.4175721613449009,
-						Y:  0.394948027649306,
-						Y2: 0.6052201733975096,
+						X:  0.4175453065956716,
+						Y:  0.3949406589978435,
+						Y2: 0.6051987031791847,
 					},
 					HSV: ColorOutputHSV{
 						Hue:        30.236220472440944,
@@ -622,9 +622,9 @@ func Test_convertColor(t *testing.T) {
 			Target: &ColorState{
 				Color: &ColorOutput{
 					XYY: ColorOutputXYY{
-						X:  0.4175721613449009,
-						Y:  0.394948027649306,
-						Y2: 0.6052201733975096,
+						X:  0.4175453065956716,
+						Y:  0.3949406589978435,
+						Y2: 0.6051987031791847,
 					},
 					HSV: ColorOutputHSV{
 						Hue:        30.236220472440944,
