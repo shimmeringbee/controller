@@ -43,34 +43,78 @@ func (dc *DeviceConverter) convertDADeviceCapability(pctx context.Context, devic
 	ctx, cancel := context.WithTimeout(pctx, DefaultCapabilityTimeout)
 	defer cancel()
 
+	var retVal interface{}
+
 	switch capability := uncastCapability.(type) {
 	case capabilities.HasProductInformation:
-		return dc.convertHasProductInformation(ctx, device, capability)
+		retVal = dc.convertHasProductInformation(ctx, device, capability)
 	case capabilities.TemperatureSensor:
-		return dc.convertTemperatureSensor(ctx, device, capability)
+		retVal = dc.convertTemperatureSensor(ctx, device, capability)
 	case capabilities.RelativeHumiditySensor:
-		return dc.convertRelativeHumiditySensor(ctx, device, capability)
+		retVal = dc.convertRelativeHumiditySensor(ctx, device, capability)
 	case capabilities.PressureSensor:
-		return dc.convertPressureSensor(ctx, device, capability)
+		retVal = dc.convertPressureSensor(ctx, device, capability)
 	case capabilities.DeviceDiscovery:
-		return dc.convertDeviceDiscovery(ctx, device, capability)
+		retVal = dc.convertDeviceDiscovery(ctx, device, capability)
 	case capabilities.EnumerateDevice:
-		return dc.convertEnumerateDevice(ctx, device, capability)
+		retVal = dc.convertEnumerateDevice(ctx, device, capability)
 	case capabilities.AlarmSensor:
-		return dc.convertAlarmSensor(ctx, device, capability)
+		retVal = dc.convertAlarmSensor(ctx, device, capability)
 	case capabilities.OnOff:
-		return dc.convertOnOff(ctx, device, capability)
+		retVal = dc.convertOnOff(ctx, device, capability)
 	case capabilities.PowerSupply:
-		return dc.convertPowerSupply(ctx, device, capability)
+		retVal = dc.convertPowerSupply(ctx, device, capability)
 	case capabilities.AlarmWarningDevice:
-		return dc.convertAlarmWarningDevice(ctx, device, capability)
+		retVal = dc.convertAlarmWarningDevice(ctx, device, capability)
 	case capabilities.Level:
-		return dc.convertLevel(ctx, device, capability)
+		retVal = dc.convertLevel(ctx, device, capability)
 	case capabilities.Color:
-		return dc.convertColor(ctx, device, capability)
+		retVal = dc.convertColor(ctx, device, capability)
 	default:
 		return struct{}{}
 	}
+
+	if capWithLUT, ok := uncastCapability.(capabilities.WithLastUpdateTime); ok {
+		if retWithSUT, ok := retVal.(SettableUpdateTime); ok {
+			if lut, err := capWithLUT.LastUpdateTime(ctx, device); err == nil {
+				retWithSUT.SetUpdateTime(lut)
+			}
+		}
+	}
+
+	if capWithLCT, ok := uncastCapability.(capabilities.WithLastChangeTime); ok {
+		if retWithSCT, ok := retVal.(SettableChangeTime); ok {
+			if lut, err := capWithLCT.LastChangeTime(ctx, device); err == nil {
+				retWithSCT.SetChangeTime(lut)
+			}
+		}
+	}
+
+	return retVal
+}
+
+type SettableUpdateTime interface {
+	SetUpdateTime(time.Time)
+}
+
+type SettableChangeTime interface {
+	SetChangeTime(time.Time)
+}
+
+type LastUpdateTime struct {
+	LastUpdateTime *time.Time `json:",omitempty"`
+}
+
+func (lut *LastUpdateTime) SetUpdateTime(t time.Time) {
+	lut.LastUpdateTime = &t
+}
+
+type LastChangeTime struct {
+	LastChangeTime *time.Time `json:",omitempty"`
+}
+
+func (lct *LastChangeTime) SetChangeTime(t time.Time) {
+	lct.LastChangeTime = &t
 }
 
 type HasProductInformation struct {
@@ -85,7 +129,7 @@ func (dc *DeviceConverter) convertHasProductInformation(ctx context.Context, dev
 		return nil
 	}
 
-	return HasProductInformation{
+	return &HasProductInformation{
 		Name:         pi.Name,
 		Manufacturer: pi.Manufacturer,
 		Serial:       pi.Serial,
@@ -94,6 +138,8 @@ func (dc *DeviceConverter) convertHasProductInformation(ctx context.Context, dev
 
 type TemperatureSensor struct {
 	Readings []capabilities.TemperatureReading
+	LastUpdateTime
+	LastChangeTime
 }
 
 func (dc *DeviceConverter) convertTemperatureSensor(ctx context.Context, device da.Device, ts capabilities.TemperatureSensor) interface{} {
@@ -102,13 +148,15 @@ func (dc *DeviceConverter) convertTemperatureSensor(ctx context.Context, device 
 		return nil
 	}
 
-	return TemperatureSensor{
+	return &TemperatureSensor{
 		Readings: tsReadings,
 	}
 }
 
 type RelativeHumiditySensor struct {
 	Readings []capabilities.RelativeHumidityReading
+	LastUpdateTime
+	LastChangeTime
 }
 
 func (dc *DeviceConverter) convertRelativeHumiditySensor(ctx context.Context, device da.Device, rhs capabilities.RelativeHumiditySensor) interface{} {
@@ -117,13 +165,15 @@ func (dc *DeviceConverter) convertRelativeHumiditySensor(ctx context.Context, de
 		return nil
 	}
 
-	return RelativeHumiditySensor{
+	return &RelativeHumiditySensor{
 		Readings: rhReadings,
 	}
 }
 
 type PressureSensor struct {
 	Readings []capabilities.PressureReading
+	LastUpdateTime
+	LastChangeTime
 }
 
 func (dc *DeviceConverter) convertPressureSensor(ctx context.Context, device da.Device, ps capabilities.PressureSensor) interface{} {
@@ -132,7 +182,7 @@ func (dc *DeviceConverter) convertPressureSensor(ctx context.Context, device da.
 		return nil
 	}
 
-	return PressureSensor{
+	return &PressureSensor{
 		Readings: psReadings,
 	}
 }
@@ -150,7 +200,7 @@ func (dc *DeviceConverter) convertDeviceDiscovery(ctx context.Context, device da
 
 	remainingMilliseconds := int(discoveryState.RemainingDuration / time.Millisecond)
 
-	return DeviceDiscovery{
+	return &DeviceDiscovery{
 		Discovering: discoveryState.Discovering,
 		Duration:    remainingMilliseconds,
 	}
@@ -166,7 +216,7 @@ func (dc *DeviceConverter) convertEnumerateDevice(ctx context.Context, device da
 		return nil
 	}
 
-	return EnumerateDevice{
+	return &EnumerateDevice{
 		Enumerating: enumerateDeviceState.Enumerating,
 	}
 }
@@ -187,7 +237,7 @@ func (dc *DeviceConverter) convertAlarmSensor(ctx context.Context, device da.Dev
 		alarms[k.String()] = v
 	}
 
-	return AlarmSensor{
+	return &AlarmSensor{
 		Alarms: alarms,
 	}
 }
@@ -202,7 +252,7 @@ func (dc *DeviceConverter) convertOnOff(ctx context.Context, device da.Device, o
 		return nil
 	}
 
-	return OnOff{
+	return &OnOff{
 		State: state,
 	}
 }
@@ -210,6 +260,8 @@ func (dc *DeviceConverter) convertOnOff(ctx context.Context, device da.Device, o
 type PowerStatus struct {
 	Mains   []PowerMainsStatus   `json:",omitempty"`
 	Battery []PowerBatteryStatus `json:",omitempty"`
+	LastUpdateTime
+	LastChangeTime
 }
 
 type PowerMainsStatus struct {
@@ -279,7 +331,7 @@ func (dc *DeviceConverter) convertPowerSupply(ctx context.Context, d da.Device, 
 		battery = append(battery, newBattery)
 	}
 
-	return PowerStatus{
+	return &PowerStatus{
 		Mains:   mains,
 		Battery: battery,
 	}
@@ -291,6 +343,8 @@ type AlarmWarningDeviceStatus struct {
 	Volume    *float64 `json:",omitempty"`
 	Visual    *bool    `json:",omitempty"`
 	Duration  *int     `json:",omitempty"`
+	LastUpdateTime
+	LastChangeTime
 }
 
 func (dc *DeviceConverter) convertAlarmWarningDevice(ctx context.Context, d da.Device, capability capabilities.AlarmWarningDevice) interface{} {
@@ -299,7 +353,7 @@ func (dc *DeviceConverter) convertAlarmWarningDevice(ctx context.Context, d da.D
 		return nil
 	}
 
-	status := AlarmWarningDeviceStatus{
+	status := &AlarmWarningDeviceStatus{
 		Warning: state.Warning,
 	}
 
@@ -320,6 +374,8 @@ type Level struct {
 	Current           float64
 	Target            float64 `json:",omitempty"`
 	DurationRemaining int     `json:",omitempty"`
+	LastUpdateTime
+	LastChangeTime
 }
 
 func (dc *DeviceConverter) convertLevel(ctx context.Context, device da.Device, l capabilities.Level) interface{} {
@@ -330,7 +386,7 @@ func (dc *DeviceConverter) convertLevel(ctx context.Context, device da.Device, l
 
 	durationInMilliseconds := int(state.DurationRemaining / time.Millisecond)
 
-	return Level{
+	return &Level{
 		Current:           state.CurrentLevel,
 		Target:            state.TargetLevel,
 		DurationRemaining: durationInMilliseconds,
@@ -377,6 +433,8 @@ type Color struct {
 	Target            *ColorState `json:",omitempty"`
 	DurationRemaining int         `json:",omitempty"`
 	Supports          ColorSupports
+	LastUpdateTime
+	LastChangeTime
 }
 
 func (dc *DeviceConverter) convertColor(ctx context.Context, device da.Device, c capabilities.Color) interface{} {
@@ -416,7 +474,7 @@ func (dc *DeviceConverter) convertColor(ctx context.Context, device da.Device, c
 		}
 	}
 
-	return Color{
+	return &Color{
 		Current:           &currentColor,
 		Target:            targetColor,
 		DurationRemaining: durationInMilliseconds,

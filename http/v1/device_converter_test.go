@@ -99,7 +99,7 @@ func Test_convertHasProductInformation(t *testing.T) {
 			Serial:       "serial",
 		}, nil)
 
-		expected := HasProductInformation{
+		expected := &HasProductInformation{
 			Name:         "name",
 			Manufacturer: "manufacturer",
 			Serial:       "serial",
@@ -134,7 +134,7 @@ func Test_convertTemperatureSensor(t *testing.T) {
 			},
 		}, nil)
 
-		expected := TemperatureSensor{
+		expected := &TemperatureSensor{
 			Readings: []capabilities.TemperatureReading{
 				{
 					Value: 100,
@@ -171,7 +171,7 @@ func Test_convertRelativeHumiditySensor(t *testing.T) {
 			},
 		}, nil)
 
-		expected := RelativeHumiditySensor{
+		expected := &RelativeHumiditySensor{
 			Readings: []capabilities.RelativeHumidityReading{
 				{
 					Value: 100,
@@ -208,7 +208,7 @@ func Test_convertPressureSensor(t *testing.T) {
 			},
 		}, nil)
 
-		expected := PressureSensor{
+		expected := &PressureSensor{
 			Readings: []capabilities.PressureReading{
 				{
 					Value: 100,
@@ -254,7 +254,7 @@ func Test_convertDeviceDiscovery(t *testing.T) {
 			RemainingDuration: 12 * time.Second,
 		}, nil)
 
-		expected := DeviceDiscovery{
+		expected := &DeviceDiscovery{
 			Discovering: true,
 			Duration:    12000,
 		}
@@ -291,7 +291,7 @@ func Test_convertEnumerateDevice(t *testing.T) {
 			Enumerating: true,
 		}, nil)
 
-		expected := EnumerateDevice{
+		expected := &EnumerateDevice{
 			Enumerating: true,
 		}
 
@@ -323,7 +323,7 @@ func Test_convertAlarmSensor(t *testing.T) {
 			capabilities.DeviceBatteryFailure: false,
 		}, nil)
 
-		expected := AlarmSensor{
+		expected := &AlarmSensor{
 			Alarms: map[string]bool{
 				"FireBreakGlass":       true,
 				"DeviceBatteryFailure": false,
@@ -365,7 +365,7 @@ func Test_convertOnOff(t *testing.T) {
 
 		moo.Mock.On("Status", mock.Anything, d).Return(true, nil)
 
-		expected := OnOff{
+		expected := &OnOff{
 			State: true,
 		}
 
@@ -423,7 +423,7 @@ func Test_convertPowerStatus(t *testing.T) {
 		batteryRemaining := 0.21
 		batteryAvailable := true
 
-		expected := PowerStatus{
+		expected := &PowerStatus{
 			Mains: []PowerMainsStatus{
 				{
 					Voltage:   &mainsVoltage,
@@ -494,7 +494,7 @@ func Test_convertAlarmWarningDevice(t *testing.T) {
 
 		remainingDuration := int(retVal.DurationRemaining / time.Millisecond)
 
-		expected := AlarmWarningDeviceStatus{
+		expected := &AlarmWarningDeviceStatus{
 			Warning:   retVal.Warning,
 			AlarmType: &alarmTypeText,
 			Volume:    &retVal.Volume,
@@ -536,7 +536,7 @@ func Test_convertLevel(t *testing.T) {
 			DurationRemaining: 100 * time.Millisecond,
 		}, nil)
 
-		expected := Level{
+		expected := &Level{
 			Current:           0.5,
 			Target:            0.7,
 			DurationRemaining: 100,
@@ -597,7 +597,7 @@ func Test_convertColor(t *testing.T) {
 		mc.Mock.On("SupportsColor", mock.Anything, d).Return(true, nil)
 		mc.Mock.On("SupportsTemperature", mock.Anything, d).Return(true, nil)
 
-		expected := Color{
+		expected := &Color{
 			DurationRemaining: 100,
 			Current: &ColorState{
 				Color: &ColorOutput{
@@ -669,7 +669,7 @@ func Test_convertColor(t *testing.T) {
 		mc.Mock.On("SupportsColor", mock.Anything, d).Return(true, nil)
 		mc.Mock.On("SupportsTemperature", mock.Anything, d).Return(true, nil)
 
-		expected := Color{
+		expected := &Color{
 			DurationRemaining: 100,
 			Current: &ColorState{
 				Temperature: 2400,
@@ -697,4 +697,102 @@ type mockDeviceRemoval struct {
 func (m *mockDeviceRemoval) Remove(c context.Context, d da.Device) error {
 	args := m.Called(c, d)
 	return args.Error(0)
+}
+
+type mockTemperatureSensorWithUpdateTime struct {
+	mock.Mock
+}
+
+func (m *mockTemperatureSensorWithUpdateTime) Reading(c context.Context, d da.Device) ([]capabilities.TemperatureReading, error) {
+	args := m.Called(c, d)
+	return args.Get(0).([]capabilities.TemperatureReading), args.Error(1)
+}
+
+func (m *mockTemperatureSensorWithUpdateTime) LastUpdateTime(c context.Context, d da.Device) (time.Time, error) {
+	args := m.Called(c, d)
+	return args.Get(0).(time.Time), args.Error(1)
+}
+
+type mockTemperatureSensorWithChangeTime struct {
+	mock.Mock
+}
+
+func (m *mockTemperatureSensorWithChangeTime) Reading(c context.Context, d da.Device) ([]capabilities.TemperatureReading, error) {
+	args := m.Called(c, d)
+	return args.Get(0).([]capabilities.TemperatureReading), args.Error(1)
+}
+
+func (m *mockTemperatureSensorWithChangeTime) LastChangeTime(c context.Context, d da.Device) (time.Time, error) {
+	args := m.Called(c, d)
+	return args.Get(0).(time.Time), args.Error(1)
+}
+
+func Test_convertCapabilityWithLastUpdateTime(t *testing.T) {
+	t.Run("retrieves and returns all data from TemperatureSensor", func(t *testing.T) {
+		d := da.BaseDevice{}
+
+		mts := mockTemperatureSensorWithUpdateTime{}
+		defer mts.AssertExpectations(t)
+
+		expectedTime := time.Now()
+
+		mts.On("Reading", mock.Anything, d).Return([]capabilities.TemperatureReading{
+			{
+				Value: 100,
+			},
+		}, nil)
+
+		mts.On("LastUpdateTime", mock.Anything, d).Return(expectedTime, nil)
+
+		expected := &TemperatureSensor{
+			Readings: []capabilities.TemperatureReading{
+				{
+					Value: 100,
+				},
+			},
+			LastUpdateTime: LastUpdateTime{
+				LastUpdateTime: &expectedTime,
+			},
+		}
+
+		dc := DeviceConverter{}
+		actual := dc.convertDADeviceCapability(context.Background(), d, &mts)
+
+		assert.Equal(t, expected, actual)
+	})
+}
+
+func Test_convertCapabilityWithLastChangeTime(t *testing.T) {
+	t.Run("retrieves and returns all data from TemperatureSensor", func(t *testing.T) {
+		d := da.BaseDevice{}
+
+		mts := mockTemperatureSensorWithChangeTime{}
+		defer mts.AssertExpectations(t)
+
+		expectedTime := time.Now()
+
+		mts.On("Reading", mock.Anything, d).Return([]capabilities.TemperatureReading{
+			{
+				Value: 100,
+			},
+		}, nil)
+
+		mts.On("LastChangeTime", mock.Anything, d).Return(expectedTime, nil)
+
+		expected := &TemperatureSensor{
+			Readings: []capabilities.TemperatureReading{
+				{
+					Value: 100,
+				},
+			},
+			LastChangeTime: LastChangeTime{
+				LastChangeTime: &expectedTime,
+			},
+		}
+
+		dc := DeviceConverter{}
+		actual := dc.convertDADeviceCapability(context.Background(), d, &mts)
+
+		assert.Equal(t, expected, actual)
+	})
 }
