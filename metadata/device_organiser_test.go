@@ -2,17 +2,16 @@ package metadata
 
 import (
 	"errors"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
-	"sync"
 	"testing"
 )
 
 func TestDeviceOrganiser_Zones(t *testing.T) {
 	t.Run("NewZone generates a new zone creates it at the root with an incrementing id", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -25,8 +24,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("RootZones returns the constructed root", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 
@@ -36,8 +34,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("GetZone returns a zone by id", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 
@@ -47,24 +44,21 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("GetZone returns false if it can't find the zone by id", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		_, found := do.Zone(1)
 		assert.False(t, found)
 	})
 
 	t.Run("NameZone returns an error if the zone does not exist", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		err := do.NameZone(1, "NewDeviceOrganiser Name")
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("NameZone updates a zones name", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 
@@ -77,16 +71,14 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone errors if the zone being moved does not exist", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		err := do.MoveZone(1, -1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("MoveZone errors if the parent zone does not exist", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 
@@ -95,8 +87,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone errors if the moved zone and parent are equal", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 
@@ -105,8 +96,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone succeeds in moving one root entry under another, removing the old root entry", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -114,7 +104,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		err := do.MoveZone(zoneTwo.Identifier, zoneOne.Identifier)
 		assert.NoError(t, err)
 
-		roots := do.rootZones
+		roots := do.hiddenRoot.SubZones
 		assert.Len(t, roots, 1)
 		assert.Equal(t, roots[0], zoneOne.Identifier)
 
@@ -126,8 +116,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone succeeds in moving a sub zone under another sub zone", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -152,8 +141,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone errors if moving a zone to be under one of its sub zones", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -169,8 +157,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone succeeds in moving a sub zone back to root", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -184,7 +171,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		checkOne, _ := do.Zone(zoneOne.Identifier)
 		assert.Len(t, checkOne.SubZones, 0)
 
-		roots := do.rootZones
+		roots := do.hiddenRoot.SubZones
 		assert.Len(t, roots, 2)
 		assert.Contains(t, roots, zoneTwo.Identifier)
 
@@ -192,16 +179,14 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone errors if zone can not be found", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		err := do.DeleteZone(1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("DeleteZone errors if zone has subzone found", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -214,8 +199,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone errors if zone has device", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 		do.zones[zoneOne.Identifier].Devices = []string{"device"}
@@ -225,8 +209,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone succeeds deleting a subzone", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -244,21 +227,20 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone succeeds deleting a root zone", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}}
+		do := NewDeviceOrganiser()
 
 		zoneOne := do.NewZone("one")
 
 		err := do.DeleteZone(zoneOne.Identifier)
 		assert.NoError(t, err)
 		assert.NotContains(t, do.zones, zoneOne.Identifier)
-		assert.NotContains(t, do.rootZones, zoneOne.Identifier)
+		assert.NotContains(t, do.hiddenRoot.SubZones, zoneOne.Identifier)
 	})
 }
 
 func TestDeviceOrganiser_Devices(t *testing.T) {
 	t.Run("AddDevice adds a device", func(t *testing.T) {
-		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 		do.AddDevice("id")
 
 		_, found := do.Device("id")
@@ -266,20 +248,20 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("Device returns false if device is not present", func(t *testing.T) {
-		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 		_, found := do.Device("id")
 		assert.False(t, found)
 	})
 
 	t.Run("Device returns true if device is present", func(t *testing.T) {
-		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 		do.AddDevice("id")
 		_, found := do.Device("id")
 		assert.True(t, found)
 	})
 
 	t.Run("NameDevice errors if device doesn't exist", func(t *testing.T) {
-		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 
 		err := do.NameDevice("id", "name")
 		assert.Error(t, err)
@@ -287,7 +269,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("NameDevice sets a name on a device", func(t *testing.T) {
-		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 		do.AddDevice("id")
 
 		err := do.NameDevice("id", "name")
@@ -299,14 +281,14 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("NameDevice errors if the device does not exist", func(t *testing.T) {
-		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 
 		err := do.NameDevice("id", "name")
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("AddDevice does not overwrite an existing device", func(t *testing.T) {
-		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 		do.AddDevice("id")
 
 		err := do.NameDevice("id", "name")
@@ -320,7 +302,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDevice removes an added device", func(t *testing.T) {
-		do := DeviceOrganiser{deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 		do.AddDevice("id")
 
 		do.RemoveDevice("id")
@@ -329,16 +311,14 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("AddDeviceToZone errors if the device can not be found", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 
 		err := do.AddDeviceToZone("id", 1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("AddDeviceToZone errors if the zone can not be found", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 
 		do.AddDevice("id")
 
@@ -347,8 +327,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("AddDeviceToZone adds the zone to the device and device to zone", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 
 		do.AddDevice("id")
 		zone := do.NewZone("name")
@@ -364,16 +343,14 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDeviceFromZone errors if the device can not be found", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 
 		err := do.RemoveDeviceFromZone("id", 1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("RemoveDeviceFromZone errors if the zone can not be found", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 
 		do.AddDevice("id")
 
@@ -382,8 +359,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDeviceFromZone removes the devices from the zone and zone from device", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 
 		do.AddDevice("id")
 		zone := do.NewZone("name")
@@ -402,8 +378,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDevice removes the device from any zones that its in", func(t *testing.T) {
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 
 		do.AddDevice("id")
 		zone := do.NewZone("name")
@@ -426,8 +401,7 @@ func TestDeviceOrganiser_persistZones(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.Remove(file.Name())
 
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 
 		one := do.NewZone("one")
 		two := do.NewZone("two")
@@ -441,12 +415,13 @@ func TestDeviceOrganiser_persistZones(t *testing.T) {
 		err = SaveZones(file.Name(), &do)
 		assert.NoError(t, err)
 
-		newDo := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
-
+		newDo := NewDeviceOrganiser()
 		err = LoadZones(file.Name(), &newDo)
-
 		assert.Equal(t, do.nextZoneId, newDo.nextZoneId)
 		assert.Equal(t, do.zones, newDo.zones)
+
+		spew.Dump(do)
+		spew.Dump(newDo)
 	})
 }
 
@@ -456,8 +431,7 @@ func TestDeviceOrganiser_persistDevices(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.Remove(file.Name())
 
-		startId := int64(0)
-		do := DeviceOrganiser{nextZoneId: &startId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		do := NewDeviceOrganiser()
 		zone := do.NewZone("one")
 
 		do.AddDevice("id")
@@ -467,8 +441,7 @@ func TestDeviceOrganiser_persistDevices(t *testing.T) {
 		err = SaveDevices(file.Name(), &do)
 		assert.NoError(t, err)
 
-		newStartId := int64(0)
-		newDo := DeviceOrganiser{nextZoneId: &newStartId, zoneLock: &sync.Mutex{}, zones: map[int]*Zone{}, deviceLock: &sync.Mutex{}, devices: map[string]*DeviceMetadata{}}
+		newDo := NewDeviceOrganiser()
 		newDo.NewZone("one")
 
 		err = LoadDevices(file.Name(), &newDo)

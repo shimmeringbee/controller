@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/creack/goselect v0.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.1
 	github.com/gorilla/mux v1.8.0
 	github.com/peterbourgon/ff/v3 v3.0.0
 	github.com/shimmeringbee/da v0.0.0-20210130160408-1806474f6de9

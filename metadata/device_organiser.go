@@ -26,9 +26,9 @@ type DeviceMetadata struct {
 type DeviceOrganiser struct {
 	nextZoneId *int64
 
-	zoneLock  *sync.Mutex
-	zones     map[int]*Zone
-	rootZones []int
+	zoneLock   *sync.Mutex
+	zones      map[int]*Zone
+	hiddenRoot *Zone
 
 	deviceLock *sync.Mutex
 	devices    map[string]*DeviceMetadata
@@ -53,11 +53,13 @@ const DefaultFilePermissions = 0600
 
 func NewDeviceOrganiser() DeviceOrganiser {
 	initialZoneId := int64(0)
+	hiddenZone := &Zone{Identifier: RootZoneId, Name: "Hidden Root"}
+
 	return DeviceOrganiser{
 		nextZoneId: &initialZoneId,
 		zoneLock:   &sync.Mutex{},
-		zones:      map[int]*Zone{},
-		rootZones:  nil,
+		zones:      map[int]*Zone{RootZoneId: hiddenZone},
+		hiddenRoot: hiddenZone,
 		deviceLock: &sync.Mutex{},
 		devices:    map[string]*DeviceMetadata{},
 	}
@@ -80,7 +82,7 @@ func (d *DeviceOrganiser) RootZones() []Zone {
 
 	var rootZones []Zone
 
-	for _, zoneId := range d.rootZones {
+	for _, zoneId := range d.hiddenRoot.SubZones {
 		rootZones = append(rootZones, *d.zones[zoneId])
 	}
 
@@ -100,7 +102,7 @@ func (d *DeviceOrganiser) NewZone(name string) Zone {
 	d.zoneLock.Lock()
 	defer d.zoneLock.Unlock()
 
-	d.rootZones = append(d.rootZones, newId)
+	d.hiddenRoot.SubZones = append(d.hiddenRoot.SubZones, newId)
 	d.zones[newId] = newZone
 
 	return *newZone
@@ -149,13 +151,9 @@ func (d *DeviceOrganiser) DeleteZone(id int) error {
 
 	delete(d.zones, id)
 
-	if zone.ParentZone == RootZoneId {
-		d.rootZones = filterInt(d.rootZones, id)
-	} else {
-		parent, found := d.zones[zone.ParentZone]
-		if found {
-			parent.SubZones = filterInt(parent.SubZones, id)
-		}
+	parent, found := d.zones[zone.ParentZone]
+	if found {
+		parent.SubZones = filterInt(parent.SubZones, id)
 	}
 
 	return nil
@@ -176,11 +174,9 @@ func (d *DeviceOrganiser) MoveZone(id int, newParentId int) error {
 
 	var newParent *Zone
 
-	if newParentId != RootZoneId {
-		newParent, found = d.zones[newParentId]
-		if !found {
-			return fmt.Errorf("new parent not found: %w", ErrNotFound)
-		}
+	newParent, found = d.zones[newParentId]
+	if !found {
+		return fmt.Errorf("new parent not found: %w", ErrNotFound)
 	}
 
 	for _, subId := range d.enumerateZoneDescendents(id) {
@@ -189,23 +185,15 @@ func (d *DeviceOrganiser) MoveZone(id int, newParentId int) error {
 		}
 	}
 
-	if zone.ParentZone == RootZoneId {
-		d.rootZones = filterInt(d.rootZones, id)
+	if oldParent, found := d.zones[zone.ParentZone]; !found {
+		return fmt.Errorf("old parent not found: %w", ErrNotFound)
 	} else {
-		if oldParent, found := d.zones[zone.ParentZone]; !found {
-			return fmt.Errorf("old parent not found: %w", ErrNotFound)
-		} else {
-			oldParent.SubZones = filterInt(oldParent.SubZones, id)
-		}
+		oldParent.SubZones = filterInt(oldParent.SubZones, id)
 	}
 
 	zone.ParentZone = newParentId
 
-	if newParent == nil {
-		d.rootZones = append(d.rootZones, id)
-	} else {
-		newParent.SubZones = append(newParent.SubZones, id)
-	}
+	newParent.SubZones = append(newParent.SubZones, id)
 
 	return nil
 }
@@ -353,7 +341,9 @@ func SaveZones(fileLocation string, do *DeviceOrganiser) error {
 	var saved SavedZones
 
 	for _, zone := range do.zones {
-		saved.Zones = append(saved.Zones, *zone)
+		if zone.Identifier != RootZoneId {
+			saved.Zones = append(saved.Zones, *zone)
+		}
 	}
 
 	saved.NextZoneId = *do.nextZoneId
@@ -362,6 +352,8 @@ func SaveZones(fileLocation string, do *DeviceOrganiser) error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Println(string(data))
 
 	return ioutil.WriteFile(fileLocation, data, DefaultFilePermissions)
 }
@@ -383,14 +375,15 @@ func LoadZones(fileLocation string, do *DeviceOrganiser) error {
 	}
 
 	do.zoneLock.Lock()
-
 	do.nextZoneId = &loaded.NextZoneId
 
 	for _, zone := range loaded.Zones {
-		copyZone := zone
-		copyZone.ParentZone = 0
-		do.zones[zone.Identifier] = &copyZone
-		do.rootZones = append(do.rootZones, zone.Identifier)
+		if zone.Identifier != RootZoneId {
+			copyZone := zone
+			copyZone.ParentZone = 0
+			do.zones[zone.Identifier] = &copyZone
+			do.hiddenRoot.SubZones = append(do.hiddenRoot.SubZones, zone.Identifier)
+		}
 	}
 
 	do.zoneLock.Unlock()
