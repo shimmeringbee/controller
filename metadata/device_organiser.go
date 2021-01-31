@@ -442,8 +442,6 @@ func SaveZones(fileLocation string, do *DeviceOrganiser) error {
 		return err
 	}
 
-	fmt.Println(string(data))
-
 	return ioutil.WriteFile(fileLocation, data, DefaultFilePermissions)
 }
 
