@@ -429,11 +429,7 @@ func SaveZones(fileLocation string, do *DeviceOrganiser) error {
 
 	var saved SavedZones
 
-	for _, zone := range do.zones {
-		if zone.Identifier != RootZoneId {
-			saved.Zones = append(saved.Zones, *zone)
-		}
-	}
+	recurseSaveZones(do, RootZoneId, &saved)
 
 	saved.NextZoneId = *do.nextZoneId
 
@@ -443,6 +439,18 @@ func SaveZones(fileLocation string, do *DeviceOrganiser) error {
 	}
 
 	return ioutil.WriteFile(fileLocation, data, DefaultFilePermissions)
+}
+
+func recurseSaveZones(do *DeviceOrganiser, id int, saved *SavedZones) {
+	z := do.zones[id]
+
+	if id != RootZoneId {
+		saved.Zones = append(saved.Zones, *z)
+	}
+
+	for _, sid := range z.SubZones {
+		recurseSaveZones(do, sid, saved)
+	}
 }
 
 func LoadZones(fileLocation string, do *DeviceOrganiser) error {

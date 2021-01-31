@@ -2,7 +2,6 @@ package metadata
 
 import (
 	"errors"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -540,6 +539,10 @@ func TestDeviceOrganiser_persistZones(t *testing.T) {
 		one := do.NewZone("one")
 		two := do.NewZone("two")
 		three := do.NewZone("three")
+		four := do.NewZone("four")
+
+		err = do.ReorderZoneBefore(four.Identifier, one.Identifier)
+		assert.NoError(t, err)
 
 		err = do.MoveZone(two.Identifier, one.Identifier)
 		assert.NoError(t, err)
@@ -553,9 +556,6 @@ func TestDeviceOrganiser_persistZones(t *testing.T) {
 		err = LoadZones(file.Name(), &newDo)
 		assert.Equal(t, do.nextZoneId, newDo.nextZoneId)
 		assert.Equal(t, do.zones, newDo.zones)
-
-		spew.Dump(do)
-		spew.Dump(newDo)
 	})
 }
 

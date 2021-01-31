@@ -9,7 +9,7 @@ require (
 	github.com/peterbourgon/ff/v3 v3.0.0
 	github.com/shimmeringbee/da v0.0.0-20210130160408-1806474f6de9
 	github.com/shimmeringbee/logwrap v0.0.0-20201104114416-23aeb26f66f1
-	github.com/shimmeringbee/zda v0.0.0-20210130223311-64b3a3070909
+	github.com/shimmeringbee/zda v0.0.0-20210131144648-39a170bb01e5
 	github.com/shimmeringbee/zigbee v0.0.0-20210113213523-03b7d3b8c37c
 	github.com/shimmeringbee/zstack v0.0.0-20210113211336-649362018b66
 	github.com/stretchr/testify v1.7.0
