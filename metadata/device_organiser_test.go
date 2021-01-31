@@ -92,7 +92,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		zoneOne := do.NewZone("one")
 
 		err := do.MoveZone(zoneOne.Identifier, zoneOne.Identifier)
-		assert.True(t, errors.Is(err, ErrMoveSameZone))
+		assert.True(t, errors.Is(err, ErrSameZone))
 	})
 
 	t.Run("MoveZone succeeds in moving one root entry under another, removing the old root entry", func(t *testing.T) {
@@ -176,6 +176,140 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		assert.Contains(t, roots, zoneTwo.Identifier)
 
 		assert.Equal(t, RootZoneId, zoneTwo.ParentZone)
+	})
+
+	t.Run("ReorderZoneBefore errors if zone being reordered does not exist", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+		beforeZone := do.NewZone("before")
+
+		err := do.ReorderZoneBefore(999, beforeZone.Identifier)
+		assert.True(t, errors.Is(err, ErrNotFound))
+	})
+
+	t.Run("ReorderZoneBefore errors if before zone does not exist", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+		beforeZone := do.NewZone("before")
+
+		err := do.ReorderZoneBefore(beforeZone.Identifier, 999)
+		assert.True(t, errors.Is(err, ErrNotFound))
+	})
+
+	t.Run("ReorderZoneBefore errors if zones do not have same parent", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+		a := do.NewZone("a")
+		b := do.NewZone("b")
+
+		c := do.NewZone("c")
+		d := do.NewZone("d")
+
+		do.MoveZone(c.Identifier, a.Identifier)
+		do.MoveZone(d.Identifier, b.Identifier)
+
+		err := do.ReorderZoneBefore(c.Identifier, d.Identifier)
+		assert.True(t, errors.Is(err, ErrMustHaveSameParent))
+	})
+
+	t.Run("ReorderZoneBefore errors if zones are the same zone", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+		moveZone := do.NewZone("before")
+
+		err := do.ReorderZoneBefore(moveZone.Identifier, moveZone.Identifier)
+		assert.True(t, errors.Is(err, ErrSameZone))
+	})
+
+	t.Run("ReorderZoneBefore succeeds reordering a zone, mid list", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+
+		_ = do.NewZone("a")
+		b := do.NewZone("b")
+		c := do.NewZone("c")
+
+		err := do.ReorderZoneBefore(c.Identifier, b.Identifier)
+		assert.NoError(t, err)
+		afterOrder := do.hiddenRoot.SubZones
+
+		assert.Equal(t, []int{1, 3, 2}, afterOrder)
+	})
+
+	t.Run("ReorderZoneBefore succeeds reordering a zone, to list head", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+
+		a := do.NewZone("a")
+		_ = do.NewZone("b")
+		c := do.NewZone("c")
+
+		err := do.ReorderZoneBefore(c.Identifier, a.Identifier)
+		assert.NoError(t, err)
+		afterOrder := do.hiddenRoot.SubZones
+
+		assert.Equal(t, []int{3, 1, 2}, afterOrder)
+	})
+
+	t.Run("ReorderZoneAfter errors if zone being reordered does not exist", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+		afterZone := do.NewZone("After")
+
+		err := do.ReorderZoneAfter(999, afterZone.Identifier)
+		assert.True(t, errors.Is(err, ErrNotFound))
+	})
+
+	t.Run("ReorderZoneAfter errors if After zone does not exist", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+		afterZone := do.NewZone("After")
+
+		err := do.ReorderZoneAfter(afterZone.Identifier, 999)
+		assert.True(t, errors.Is(err, ErrNotFound))
+	})
+
+	t.Run("ReorderZoneAfter errors if zones do not have same parent", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+		a := do.NewZone("a")
+		b := do.NewZone("b")
+
+		c := do.NewZone("c")
+		d := do.NewZone("d")
+
+		do.MoveZone(c.Identifier, a.Identifier)
+		do.MoveZone(d.Identifier, b.Identifier)
+
+		err := do.ReorderZoneAfter(c.Identifier, d.Identifier)
+		assert.True(t, errors.Is(err, ErrMustHaveSameParent))
+	})
+
+	t.Run("ReorderZoneAfter errors if zones are the same zone", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+		moveZone := do.NewZone("After")
+
+		err := do.ReorderZoneAfter(moveZone.Identifier, moveZone.Identifier)
+		assert.True(t, errors.Is(err, ErrSameZone))
+	})
+
+	t.Run("ReorderZoneAfter succeeds reordering a zone, mid list", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+
+		_ = do.NewZone("a")
+		b := do.NewZone("b")
+		c := do.NewZone("c")
+
+		err := do.ReorderZoneAfter(b.Identifier, c.Identifier)
+		assert.NoError(t, err)
+		afterOrder := do.hiddenRoot.SubZones
+
+		assert.Equal(t, []int{1, 3, 2}, afterOrder)
+	})
+
+	t.Run("ReorderZoneAfter succeeds reordering a zone, to list tail", func(t *testing.T) {
+		do := NewDeviceOrganiser()
+
+		a := do.NewZone("a")
+		_ = do.NewZone("b")
+		c := do.NewZone("c")
+
+		err := do.ReorderZoneAfter(a.Identifier, c.Identifier)
+		assert.NoError(t, err)
+		afterOrder := do.hiddenRoot.SubZones
+
+		assert.Equal(t, []int{2, 3, 1}, afterOrder)
 	})
 
 	t.Run("DeleteZone errors if zone can not be found", func(t *testing.T) {

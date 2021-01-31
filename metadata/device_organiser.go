@@ -41,11 +41,12 @@ func (z ZoneError) Error() string {
 }
 
 const (
-	ErrCircularReference = ZoneError("operation would result in circular reference in zone")
-	ErrNotFound          = ZoneError("not found")
-	ErrMoveSameZone      = ZoneError("zone can not be moved to itself")
-	ErrOrphanZone        = ZoneError("operation would result in orphaned zone")
-	ErrHasDevices        = ZoneError("zone has devices")
+	ErrCircularReference  = ZoneError("operation would result in circular reference in zone")
+	ErrNotFound           = ZoneError("not found")
+	ErrSameZone           = ZoneError("zone can not be moved/reordered to itself")
+	ErrOrphanZone         = ZoneError("operation would result in orphaned zone")
+	ErrHasDevices         = ZoneError("zone has devices")
+	ErrMustHaveSameParent = ZoneError("zones being reordered must have same parent")
 )
 
 const RootZoneId int = 0
@@ -161,7 +162,7 @@ func (d *DeviceOrganiser) DeleteZone(id int) error {
 
 func (d *DeviceOrganiser) MoveZone(id int, newParentId int) error {
 	if id == newParentId {
-		return ErrMoveSameZone
+		return ErrSameZone
 	}
 
 	d.zoneLock.Lock()
@@ -194,6 +195,94 @@ func (d *DeviceOrganiser) MoveZone(id int, newParentId int) error {
 	zone.ParentZone = newParentId
 
 	newParent.SubZones = append(newParent.SubZones, id)
+
+	return nil
+}
+
+func (d *DeviceOrganiser) ReorderZoneBefore(id int, beforeId int) error {
+	if id == beforeId {
+		return ErrSameZone
+	}
+
+	d.zoneLock.Lock()
+	defer d.zoneLock.Unlock()
+
+	zone, found := d.zones[id]
+	if !found {
+		return fmt.Errorf("zone not found: %w", ErrNotFound)
+	}
+
+	beforeZone, found := d.zones[beforeId]
+	if !found {
+		return fmt.Errorf("before zone not found: %w", ErrNotFound)
+	}
+
+	if zone.ParentZone != beforeZone.ParentZone {
+		return fmt.Errorf("zones do not share parent: %w", ErrMustHaveSameParent)
+	}
+
+	parentZone, found := d.zones[zone.ParentZone]
+	if !found {
+		return fmt.Errorf("could not find parent zone, corrupt state: %w", ErrNotFound)
+	}
+
+	var newSubZoneOrder []int
+
+	for _, subZoneId := range parentZone.SubZones {
+		if subZoneId == beforeId {
+			newSubZoneOrder = append(newSubZoneOrder, id)
+		}
+
+		if subZoneId != id {
+			newSubZoneOrder = append(newSubZoneOrder, subZoneId)
+		}
+	}
+
+	parentZone.SubZones = newSubZoneOrder
+
+	return nil
+}
+
+func (d *DeviceOrganiser) ReorderZoneAfter(id int, afterId int) error {
+	if id == afterId {
+		return ErrSameZone
+	}
+
+	d.zoneLock.Lock()
+	defer d.zoneLock.Unlock()
+
+	zone, found := d.zones[id]
+	if !found {
+		return fmt.Errorf("zone not found: %w", ErrNotFound)
+	}
+
+	beforeZone, found := d.zones[afterId]
+	if !found {
+		return fmt.Errorf("before zone not found: %w", ErrNotFound)
+	}
+
+	if zone.ParentZone != beforeZone.ParentZone {
+		return fmt.Errorf("zones do not share parent: %w", ErrMustHaveSameParent)
+	}
+
+	parentZone, found := d.zones[zone.ParentZone]
+	if !found {
+		return fmt.Errorf("could not find parent zone, corrupt state: %w", ErrNotFound)
+	}
+
+	var newSubZoneOrder []int
+
+	for _, subZoneId := range parentZone.SubZones {
+		if subZoneId != id {
+			newSubZoneOrder = append(newSubZoneOrder, subZoneId)
+		}
+
+		if subZoneId == afterId {
+			newSubZoneOrder = append(newSubZoneOrder, id)
+		}
+	}
+
+	parentZone.SubZones = newSubZoneOrder
 
 	return nil
 }
