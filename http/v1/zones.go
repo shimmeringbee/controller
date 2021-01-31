@@ -181,7 +181,9 @@ func (z *zoneController) deleteZone(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateZoneRequest struct {
-	Name *string
+	Name          *string
+	ReorderBefore *int
+	ReorderAfter  *int
 }
 
 func (z *zoneController) updateZone(w http.ResponseWriter, r *http.Request) {
@@ -222,6 +224,20 @@ func (z *zoneController) updateZone(w http.ResponseWriter, r *http.Request) {
 	if request.Name != nil {
 		if err := z.deviceOrganiser.NameZone(nZ.Identifier, *request.Name); err != nil {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if request.ReorderAfter != nil {
+		if err := z.deviceOrganiser.ReorderZoneAfter(nZ.Identifier, *request.ReorderAfter); err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+	}
+
+	if request.ReorderBefore != nil {
+		if err := z.deviceOrganiser.ReorderZoneBefore(nZ.Identifier, *request.ReorderBefore); err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 	}

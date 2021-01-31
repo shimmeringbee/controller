@@ -436,6 +436,64 @@ func Test_zoneController_updateZone(t *testing.T) {
 
 		assert.Equal(t, expectedZone, actualZone)
 	})
+
+	t.Run("updates an individual zone, moving before", func(t *testing.T) {
+		do := metadata.NewDeviceOrganiser()
+		do.NewZone("one")
+		do.NewZone("two")
+
+		controller := zoneController{deviceOrganiser: &do}
+
+		req, err := http.NewRequest("PATCH", "/zones/2", strings.NewReader(`{"ReorderBefore":1}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/zones/{identifier}", controller.updateZone)
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var actualZoneOrder []int
+
+		for _, z := range do.RootZones() {
+			actualZoneOrder = append(actualZoneOrder, z.Identifier)
+		}
+
+		assert.Equal(t, []int{2, 1}, actualZoneOrder)
+	})
+
+	t.Run("updates an individual zone, moving after", func(t *testing.T) {
+		do := metadata.NewDeviceOrganiser()
+		do.NewZone("one")
+		do.NewZone("two")
+
+		controller := zoneController{deviceOrganiser: &do}
+
+		req, err := http.NewRequest("PATCH", "/zones/1", strings.NewReader(`{"ReorderAfter":2}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/zones/{identifier}", controller.updateZone)
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+
+		var actualZoneOrder []int
+
+		for _, z := range do.RootZones() {
+			actualZoneOrder = append(actualZoneOrder, z.Identifier)
+		}
+
+		assert.Equal(t, []int{2, 1}, actualZoneOrder)
+	})
 }
 
 func Test_zoneController_addDeviceToZone(t *testing.T) {
