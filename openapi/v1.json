@@ -1,0 +1,661 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Shimmering Bee: Controller",
+    "description": "Interactive specification for the Shimmering Bee controller, v1 API. Allowing interactive access to all devices, gateways and zones on the controller.",
+    "version": "1.0.0",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "tags": [
+    {
+      "name": "devices",
+      "description": "Access to individual devices connected to the controller"
+    },
+    {
+      "name": "gateways",
+      "description": "Access to gateways that provide connectivity to devices"
+    },
+    {
+      "name": "zones",
+      "description": "Access to zone hierarchy, used to fetch data about zones and devices"
+    }
+  ],
+  "paths": {
+    "/devices": {
+      "get": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Return all devices",
+        "description": "List all devices present on the controller, including the state of any capabilities.",
+        "responses": {
+          "200": {
+            "description": "successfully queried all devices",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}": {
+      "get": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Get individual device",
+        "description": "Get single specified device, including the state of any capabilities",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "ID of device to get",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successfully queried the device",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "404": {
+            "description": "device not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Update device metadata",
+        "description": "Update a devices metadata, allowing fields such as a custom name be set",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "ID of device to update",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Metadata update request object",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successfully updated the device",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "404": {
+            "description": "device not found"
+          },
+          "400": {
+            "description": "bad request"
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/capability/{capabilityName}/{capabilityAction}": {
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Invoke capability action",
+        "description": "Update a devices metadata, allowing fields such as a custom name be set",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "ID of device to invoke action on",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capabilityName",
+            "in": "path",
+            "description": "Name of capability to invoke action upon",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "capabilityAction",
+            "in": "path",
+            "description": "Name of action to invoke",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Data for capability action to process",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successfully invoked action on the device",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "404": {
+            "description": "device not found"
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "500": {
+            "description": "internal error"
+          }
+        }
+      }
+    },
+    "/gateways": {
+      "get": {
+        "tags": [
+          "gateways"
+        ],
+        "summary": "Return all gateways",
+        "description": "List all gateways present on the controller, including a list of all capabilities they support",
+        "responses": {
+          "200": {
+            "description": "successfully queried all gateways",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/gateways/{gatewayId}": {
+      "get": {
+        "tags": [
+          "gateways"
+        ],
+        "summary": "Get individual gateway",
+        "description": "Get single specified gateway, including the a list of supported capabilities",
+        "parameters": [
+          {
+            "name": "gatewayId",
+            "in": "path",
+            "description": "ID of gateway to get",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successfully queried the gateway",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "404": {
+            "description": "gateway not found"
+          }
+        }
+      }
+    },
+    "/gateways/{gatewayId}/devices": {
+      "get": {
+        "tags": [
+          "gateways"
+        ],
+        "summary": "Get an individual gateways devices",
+        "description": "Get list of all devices that are present on the specified gateway",
+        "parameters": [
+          {
+            "name": "gatewayId",
+            "in": "path",
+            "description": "ID of gateway to get",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successfully queried the gateways devices",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "404": {
+            "description": "gateway not found"
+          }
+        }
+      }
+    },
+    "/zones": {
+      "get": {
+        "tags": [
+          "zones"
+        ],
+        "summary": "Return all root level zones",
+        "description": "List all zones that are at the root level of the controller",
+        "parameters": [
+          {
+            "name": "include",
+            "in": "query",
+            "description": "Optional data to be included in the response",
+            "explode": true,
+            "style": "matrix",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "enum",
+                "enum": [
+                  "devices",
+                  "subzones"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successfully queried root zones",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "zones"
+        ],
+        "summary": "Create new zone",
+        "description": "Creates a new zone at the root level",
+        "requestBody": {
+          "description": "Zone creation request object",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ZoneCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successfully created the zone",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "bad request"
+          }
+        }
+      }
+    },
+    "/zones/{zoneId}": {
+      "get": {
+        "tags": [
+          "zones"
+        ],
+        "summary": "Return a specified zone",
+        "description": "Fetch the specified zone",
+        "parameters": [
+          {
+            "name": "zoneId",
+            "in": "path",
+            "description": "ID of zone to get",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "description": "Optional data to be included in the response",
+            "explode": true,
+            "style": "matrix",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "enum",
+                "enum": [
+                  "devices",
+                  "subzones"
+                ]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successfully queried zone",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "404": {
+            "description": "zone not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "zones"
+        ],
+        "summary": "Delete a specified zone",
+        "description": "Delete the specified zone, must have no sub zones or member devices",
+        "parameters": [
+          {
+            "name": "zoneId",
+            "in": "path",
+            "description": "ID of zone to get",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "successfully deleted zone",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "404": {
+            "description": "zone not found"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "zones"
+        ],
+        "summary": "Update a specified zone",
+        "description": "Update the specified zone, changing its name or order with sibling zones",
+        "parameters": [
+          {
+            "name": "zoneId",
+            "in": "path",
+            "description": "ID of zone to get",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Zone update request object, all fields options, use either reorderBefore or reorderAfter, not both. If both are specified reorderAfter will take priority.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ZoneUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "successfully deleted zone",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "404": {
+            "description": "zone not found"
+          }
+        }
+      }
+    },
+    "/zones/{zoneId}/devices/{deviceId}": {
+      "put": {
+        "tags": [
+          "zones"
+        ],
+        "summary": "Add a device to a specified zone",
+        "description": "Adds the device to the specified zone, devices may belong to multiple zones",
+        "parameters": [
+          {
+            "name": "zoneId",
+            "in": "path",
+            "description": "ID of zone",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "ID of device",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "successfully added device to zone",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "404": {
+            "description": "zone/device not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "zones"
+        ],
+        "summary": "Delete a device from a specified zone",
+        "description": "Removes the device from the specified zone",
+        "parameters": [
+          {
+            "name": "zoneId",
+            "in": "path",
+            "description": "ID of zone",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deviceId",
+            "in": "path",
+            "description": "ID of device",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "successfully removed device from zone",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "404": {
+            "description": "zone/device not found"
+          }
+        }
+      }
+    },
+    "/zones/{zoneId}/devices/{subZoneId}": {
+      "put": {
+        "tags": [
+          "zones"
+        ],
+        "summary": "Move a zone to be a subzone of another",
+        "description": "Adds the subzone as a child of the zone provided",
+        "parameters": [
+          {
+            "name": "zoneId",
+            "in": "path",
+            "description": "ID of zone",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subZoneId",
+            "in": "path",
+            "description": "ID of subzone",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "successfully made subzone child of zone",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "404": {
+            "description": "zone not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "zones"
+        ],
+        "summary": "Orphan a subzone from a zone",
+        "description": "Remove the subzone from the zone provided, move it back to the root",
+        "parameters": [
+          {
+            "name": "zoneId",
+            "in": "path",
+            "description": "ID of zone",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subZoneId",
+            "in": "path",
+            "description": "ID of subzone",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "successfully moved subzone back to root",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "bad request"
+          },
+          "404": {
+            "description": "zone not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DeviceUpdate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Blue light on top of phone box"
+          }
+        }
+      },
+      "ZoneCreate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Police Box"
+          }
+        }
+      },
+      "ZoneUpdate": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Police Box"
+          },
+          "reorderBefore": {
+            "type": "integer",
+            "example": 1
+          },
+          "reorderAfter": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      }
+    }
+  }
+}
+
