@@ -58,7 +58,7 @@ func ConstructRouter(mapper GatewayMapper, deviceOrganiser *metadata.DeviceOrgan
 	r.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.addSubzoneToZone).Methods("PUT")
 	r.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.removeSubzoneToZone).Methods("DELETE")
 
-	r.Handle("/openapi.json", http.FileServer(http.FS(openapi)))
+	r.Handle("/openapi.json", http.FileServer(http.FS(openapi))).Methods("GET")
 
 	return r
 }
