@@ -1,11 +1,15 @@
 package v1
 
 import (
+	"embed"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"net/http"
 )
+
+//go:embed openapi.json
+var openapi embed.FS
 
 func ConstructRouter(mapper GatewayMapper, deviceOrganiser *metadata.DeviceOrganiser, stack layers.OutputStack) http.Handler {
 	r := mux.NewRouter()
@@ -53,6 +57,8 @@ func ConstructRouter(mapper GatewayMapper, deviceOrganiser *metadata.DeviceOrgan
 	r.HandleFunc("/zones/{identifier}/devices/{deviceIdentifier}", zc.removeDeviceToZone).Methods("DELETE")
 	r.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.addSubzoneToZone).Methods("PUT")
 	r.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.removeSubzoneToZone).Methods("DELETE")
+
+	r.Handle("/openapi.json", http.FileServer(http.FS(openapi)))
 
 	return r
 }

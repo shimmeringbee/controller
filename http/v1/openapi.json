@@ -9,6 +9,10 @@
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     }
   },
+  "externalDocs": {
+    "url": "Shimmering Bee Controller on GitHub",
+    "description": "http://github.com/shimmeringbee/controller"
+  },
   "servers": [
     {
       "url": "/api/v1"
