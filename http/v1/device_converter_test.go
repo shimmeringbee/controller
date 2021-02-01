@@ -743,7 +743,7 @@ func Test_convertCapabilityWithLastUpdateTime(t *testing.T) {
 			},
 		}, nil)
 
-		mts.On("LastUpdate", mock.Anything, d).Return(expectedTime, nil)
+		mts.On("LastUpdateTime", mock.Anything, d).Return(time.Time(expectedTime), nil)
 
 		expected := &TemperatureSensor{
 			Readings: []capabilities.TemperatureReading{
@@ -778,7 +778,7 @@ func Test_convertCapabilityWithLastChangeTime(t *testing.T) {
 			},
 		}, nil)
 
-		mts.On("LastChange", mock.Anything, d).Return(expectedTime, nil)
+		mts.On("LastChangeTime", mock.Anything, d).Return(time.Time(expectedTime), nil)
 
 		expected := &TemperatureSensor{
 			Readings: []capabilities.TemperatureReading{

@@ -391,7 +391,7 @@ func Test_zoneController_deleteZone(t *testing.T) {
 		router.HandleFunc("/zones/{identifier}", controller.deleteZone)
 		router.ServeHTTP(rr, req)
 
-		assert.Equal(t, http.StatusOK, rr.Code)
+		assert.Equal(t, http.StatusNoContent, rr.Code)
 
 		_, found := do.Zone(zoneOne.Identifier)
 		assert.False(t, found)

@@ -178,6 +178,8 @@ func (z *zoneController) deleteZone(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, metadata.ErrOrphanZone):
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
+
+	http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
 }
 
 type updateZoneRequest struct {
