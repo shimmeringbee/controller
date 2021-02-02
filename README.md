@@ -19,6 +19,15 @@
 
 The Shimmering Bee Controller is an implementation of a home automation controller, initially focusing on Zigbee to interact with real world devices.
 
+## Developing
+
+Since adding `swagger-ui` as an embedded component to the webserver, the repository now needs git submodules to be
+checked out before you can build.
+
+```
+git submodule update
+```
+
 ## Usage
 
 This piece of software is not ready for general use.

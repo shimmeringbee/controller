@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/config"
+	"github.com/shimmeringbee/controller/http/swagger"
 	v1 "github.com/shimmeringbee/controller/http/v1"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
@@ -103,8 +104,19 @@ func containsString(haystack []string, needle string) bool {
 func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *GatewayMux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack) (func() error, error) {
 	r := mux.NewRouter()
 
+	if containsString(cfg.EnabledAPIs, "swagger") {
+		swaggerRouter := swagger.ConstructRouter()
+		// This route is needed because the redirect provided by http.FileServer is incorrect due to the http.StripPrefix
+		// below. As such we need to perform a manual redirect before the http.FileServer has the opportunity. Also use
+		// a temporary redirect rather than the permanent used by http.FileServer.
+		r.Path("/swagger").Handler(http.RedirectHandler("/swagger/", http.StatusTemporaryRedirect))
+		r.PathPrefix("/swagger/").Handler(http.StripPrefix("/swagger", swaggerRouter))
+	}
+
 	if containsString(cfg.EnabledAPIs, "v1") {
 		v1Router := v1.ConstructRouter(g, o, stack)
+		// Use http.StripPrefix to obscure the real path from the v1 api code, though this will cause issues if we
+		// ever issue redirects from the API.
 		r.PathPrefix("/api/v1").Handler(http.StripPrefix("/api/v1", v1Router))
 	}
 

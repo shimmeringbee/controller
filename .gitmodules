@@ -1,0 +1,4 @@
+[submodule "http/swagger/dist/swagger-ui"]
+	path = http/swagger/dist/swagger-ui
+	url = https://github.com/swagger-api/swagger-ui.git
+	shallow = true
