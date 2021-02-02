@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-//go:embed dist/swagger-ui/dist/*
+//go:embed dist/swagger-ui/dist/*.css dist/swagger-ui/dist/*.js dist/swagger-ui/dist/*.png
 var swagger embed.FS
 
 //go:embed dist/index/*
