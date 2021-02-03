@@ -157,6 +157,28 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "layer",
+            "in": "query",
+            "description": "Output layer to apply capability action to, defaults to http",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "retention",
+            "in": "query",
+            "description": "Level of retention of requested capability action, defaults to oneshot",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "oneshot",
+                "maintain"
+              ]
+            }
           }
         ],
         "requestBody": {

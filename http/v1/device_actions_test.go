@@ -63,7 +63,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 			DeviceGateway:      &mgwOne,
 		}, true)
 
-		controller := deviceController{gatewayMapper: &mgm}
+		controller := deviceController{gatewayMapper: &mgm, stack: layers.PassThruStack{}}
 
 		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", nil)
 		if err != nil {
@@ -217,6 +217,47 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
+	t.Run("returns a 400 if the layer does not exist", func(t *testing.T) {
+		mgm := mockGatewayMapper{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mockGateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		mbc := mockBasicCapability{}
+		defer mbc.AssertExpectations(t)
+
+		capOne := da.Capability(1)
+
+		device := da.BaseDevice{
+			DeviceCapabilities: []da.Capability{capOne},
+			DeviceGateway:      &mgwOne,
+		}
+		mgm.On("Device", "one").Return(device, true)
+
+		mda := mockDeviceAction{}
+		defer mda.AssertExpectations(t)
+
+		bodyText := "{}"
+
+		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction, stack: NoLayersStack{}}
+
+		body := strings.NewReader(bodyText)
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
 	t.Run("returns a 200 with the body of the action", func(t *testing.T) {
 		mgm := mockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
@@ -264,6 +305,105 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		bodyContent, _ := ioutil.ReadAll(rr.Body)
 		assert.Equal(t, "{}", string(bodyContent))
 	})
+
+	t.Run("returns a 200 with the body of the action, with custom layer and retention set", func(t *testing.T) {
+		mgm := &mockGatewayMapper{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := &mockGateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		mbc := &mockBasicCapability{}
+		defer mbc.AssertExpectations(t)
+		mbc.On("Name").Return("name")
+
+		capOne := da.Capability(1)
+
+		device := da.BaseDevice{
+			DeviceCapabilities: []da.Capability{capOne},
+			DeviceGateway:      mgwOne,
+		}
+		mgm.On("Device", "one").Return(device, true)
+
+		mda := &mockDeviceAction{}
+		defer mda.AssertExpectations(t)
+
+		bodyText := "{}"
+
+		mda.On("doAction", mock.Anything, device, mbc, "action", []byte(bodyText)).Return(struct{}{}, nil)
+
+		mol := &mockOutputLayer{}
+		defer mol.AssertExpectations(t)
+
+		mos := &mockOutputStack{}
+		defer mos.AssertExpectations(t)
+
+		mos.On("Lookup", "test").Return(mol)
+		mol.On("Capability", layers.Maintain, capOne, device).Return(mbc)
+
+		controller := deviceController{gatewayMapper: mgm, deviceAction: mda.doAction, stack: mos}
+
+		body := strings.NewReader(bodyText)
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action?layer=test&retention=maintain", body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		bodyContent, _ := ioutil.ReadAll(rr.Body)
+		assert.Equal(t, "{}", string(bodyContent))
+	})
+}
+
+type NoLayersStack struct {
+}
+
+func (p NoLayersStack) Layers() []string {
+	return []string{}
+}
+
+func (p NoLayersStack) Lookup(name string) layers.OutputLayer {
+	return nil
+}
+
+type mockOutputStack struct {
+	mock.Mock
+}
+
+func (m *mockOutputStack) Layers() []string {
+	called := m.Called()
+	return called.Get(0).([]string)
+}
+
+func (m *mockOutputStack) Lookup(name string) layers.OutputLayer {
+	called := m.Called(name)
+	return called.Get(0).(layers.OutputLayer)
+}
+
+type mockOutputLayer struct {
+	mock.Mock
+}
+
+func (m *mockOutputLayer) Name() string {
+	called := m.Called()
+	return called.String(0)
+}
+
+func (m *mockOutputLayer) Capability(rl layers.RetentionLevel, c da.Capability, d da.Device) interface{} {
+	called := m.Called(rl, c, d)
+	return called.Get(0)
+}
+
+func (m *mockOutputLayer) MaintainedStatus(c da.Capability, d da.Device) interface{} {
+	called := m.Called(c, d)
+	return called.Get(0)
 }
 
 func Test_doDeviceCapabilityAction_DeviceDiscovery(t *testing.T) {

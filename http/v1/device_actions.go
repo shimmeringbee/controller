@@ -53,8 +53,24 @@ func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *h
 		return
 	}
 
+	layer := r.URL.Query().Get("layer")
+	if layer == "" {
+		layer = DefaultHttpOutputLayer
+	}
+
+	outputLayer := d.stack.Lookup(layer)
+	if outputLayer == nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	retention := layers.OneShot
+	if r.URL.Query().Get("retention") == "maintain" {
+		retention = layers.Maintain
+	}
+
 	for _, capFlag := range daDevice.Capabilities() {
-		uncastCap := d.stack.Lookup(DefaultHttpOutputLayer).Capability(layers.OneShot, capFlag, daDevice)
+		uncastCap := outputLayer.Capability(retention, capFlag, daDevice)
 
 		if uncastCap != nil {
 			if castCap, ok := uncastCap.(da.BasicCapability); ok {
