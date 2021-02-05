@@ -123,7 +123,7 @@
         }
       }
     },
-    "/devices/{deviceId}/capability/{capabilityName}/{capabilityAction}": {
+    "/devices/{deviceId}/capabilities/{capabilityName}/{capabilityAction}": {
       "post": {
         "tags": [
           "devices"
