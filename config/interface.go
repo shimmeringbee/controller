@@ -46,8 +46,11 @@ type MQTTInterfaceConfig struct {
 	TLS         *MQTTTLS
 	Credentials *MQTTCredentials
 
-	Retained bool
-	QOS      byte
+	Retained    bool
+	QOS         byte
+	TopicPrefix string
+
+	PublishAllOnConnect bool
 }
 
 type MQTTTLS struct {

@@ -63,7 +63,10 @@ func TestParseInterface(t *testing.T) {
       "Password": "pass"
     },
     "Retained": true,
-    "QOS": 2
+    "QOS": 2,
+    "TopicPrefix": "home/controller1",
+
+	"PublishAllOnConnect": true
   }
 }`)
 			gw := InterfaceConfig{}
@@ -85,6 +88,10 @@ func TestParseInterface(t *testing.T) {
 
 			assert.True(t, mqttInt.Retained)
 			assert.Equal(t, uint8(2), mqttInt.QOS)
+
+			assert.Equal(t, "home/controller1", mqttInt.TopicPrefix)
+
+			assert.True(t, mqttInt.PublishAllOnConnect)
 		})
 	})
 }
