@@ -58,6 +58,21 @@ func ConstructRouter(mapper GatewayMapper, deviceOrganiser *metadata.DeviceOrgan
 	r.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.addSubzoneToZone).Methods("PUT")
 	r.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.removeSubzoneToZone).Methods("DELETE")
 
+	r.HandleFunc("/applications/lighting/devices", nil).Methods("GET")
+	r.HandleFunc("/applications/lighting/devices/{identifier}", nil).Methods("PUT")
+	r.HandleFunc("/applications/lighting/devices/{identifier}", nil).Methods("DELETE")
+
+	r.HandleFunc("/applications/lighting/scenes", nil).Methods("GET")
+	r.HandleFunc("/applications/lighting/scenes", nil).Methods("POST")
+	r.HandleFunc("/applications/lighting/scenes/{identifier}", nil).Methods("GET")
+	r.HandleFunc("/applications/lighting/scenes/{identifier}", nil).Methods("DELETE")
+	r.HandleFunc("/applications/lighting/scenes/{identifier}", nil).Methods("PATCH")
+
+	r.HandleFunc("/applications/lighting/zones", nil).Methods("GET")
+	r.HandleFunc("/applications/lighting/zones", nil).Methods("PUT")
+	r.HandleFunc("/applications/lighting/zones/{identifier}", nil).Methods("GET")
+	r.HandleFunc("/applications/lighting/zones/{identifier}", nil).Methods("PUT")
+
 	r.Handle("/openapi.json", http.FileServer(http.FS(openapi))).Methods("GET")
 
 	return r
