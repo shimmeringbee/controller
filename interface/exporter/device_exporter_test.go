@@ -1,4 +1,4 @@
-package v1
+package exporter
 
 import (
 	"context"
@@ -16,25 +16,15 @@ import (
 	"time"
 )
 
-type MockDeviceConverter struct {
-	mock.Mock
+type SimpleIdentifier struct {
+	id string
 }
 
-func (m *MockDeviceConverter) ConvertDevice(ctx context.Context, daDevice da.Device) ExportedDevice {
-	args := m.Called(ctx, daDevice)
-	return args.Get(0).(ExportedDevice)
+func (s SimpleIdentifier) String() string {
+	return s.id
 }
 
-type MockGatewayConverter struct {
-	mock.Mock
-}
-
-func (m *MockGatewayConverter) ConvertDAGatewayToGateway(daGateway da.Gateway) ExportedGateway {
-	args := m.Called(daGateway)
-	return args.Get(0).(ExportedGateway)
-}
-
-func Test_convertDADeviceToDevice(t *testing.T) {
+func TestDeviceExporter_ExportDevice(t *testing.T) {
 	t.Run("converts a da device with basic information and capability list", func(t *testing.T) {
 		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
@@ -73,8 +63,8 @@ func Test_convertDADeviceToDevice(t *testing.T) {
 
 		mgm.On("GatewayName", mock.Anything).Return("gw", true)
 
-		dc := DeviceConverter{deviceOrganiser: &do, gatewayMapper: &mgm}
-		actual := dc.ConvertDevice(context.Background(), input)
+		dc := DeviceExporter{DeviceOrganiser: &do, GatewayMapper: &mgm}
+		actual := dc.ExportDevice(context.Background(), input)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -100,7 +90,7 @@ func Test_convertHasProductInformation(t *testing.T) {
 			Serial:       "serial",
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertHasProductInformation(context.Background(), d, &mhpi)
 
 		assert.Equal(t, expected, actual)
@@ -128,7 +118,7 @@ func Test_convertTemperatureSensor(t *testing.T) {
 			},
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertTemperatureSensor(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
@@ -156,7 +146,7 @@ func Test_convertRelativeHumiditySensor(t *testing.T) {
 			},
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertRelativeHumiditySensor(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
@@ -184,7 +174,7 @@ func Test_convertPressureSensor(t *testing.T) {
 			},
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertPressureSensor(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
@@ -208,7 +198,7 @@ func Test_convertDeviceDiscovery(t *testing.T) {
 			Duration:    12000,
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertDeviceDiscovery(context.Background(), d, &mdd)
 
 		assert.Equal(t, expected, actual)
@@ -230,7 +220,7 @@ func Test_convertEnumerateDevice(t *testing.T) {
 			Enumerating: true,
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertEnumerateDevice(context.Background(), d, &med)
 
 		assert.Equal(t, expected, actual)
@@ -256,7 +246,7 @@ func Test_convertAlarmSensor(t *testing.T) {
 			},
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertAlarmSensor(context.Background(), d, &mas)
 
 		assert.Equal(t, expected, actual)
@@ -276,7 +266,7 @@ func Test_convertOnOff(t *testing.T) {
 			State: true,
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertOnOff(context.Background(), d, &moo)
 
 		assert.Equal(t, expected, actual)
@@ -340,7 +330,7 @@ func Test_convertPowerStatus(t *testing.T) {
 			},
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertPowerSupply(context.Background(), d, &mps)
 
 		assert.Equal(t, expected, actual)
@@ -376,7 +366,7 @@ func Test_convertAlarmWarningDevice(t *testing.T) {
 			Duration:  &remainingDuration,
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertAlarmWarningDevice(context.Background(), d, &mawd)
 
 		assert.Equal(t, expected, actual)
@@ -402,7 +392,7 @@ func Test_convertLevel(t *testing.T) {
 			DurationRemaining: 100,
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertLevel(context.Background(), d, &ml)
 
 		assert.Equal(t, expected, actual)
@@ -476,7 +466,7 @@ func Test_convertColor(t *testing.T) {
 			},
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertColor(context.Background(), d, &mc)
 
 		assert.Equal(t, expected, actual)
@@ -514,7 +504,7 @@ func Test_convertColor(t *testing.T) {
 			},
 		}
 
-		dc := DeviceConverter{}
+		dc := DeviceExporter{}
 		actual := dc.convertColor(context.Background(), d, &mc)
 
 		assert.Equal(t, expected, actual)
@@ -577,8 +567,8 @@ func Test_convertCapabilityWithLastUpdateTime(t *testing.T) {
 			},
 		}
 
-		dc := DeviceConverter{}
-		actual := dc.ConvertDADeviceCapability(context.Background(), d, &mts)
+		dc := DeviceExporter{}
+		actual := dc.exportCapability(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -612,8 +602,8 @@ func Test_convertCapabilityWithLastChangeTime(t *testing.T) {
 			},
 		}
 
-		dc := DeviceConverter{}
-		actual := dc.ConvertDADeviceCapability(context.Background(), d, &mts)
+		dc := DeviceExporter{}
+		actual := dc.exportCapability(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
 	})

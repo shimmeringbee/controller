@@ -9,7 +9,7 @@ import (
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
-	da_color "github.com/shimmeringbee/da/capabilities/color"
+	daColor "github.com/shimmeringbee/da/capabilities/color"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -304,22 +304,22 @@ func doColor(ctx context.Context, d da.Device, c capabilities.Color, a string, b
 			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, err.Error())
 		}
 
-		var color da_color.ConvertibleColor
+		var color daColor.ConvertibleColor
 
 		if input.XYY != nil {
-			color = da_color.XYColor{
+			color = daColor.XYColor{
 				X:  input.XYY.X,
 				Y:  input.XYY.Y,
 				Y2: input.XYY.Y2,
 			}
 		} else if input.HSV != nil {
-			color = da_color.HSVColor{
+			color = daColor.HSVColor{
 				Hue:   input.HSV.Hue,
 				Sat:   input.HSV.Saturation,
 				Value: input.HSV.Value,
 			}
 		} else if input.RGB != nil {
-			color = da_color.SRGBColor{
+			color = daColor.SRGBColor{
 				R: input.RGB.R,
 				G: input.RGB.G,
 				B: input.RGB.B,

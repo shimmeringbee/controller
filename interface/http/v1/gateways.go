@@ -4,22 +4,23 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	gw "github.com/shimmeringbee/controller/gateway"
+	"github.com/shimmeringbee/controller/interface/exporter"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"net/http"
 )
 
-type gatewayConverter func(da.Gateway) ExportedGateway
+type gatewayConverter func(da.Gateway) exporter.ExportedGateway
 
 type gatewayController struct {
 	gatewayMapper    gw.Mapper
 	gatewayConverter gatewayConverter
-	deviceConverter  deviceConverter
+	deviceConverter  deviceExporter
 	deviceOrganiser  *metadata.DeviceOrganiser
 }
 
 func (g *gatewayController) listGateways(w http.ResponseWriter, r *http.Request) {
-	apiGateways := make(map[string]ExportedGateway)
+	apiGateways := make(map[string]exporter.ExportedGateway)
 
 	for name, gw := range g.gatewayMapper.Gateways() {
 		tg := g.gatewayConverter(gw)
@@ -81,10 +82,10 @@ func (g *gatewayController) listDevicesOnGateway(w http.ResponseWriter, r *http.
 		return
 	}
 
-	apiDevices := make(map[string]ExportedDevice)
+	apiDevices := make(map[string]exporter.ExportedDevice)
 
 	for _, daDevice := range gw.Devices() {
-		d := g.deviceConverter.ConvertDevice(r.Context(), daDevice)
+		d := g.deviceConverter.ExportDevice(r.Context(), daDevice)
 		apiDevices[d.Identifier] = d
 	}
 

@@ -9,7 +9,7 @@ import (
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
-	color2 "github.com/shimmeringbee/da/capabilities/color"
+	daColor "github.com/shimmeringbee/da/capabilities/color"
 	capabilitymocks "github.com/shimmeringbee/da/capabilities/mocks"
 	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
@@ -551,7 +551,7 @@ func Test_doDeviceCapabilityAction_Color(t *testing.T) {
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
-		color := color2.XYColor{
+		color := daColor.XYColor{
 			X:  0.25,
 			Y:  0.50,
 			Y2: 0.75,
@@ -585,7 +585,7 @@ func Test_doDeviceCapabilityAction_Color(t *testing.T) {
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
-		color := color2.HSVColor{
+		color := daColor.HSVColor{
 			Hue:   180.0,
 			Sat:   0.5,
 			Value: 1.0,
@@ -619,7 +619,7 @@ func Test_doDeviceCapabilityAction_Color(t *testing.T) {
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
-		color := color2.SRGBColor{
+		color := daColor.SRGBColor{
 			R: 192,
 			G: 128,
 			B: 64,

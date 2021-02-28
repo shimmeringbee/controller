@@ -1,8 +1,10 @@
-package v1
+package exporter
 
-import "github.com/shimmeringbee/da"
+import (
+	"github.com/shimmeringbee/da"
+)
 
-func convertDAGatewayToGateway(gw da.Gateway) ExportedGateway {
+func ExportGateway(gw da.Gateway) ExportedGateway {
 	capabilities := []string{}
 
 	for _, cap := range gw.Capabilities() {

@@ -1,4 +1,4 @@
-package v1
+package exporter
 
 import (
 	"github.com/shimmeringbee/da"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func Test_convertDAGatewayToGateway(t *testing.T) {
+func TestExportGateway(t *testing.T) {
 	t.Run("converts a da ExportedGateway with basic information and capability list", func(t *testing.T) {
 		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
@@ -35,7 +35,7 @@ func Test_convertDAGatewayToGateway(t *testing.T) {
 			SelfDevice:   "self",
 		}
 
-		actual := convertDAGatewayToGateway(&mgwOne)
+		actual := ExportGateway(&mgwOne)
 
 		assert.Equal(t, expected, actual)
 	})
