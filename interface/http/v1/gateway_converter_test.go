@@ -2,13 +2,14 @@ package v1
 
 import (
 	"github.com/shimmeringbee/da"
+	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func Test_convertDAGatewayToGateway(t *testing.T) {
-	t.Run("converts a da gateway with basic information and capability list", func(t *testing.T) {
-		mgwOne := mockGateway{}
+	t.Run("converts a da ExportedGateway with basic information and capability list", func(t *testing.T) {
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
 		mgwOne.On("Self").Return(da.BaseDevice{
@@ -16,12 +17,12 @@ func Test_convertDAGatewayToGateway(t *testing.T) {
 		})
 
 		capOne := da.Capability(1)
-		mockCapOne := mockBasicCapability{}
+		mockCapOne := mocks.BasicCapability{}
 		defer mockCapOne.AssertExpectations(t)
 		mockCapOne.On("Name").Return("capOne")
 
 		capTwo := da.Capability(2)
-		mockCapTwo := mockBasicCapability{}
+		mockCapTwo := mocks.BasicCapability{}
 		defer mockCapTwo.AssertExpectations(t)
 		mockCapTwo.On("Name").Return("capTwo")
 
@@ -29,7 +30,7 @@ func Test_convertDAGatewayToGateway(t *testing.T) {
 		mgwOne.On("Capability", capOne).Return(&mockCapOne)
 		mgwOne.On("Capability", capTwo).Return(&mockCapTwo)
 
-		expected := gateway{
+		expected := ExportedGateway{
 			Capabilities: []string{"capOne", "capTwo"},
 			SelfDevice:   "self",
 		}

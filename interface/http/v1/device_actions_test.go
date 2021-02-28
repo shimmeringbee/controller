@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	color2 "github.com/shimmeringbee/da/capabilities/color"
+	capabilitymocks "github.com/shimmeringbee/da/capabilities/mocks"
+	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"io/ioutil"
@@ -19,18 +22,18 @@ import (
 	"time"
 )
 
-type mockDeviceAction struct {
+type MockDeviceAction struct {
 	mock.Mock
 }
 
-func (m *mockDeviceAction) doAction(ctx context.Context, d da.Device, c interface{}, a string, b []byte) (interface{}, error) {
+func (m *MockDeviceAction) doAction(ctx context.Context, d da.Device, c interface{}, a string, b []byte) (interface{}, error) {
 	args := m.Called(ctx, d, c, a, b)
 	return args.Get(0), args.Error(1)
 }
 
 func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	t.Run("returns a 404 if device is not present", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
@@ -52,10 +55,10 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 404 if device does not support capability", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
 		mgm.On("Device", "one").Return(da.BaseDevice{
@@ -80,13 +83,13 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 404 if action is not recognised on capability", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		mbc := mockBasicCapability{}
+		mbc := mocks.BasicCapability{}
 		defer mbc.AssertExpectations(t)
 		mbc.On("Name").Return("name")
 
@@ -100,7 +103,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := mockDeviceAction{}
+		mda := MockDeviceAction{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
@@ -126,13 +129,13 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 500 if action causes an error", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		mbc := mockBasicCapability{}
+		mbc := mocks.BasicCapability{}
 		defer mbc.AssertExpectations(t)
 		mbc.On("Name").Return("name")
 
@@ -146,7 +149,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := mockDeviceAction{}
+		mda := MockDeviceAction{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
@@ -172,13 +175,13 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 400 if user provides invalid data", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		mbc := mockBasicCapability{}
+		mbc := mocks.BasicCapability{}
 		defer mbc.AssertExpectations(t)
 		mbc.On("Name").Return("name")
 
@@ -192,7 +195,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := mockDeviceAction{}
+		mda := MockDeviceAction{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
@@ -218,13 +221,13 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 400 if the layer does not exist", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		mbc := mockBasicCapability{}
+		mbc := mocks.BasicCapability{}
 		defer mbc.AssertExpectations(t)
 
 		capOne := da.Capability(1)
@@ -235,12 +238,12 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := mockDeviceAction{}
+		mda := MockDeviceAction{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
 
-		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction, stack: NoLayersStack{}}
+		controller := deviceController{gatewayMapper: &mgm, deviceAction: mda.doAction, stack: layers.NoLayersStack{}}
 
 		body := strings.NewReader(bodyText)
 
@@ -259,13 +262,13 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 200 with the body of the action", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		mbc := mockBasicCapability{}
+		mbc := mocks.BasicCapability{}
 		defer mbc.AssertExpectations(t)
 		mbc.On("Name").Return("name")
 
@@ -279,7 +282,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := mockDeviceAction{}
+		mda := MockDeviceAction{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
@@ -307,13 +310,13 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 200 with the body of the action, with custom layer and retention set", func(t *testing.T) {
-		mgm := &mockGatewayMapper{}
+		mgm := &gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := &mockGateway{}
+		mgwOne := &mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		mbc := &mockBasicCapability{}
+		mbc := &mocks.BasicCapability{}
 		defer mbc.AssertExpectations(t)
 		mbc.On("Name").Return("name")
 
@@ -325,17 +328,17 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := &mockDeviceAction{}
+		mda := &MockDeviceAction{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
 
 		mda.On("doAction", mock.Anything, device, mbc, "action", []byte(bodyText)).Return(struct{}{}, nil)
 
-		mol := &mockOutputLayer{}
+		mol := &layers.MockOutputLayer{}
 		defer mol.AssertExpectations(t)
 
-		mos := &mockOutputStack{}
+		mos := &layers.MockOutputStack{}
 		defer mos.AssertExpectations(t)
 
 		mos.On("Lookup", "test").Return(mol)
@@ -362,53 +365,9 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 }
 
-type NoLayersStack struct {
-}
-
-func (p NoLayersStack) Layers() []string {
-	return []string{}
-}
-
-func (p NoLayersStack) Lookup(name string) layers.OutputLayer {
-	return nil
-}
-
-type mockOutputStack struct {
-	mock.Mock
-}
-
-func (m *mockOutputStack) Layers() []string {
-	called := m.Called()
-	return called.Get(0).([]string)
-}
-
-func (m *mockOutputStack) Lookup(name string) layers.OutputLayer {
-	called := m.Called(name)
-	return called.Get(0).(layers.OutputLayer)
-}
-
-type mockOutputLayer struct {
-	mock.Mock
-}
-
-func (m *mockOutputLayer) Name() string {
-	called := m.Called()
-	return called.String(0)
-}
-
-func (m *mockOutputLayer) Capability(rl layers.RetentionLevel, c da.Capability, d da.Device) interface{} {
-	called := m.Called(rl, c, d)
-	return called.Get(0)
-}
-
-func (m *mockOutputLayer) MaintainedStatus(c da.Capability, d da.Device) interface{} {
-	called := m.Called(c, d)
-	return called.Get(0)
-}
-
 func Test_doDeviceCapabilityAction_DeviceDiscovery(t *testing.T) {
 	t.Run("Enable invokes the capability", func(t *testing.T) {
-		mockCapability := &mockDeviceDiscovery{}
+		mockCapability := &capabilitymocks.DeviceDiscovery{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -427,7 +386,7 @@ func Test_doDeviceCapabilityAction_DeviceDiscovery(t *testing.T) {
 	})
 
 	t.Run("Disable invokes the capability", func(t *testing.T) {
-		mockCapability := &mockDeviceDiscovery{}
+		mockCapability := &capabilitymocks.DeviceDiscovery{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -446,7 +405,7 @@ func Test_doDeviceCapabilityAction_DeviceDiscovery(t *testing.T) {
 
 func Test_doDeviceCapabilityAction_EnumerateDevice(t *testing.T) {
 	t.Run("Enumerate invokes the capability", func(t *testing.T) {
-		mockCapability := &mockEnumerateDevice{}
+		mockCapability := &capabilitymocks.EnumerateDevice{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -465,7 +424,7 @@ func Test_doDeviceCapabilityAction_EnumerateDevice(t *testing.T) {
 
 func Test_doDeviceCapabilityAction_OnOff(t *testing.T) {
 	t.Run("On invokes the capability", func(t *testing.T) {
-		mockCapability := &mockOnOff{}
+		mockCapability := &capabilitymocks.OnOff{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -482,7 +441,7 @@ func Test_doDeviceCapabilityAction_OnOff(t *testing.T) {
 	})
 
 	t.Run("Off invokes the capability", func(t *testing.T) {
-		mockCapability := &mockOnOff{}
+		mockCapability := &capabilitymocks.OnOff{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -501,7 +460,7 @@ func Test_doDeviceCapabilityAction_OnOff(t *testing.T) {
 
 func Test_doAlarmWarningDevice_Test_doAlarmWarningDevice(t *testing.T) {
 	t.Run("Alarm invokes the capability", func(t *testing.T) {
-		mockCapability := &mockAlarmWarningDevice{}
+		mockCapability := &capabilitymocks.AlarmWarningDevice{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -524,7 +483,7 @@ func Test_doAlarmWarningDevice_Test_doAlarmWarningDevice(t *testing.T) {
 	})
 
 	t.Run("Alert invokes the capability", func(t *testing.T) {
-		mockCapability := &mockAlarmWarningDevice{}
+		mockCapability := &capabilitymocks.AlarmWarningDevice{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -547,7 +506,7 @@ func Test_doAlarmWarningDevice_Test_doAlarmWarningDevice(t *testing.T) {
 	})
 
 	t.Run("Clear invokes the capability", func(t *testing.T) {
-		mockCapability := &mockAlarmWarningDevice{}
+		mockCapability := &capabilitymocks.AlarmWarningDevice{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -566,7 +525,7 @@ func Test_doAlarmWarningDevice_Test_doAlarmWarningDevice(t *testing.T) {
 
 func Test_doDeviceCapabilityAction_Level(t *testing.T) {
 	t.Run("Change invokes the capability", func(t *testing.T) {
-		mockCapability := &mockLevel{}
+		mockCapability := &capabilitymocks.Level{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -588,7 +547,7 @@ func Test_doDeviceCapabilityAction_Level(t *testing.T) {
 
 func Test_doDeviceCapabilityAction_Color(t *testing.T) {
 	t.Run("ChangeColor invokes the capability, XYY", func(t *testing.T) {
-		mockCapability := &mockColor{}
+		mockCapability := &capabilitymocks.Color{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -622,7 +581,7 @@ func Test_doDeviceCapabilityAction_Color(t *testing.T) {
 	})
 
 	t.Run("ChangeColor invokes the capability, HSV", func(t *testing.T) {
-		mockCapability := &mockColor{}
+		mockCapability := &capabilitymocks.Color{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -656,7 +615,7 @@ func Test_doDeviceCapabilityAction_Color(t *testing.T) {
 	})
 
 	t.Run("ChangeColor invokes the capability, RGB", func(t *testing.T) {
-		mockCapability := &mockColor{}
+		mockCapability := &capabilitymocks.Color{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -690,7 +649,7 @@ func Test_doDeviceCapabilityAction_Color(t *testing.T) {
 	})
 
 	t.Run("ChangeTemperature invokes the capability", func(t *testing.T) {
-		mockCapability := &mockColor{}
+		mockCapability := &capabilitymocks.Color{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
@@ -712,7 +671,7 @@ func Test_doDeviceCapabilityAction_Color(t *testing.T) {
 
 func Test_doDeviceCapabilityAction_DeviceRemoval(t *testing.T) {
 	t.Run("Remove invokes the capability", func(t *testing.T) {
-		mockCapability := &mockDeviceRemoval{}
+		mockCapability := &capabilitymocks.DeviceRemoval{}
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}

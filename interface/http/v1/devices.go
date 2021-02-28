@@ -14,7 +14,7 @@ import (
 )
 
 type deviceConverter interface {
-	convertDevice(context.Context, da.Device) device
+	ConvertDevice(context.Context, da.Device) ExportedDevice
 }
 
 type deviceAction func(context.Context, da.Device, interface{}, string, []byte) (interface{}, error)
@@ -28,11 +28,11 @@ type deviceController struct {
 }
 
 func (d *deviceController) listDevices(w http.ResponseWriter, r *http.Request) {
-	apiDevices := make(map[string]device)
+	apiDevices := make(map[string]ExportedDevice)
 
 	for _, gateway := range d.gatewayMapper.Gateways() {
 		for _, daDevice := range gateway.Devices() {
-			d := d.deviceConverter.convertDevice(r.Context(), daDevice)
+			d := d.deviceConverter.ConvertDevice(r.Context(), daDevice)
 			apiDevices[d.Identifier] = d
 		}
 	}
@@ -62,7 +62,7 @@ func (d *deviceController) getDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiDevice := d.deviceConverter.convertDevice(r.Context(), daDevice)
+	apiDevice := d.deviceConverter.ConvertDevice(r.Context(), daDevice)
 	data, err := json.Marshal(apiDevice)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

@@ -3,7 +3,9 @@ package v1
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/da"
+	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"net/http"
@@ -13,13 +15,13 @@ import (
 
 func Test_gatewayController_listGateways(t *testing.T) {
 	t.Run("returns a list of gateways", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		mgwTwo := mockGateway{}
+		mgwTwo := mocks.Gateway{}
 		mgwTwo.On("EnsureGatewaysAreNotEqual").Maybe()
 		defer mgwTwo.AssertExpectations(t)
 
@@ -28,20 +30,20 @@ func Test_gatewayController_listGateways(t *testing.T) {
 			"two": &mgwTwo,
 		})
 
-		mdc := mockGatewayConverter{}
+		mdc := MockGatewayConverter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("convertDAGatewayToGateway", &mgwOne).Return(gateway{
+		mdc.On("ConvertDAGatewayToGateway", &mgwOne).Return(ExportedGateway{
 			Capabilities: []string{"capOne"},
 			SelfDevice:   "one",
 		})
-		mdc.On("convertDAGatewayToGateway", &mgwTwo).Return(gateway{
+		mdc.On("ConvertDAGatewayToGateway", &mgwTwo).Return(ExportedGateway{
 			Capabilities: []string{"capTwo"},
 			SelfDevice:   "two",
 		})
 
-		controller := gatewayController{gatewayMapper: &mgm, gatewayConverter: mdc.convertDAGatewayToGateway}
+		controller := gatewayController{gatewayMapper: &mgm, gatewayConverter: mdc.ConvertDAGatewayToGateway}
 
-		expectedGateways := map[string]gateway{
+		expectedGateways := map[string]ExportedGateway{
 			"one": {
 				Identifier:   "one",
 				Capabilities: []string{"capOne"},
@@ -68,7 +70,7 @@ func Test_gatewayController_listGateways(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		actualData := []byte(rr.Body.String())
-		actualGateways := map[string]gateway{}
+		actualGateways := map[string]ExportedGateway{}
 
 		err = json.Unmarshal(actualData, &actualGateways)
 		assert.NoError(t, err)
@@ -78,11 +80,11 @@ func Test_gatewayController_listGateways(t *testing.T) {
 }
 
 func Test_gatewayController_getGateway(t *testing.T) {
-	t.Run("returns a 404 if gateway is not present", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+	t.Run("returns a 404 if ExportedGateway is not present", func(t *testing.T) {
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
 		mgm.On("Gateways").Return(map[string]da.Gateway{})
@@ -103,27 +105,27 @@ func Test_gatewayController_getGateway(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
-	t.Run("returns a gateway if present", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+	t.Run("returns a ExportedGateway if present", func(t *testing.T) {
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
 		mgm.On("Gateways").Return(map[string]da.Gateway{
 			"one": &mgwOne,
 		})
 
-		mdc := mockGatewayConverter{}
+		mdc := MockGatewayConverter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("convertDAGatewayToGateway", &mgwOne).Return(gateway{
+		mdc.On("ConvertDAGatewayToGateway", &mgwOne).Return(ExportedGateway{
 			Capabilities: []string{"capOne"},
 			SelfDevice:   "one",
 		})
 
-		controller := gatewayController{gatewayMapper: &mgm, gatewayConverter: mdc.convertDAGatewayToGateway}
+		controller := gatewayController{gatewayMapper: &mgm, gatewayConverter: mdc.ConvertDAGatewayToGateway}
 
-		expectedGateways := gateway{
+		expectedGateways := ExportedGateway{
 			Identifier:   "one",
 			Capabilities: []string{"capOne"},
 			SelfDevice:   "one",
@@ -143,7 +145,7 @@ func Test_gatewayController_getGateway(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		actualData := []byte(rr.Body.String())
-		actualGateways := gateway{}
+		actualGateways := ExportedGateway{}
 
 		err = json.Unmarshal(actualData, &actualGateways)
 		assert.NoError(t, err)
@@ -153,8 +155,8 @@ func Test_gatewayController_getGateway(t *testing.T) {
 }
 
 func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
-	t.Run("returns 404, not found when gateway does not exist", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+	t.Run("returns 404, not found when ExportedGateway does not exist", func(t *testing.T) {
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 		mgm.On("Gateways").Return(map[string]da.Gateway{})
 
@@ -174,11 +176,11 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rr.Code)
 	})
 
-	t.Run("returns list of devices found on gateway", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+	t.Run("returns list of devices found on ExportedGateway", func(t *testing.T) {
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
 		mgm.On("Gateways").Return(map[string]da.Gateway{
@@ -191,7 +193,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 			DeviceCapabilities: []da.Capability{},
 		}
 
-		expectedDeviceOne := device{
+		expectedDeviceOne := ExportedDevice{
 			Identifier:   "one-one",
 			Capabilities: map[string]interface{}{"capOne": struct{}{}},
 			Gateway:      "one",
@@ -199,13 +201,13 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 
 		mgwOne.On("Devices").Return([]da.Device{daDeviceOne})
 
-		mdc := mockDeviceConverter{}
+		mdc := MockDeviceConverter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("convertDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
+		mdc.On("ConvertDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
 
 		controller := gatewayController{gatewayMapper: &mgm, deviceConverter: &mdc}
 
-		expectedDevices := map[string]device{
+		expectedDevices := map[string]ExportedDevice{
 			"one-one": {
 				Identifier:   "one-one",
 				Capabilities: map[string]interface{}{"capOne": map[string]interface{}{}},
@@ -227,7 +229,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		actualData := []byte(rr.Body.String())
-		actualDevices := map[string]device{}
+		actualDevices := map[string]ExportedDevice{}
 
 		err = json.Unmarshal(actualData, &actualDevices)
 		assert.NoError(t, err)

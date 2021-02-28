@@ -12,6 +12,26 @@ import (
 	"time"
 )
 
+type ExportedDevice struct {
+	Metadata     metadata.DeviceMetadata
+	Identifier   string
+	Capabilities map[string]interface{}
+	Gateway      string
+}
+
+type ExportedGateway struct {
+	Identifier   string
+	Capabilities []string
+	SelfDevice   string
+}
+
+type ExportedZone struct {
+	Identifier int
+	Name       string
+	SubZones   []ExportedZone   `json:",omitempty"`
+	Devices    []ExportedDevice `json:",omitempty"`
+}
+
 const DefaultCapabilityTimeout = 1 * time.Second
 
 type DeviceConverter struct {
@@ -19,21 +39,21 @@ type DeviceConverter struct {
 	gatewayMapper   gw.Mapper
 }
 
-func (dc *DeviceConverter) convertDevice(ctx context.Context, daDevice da.Device) device {
+func (dc *DeviceConverter) ConvertDevice(ctx context.Context, daDevice da.Device) ExportedDevice {
 	capabilityList := map[string]interface{}{}
 
 	for _, capFlag := range daDevice.Capabilities() {
 		uncastCapability := daDevice.Gateway().Capability(capFlag)
 
 		if basicCapability, ok := uncastCapability.(da.BasicCapability); ok {
-			capabilityList[basicCapability.Name()] = dc.convertDADeviceCapability(ctx, daDevice, uncastCapability)
+			capabilityList[basicCapability.Name()] = dc.ConvertDADeviceCapability(ctx, daDevice, uncastCapability)
 		}
 	}
 
 	md, _ := dc.deviceOrganiser.Device(daDevice.Identifier().String())
 	gwName, _ := dc.gatewayMapper.GatewayName(daDevice.Gateway())
 
-	return device{
+	return ExportedDevice{
 		Identifier:   daDevice.Identifier().String(),
 		Capabilities: capabilityList,
 		Metadata:     md,
@@ -41,7 +61,7 @@ func (dc *DeviceConverter) convertDevice(ctx context.Context, daDevice da.Device
 	}
 }
 
-func (dc *DeviceConverter) convertDADeviceCapability(pctx context.Context, device da.Device, uncastCapability interface{}) interface{} {
+func (dc *DeviceConverter) ConvertDADeviceCapability(pctx context.Context, device da.Device, uncastCapability interface{}) interface{} {
 	ctx, cancel := context.WithTimeout(pctx, DefaultCapabilityTimeout)
 	defer cancel()
 

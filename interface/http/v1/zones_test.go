@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +39,7 @@ func Test_zoneController_listZones(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZones := []zone{
+		expectedZones := []ExportedZone{
 			{
 				Identifier: 1,
 				Name:       "one",
@@ -50,7 +51,7 @@ func Test_zoneController_listZones(t *testing.T) {
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZones := []zone{}
+		actualZones := []ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZones)
 		assert.NoError(t, err)
@@ -71,7 +72,7 @@ func Test_zoneController_listZones(t *testing.T) {
 		err := do.MoveZone(zoneTwo.Identifier, zoneOne.Identifier)
 		assert.NoError(t, err)
 
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
 		daDevOne := da.BaseDevice{DeviceIdentifier: SimpleIdentifier{id: "devOne"}}
@@ -80,19 +81,19 @@ func Test_zoneController_listZones(t *testing.T) {
 		mgm.On("Device", "devOne").Return(daDevOne, true)
 		mgm.On("Device", "devThree").Return(daDevThree, true)
 
-		mdc := mockDeviceConverter{}
+		mdc := MockDeviceConverter{}
 		defer mdc.AssertExpectations(t)
 
-		convDevOne := device{
+		convDevOne := ExportedDevice{
 			Identifier: "devOne",
 		}
 
-		convDevThree := device{
+		convDevThree := ExportedDevice{
 			Identifier: "devThree",
 		}
 
-		mdc.On("convertDevice", mock.Anything, daDevOne, mock.Anything).Return(convDevOne)
-		mdc.On("convertDevice", mock.Anything, daDevThree, mock.Anything).Return(convDevThree)
+		mdc.On("ConvertDevice", mock.Anything, daDevOne, mock.Anything).Return(convDevOne)
+		mdc.On("ConvertDevice", mock.Anything, daDevThree, mock.Anything).Return(convDevThree)
 
 		controller := zoneController{deviceOrganiser: &do, gatewayMapper: &mgm, deviceConverter: &mdc}
 
@@ -109,11 +110,11 @@ func Test_zoneController_listZones(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZones := []zone{
+		expectedZones := []ExportedZone{
 			{
 				Identifier: 1,
 				Name:       "one",
-				Devices: []device{
+				Devices: []ExportedDevice{
 					{
 						Identifier: "devOne",
 					},
@@ -122,7 +123,7 @@ func Test_zoneController_listZones(t *testing.T) {
 			{
 				Identifier: 3,
 				Name:       "three",
-				Devices: []device{
+				Devices: []ExportedDevice{
 					{
 						Identifier: "devThree",
 					},
@@ -131,7 +132,7 @@ func Test_zoneController_listZones(t *testing.T) {
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZones := []zone{}
+		actualZones := []ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZones)
 		assert.NoError(t, err)
@@ -163,11 +164,11 @@ func Test_zoneController_listZones(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZones := []zone{
+		expectedZones := []ExportedZone{
 			{
 				Identifier: 1,
 				Name:       "one",
-				SubZones: []zone{
+				SubZones: []ExportedZone{
 					{
 						Identifier: 2,
 						Name:       "two",
@@ -181,7 +182,7 @@ func Test_zoneController_listZones(t *testing.T) {
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZones := []zone{}
+		actualZones := []ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZones)
 		assert.NoError(t, err)
@@ -191,7 +192,7 @@ func Test_zoneController_listZones(t *testing.T) {
 }
 
 func Test_zoneController_getZone(t *testing.T) {
-	t.Run("returns an individual zone", func(t *testing.T) {
+	t.Run("returns an individual ExportedZone", func(t *testing.T) {
 		do := metadata.NewDeviceOrganiser()
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -214,14 +215,14 @@ func Test_zoneController_getZone(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZone := zone{
+		expectedZone := ExportedZone{
 			Identifier: 2,
 			Name:       "two",
 			SubZones:   nil,
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZone := zone{}
+		actualZone := ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZone)
 		assert.NoError(t, err)
@@ -239,21 +240,21 @@ func Test_zoneController_getZone(t *testing.T) {
 		err := do.MoveZone(zoneTwo.Identifier, zoneOne.Identifier)
 		assert.NoError(t, err)
 
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
 		daDevTwo := da.BaseDevice{DeviceIdentifier: SimpleIdentifier{id: "devTwo"}}
 
 		mgm.On("Device", "devTwo").Return(daDevTwo, true)
 
-		mdc := mockDeviceConverter{}
+		mdc := MockDeviceConverter{}
 		defer mdc.AssertExpectations(t)
 
-		convDevTwo := device{
+		convDevTwo := ExportedDevice{
 			Identifier: "devTwo",
 		}
 
-		mdc.On("convertDevice", mock.Anything, daDevTwo).Return(convDevTwo)
+		mdc.On("ConvertDevice", mock.Anything, daDevTwo).Return(convDevTwo)
 
 		controller := zoneController{deviceOrganiser: &do, gatewayMapper: &mgm, deviceConverter: &mdc}
 
@@ -270,11 +271,11 @@ func Test_zoneController_getZone(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZone := zone{
+		expectedZone := ExportedZone{
 			Identifier: 2,
 			Name:       "two",
 			SubZones:   nil,
-			Devices: []device{
+			Devices: []ExportedDevice{
 				{
 					Identifier: "devTwo",
 				},
@@ -282,7 +283,7 @@ func Test_zoneController_getZone(t *testing.T) {
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZone := zone{}
+		actualZone := ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZone)
 		assert.NoError(t, err)
@@ -313,10 +314,10 @@ func Test_zoneController_getZone(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZone := zone{
+		expectedZone := ExportedZone{
 			Identifier: 1,
 			Name:       "one",
-			SubZones: []zone{
+			SubZones: []ExportedZone{
 				{
 					Identifier: 2,
 					Name:       "two",
@@ -325,7 +326,7 @@ func Test_zoneController_getZone(t *testing.T) {
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZone := zone{}
+		actualZone := ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZone)
 		assert.NoError(t, err)
@@ -340,7 +341,7 @@ func Test_zoneController_createZone(t *testing.T) {
 
 		controller := zoneController{deviceOrganiser: &do}
 
-		req, err := http.NewRequest("POST", "/zones", strings.NewReader(`{"Name":"zone"}`))
+		req, err := http.NewRequest("POST", "/zones", strings.NewReader(`{"Name":"ExportedZone"}`))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -355,16 +356,16 @@ func Test_zoneController_createZone(t *testing.T) {
 
 		z, found := do.Zone(1)
 		assert.True(t, found)
-		assert.Equal(t, "zone", z.Name)
+		assert.Equal(t, "ExportedZone", z.Name)
 
-		expectedZone := zone{
+		expectedZone := ExportedZone{
 			Identifier: 1,
-			Name:       "zone",
+			Name:       "ExportedZone",
 			SubZones:   nil,
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZone := zone{}
+		actualZone := ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZone)
 		assert.NoError(t, err)
@@ -405,7 +406,7 @@ func Test_zoneController_updateZone(t *testing.T) {
 
 		controller := zoneController{deviceOrganiser: &do}
 
-		req, err := http.NewRequest("PATCH", "/zones/1", strings.NewReader(`{"Name":"zone"}`))
+		req, err := http.NewRequest("PATCH", "/zones/1", strings.NewReader(`{"Name":"ExportedZone"}`))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -420,16 +421,16 @@ func Test_zoneController_updateZone(t *testing.T) {
 
 		z, found := do.Zone(1)
 		assert.True(t, found)
-		assert.Equal(t, "zone", z.Name)
+		assert.Equal(t, "ExportedZone", z.Name)
 
-		expectedZone := zone{
+		expectedZone := ExportedZone{
 			Identifier: 1,
-			Name:       "zone",
+			Name:       "ExportedZone",
 			SubZones:   nil,
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZone := zone{}
+		actualZone := ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZone)
 		assert.NoError(t, err)
@@ -499,7 +500,7 @@ func Test_zoneController_updateZone(t *testing.T) {
 func Test_zoneController_addDeviceToZone(t *testing.T) {
 	t.Run("add a device to a zone", func(t *testing.T) {
 		do := metadata.NewDeviceOrganiser()
-		do.NewZone("zone")
+		do.NewZone("ExportedZone")
 		do.AddDevice("id")
 
 		controller := zoneController{deviceOrganiser: &do}
@@ -525,7 +526,7 @@ func Test_zoneController_addDeviceToZone(t *testing.T) {
 func Test_zoneController_removeDeviceToZone(t *testing.T) {
 	t.Run("remove a device from a zone", func(t *testing.T) {
 		do := metadata.NewDeviceOrganiser()
-		do.NewZone("zone")
+		do.NewZone("ExportedZone")
 		do.AddDevice("id")
 		err := do.AddDeviceToZone("id", 1)
 		assert.NoError(t, err)

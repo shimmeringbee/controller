@@ -2,7 +2,7 @@ package v1
 
 import "github.com/shimmeringbee/da"
 
-func convertDAGatewayToGateway(gw da.Gateway) gateway {
+func convertDAGatewayToGateway(gw da.Gateway) ExportedGateway {
 	capabilities := []string{}
 
 	for _, cap := range gw.Capabilities() {
@@ -13,7 +13,7 @@ func convertDAGatewayToGateway(gw da.Gateway) gateway {
 		}
 	}
 
-	return gateway{
+	return ExportedGateway{
 		Capabilities: capabilities,
 		SelfDevice:   gw.Self().Identifier().String(),
 	}
