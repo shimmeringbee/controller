@@ -3,6 +3,7 @@ package v1
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	gw "github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 type gatewayConverter func(da.Gateway) gateway
 
 type gatewayController struct {
-	gatewayMapper    GatewayMapper
+	gatewayMapper    gw.Mapper
 	gatewayConverter gatewayConverter
 	deviceConverter  deviceConverter
 	deviceOrganiser  *metadata.DeviceOrganiser

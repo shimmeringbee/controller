@@ -8,21 +8,21 @@ import (
 	"time"
 )
 
-type GatewayMapper interface {
+type Mapper interface {
 	Gateways() map[string]da.Gateway
 	Capability(string, da.Capability) interface{}
 	Device(string) (da.Device, bool)
 	GatewayName(da.Gateway) (string, bool)
 }
 
-type GatewaySubscriber interface {
+type Subscriber interface {
 	Listen(chan interface{})
 }
 
-var _ GatewayMapper = (*GatewayMux)(nil)
-var _ GatewaySubscriber = (*GatewayMux)(nil)
+var _ Mapper = (*Mux)(nil)
+var _ Subscriber = (*Mux)(nil)
 
-type GatewayMux struct {
+type Mux struct {
 	lock sync.RWMutex
 
 	deviceByIdentifier map[string]da.Device
@@ -32,14 +32,14 @@ type GatewayMux struct {
 	listeners []chan interface{}
 }
 
-func New() *GatewayMux {
-	return &GatewayMux{
+func New() *Mux {
+	return &Mux{
 		deviceByIdentifier: map[string]da.Device{},
 		gatewayByName:      map[string]da.Gateway{},
 	}
 }
 
-func (m *GatewayMux) Add(n string, g da.Gateway) {
+func (m *Mux) Add(n string, g da.Gateway) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -54,7 +54,7 @@ func (m *GatewayMux) Add(n string, g da.Gateway) {
 	go m.monitorGateway(g, ch)
 }
 
-func (m *GatewayMux) monitorGateway(g da.Gateway, shutCh chan struct{}) {
+func (m *Mux) monitorGateway(g da.Gateway, shutCh chan struct{}) {
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 
@@ -94,7 +94,7 @@ func (m *GatewayMux) monitorGateway(g da.Gateway, shutCh chan struct{}) {
 	}
 }
 
-func (m *GatewayMux) Gateways() map[string]da.Gateway {
+func (m *Mux) Gateways() map[string]da.Gateway {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -105,7 +105,7 @@ func (m *GatewayMux) Gateways() map[string]da.Gateway {
 	return result
 }
 
-func (m *GatewayMux) GatewayName(gw da.Gateway) (string, bool) {
+func (m *Mux) GatewayName(gw da.Gateway) (string, bool) {
 	for name, gwByName := range m.gatewayByName {
 		if gwByName == gw {
 			return name, true
@@ -115,7 +115,7 @@ func (m *GatewayMux) GatewayName(gw da.Gateway) (string, bool) {
 	return "", false
 }
 
-func (m *GatewayMux) Capability(d string, c da.Capability) interface{} {
+func (m *Mux) Capability(d string, c da.Capability) interface{} {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -125,7 +125,7 @@ func (m *GatewayMux) Capability(d string, c da.Capability) interface{} {
 
 	return nil
 }
-func (m *GatewayMux) Device(id string) (da.Device, bool) {
+func (m *Mux) Device(id string) (da.Device, bool) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -133,7 +133,7 @@ func (m *GatewayMux) Device(id string) (da.Device, bool) {
 	return d, found
 }
 
-func (m *GatewayMux) sendToListeners(e interface{}) {
+func (m *Mux) sendToListeners(e interface{}) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -145,14 +145,14 @@ func (m *GatewayMux) sendToListeners(e interface{}) {
 	}
 }
 
-func (m *GatewayMux) Listen(ch chan interface{}) {
+func (m *Mux) Listen(ch chan interface{}) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	m.listeners = append(m.listeners, ch)
 }
 
-func (m *GatewayMux) Stop() {
+func (m *Mux) Stop() {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 

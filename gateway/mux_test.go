@@ -16,7 +16,7 @@ func TestGatewayMux_ListenAndSend(t *testing.T) {
 		listenCh := make(chan interface{}, 1)
 		expectedEvent := struct{}{}
 
-		m := GatewayMux{}
+		m := Mux{}
 		m.Listen(listenCh)
 		m.sendToListeners(expectedEvent)
 
@@ -41,7 +41,7 @@ func TestGatewayMux_Add(t *testing.T) {
 
 		name := "mock"
 
-		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
 		m.Add(name, &mg)
 		defer m.Stop()
 
@@ -74,7 +74,7 @@ func TestGatewayMux_Add(t *testing.T) {
 
 		name := "mock"
 
-		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()
@@ -116,7 +116,7 @@ func TestGatewayMux_Add(t *testing.T) {
 
 		name := "mock"
 
-		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()
@@ -156,7 +156,7 @@ func TestGatewayMux_Add(t *testing.T) {
 
 		name := "mock"
 
-		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()
@@ -186,7 +186,7 @@ func TestGatewayMux_Add(t *testing.T) {
 
 		name := "mock"
 
-		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()
@@ -219,7 +219,7 @@ func TestGatewayMux_Capability(t *testing.T) {
 
 		name := "mock"
 
-		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()
@@ -248,7 +248,7 @@ func TestGatewayMux_Capability(t *testing.T) {
 
 		name := "mock"
 
-		m := GatewayMux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()

@@ -66,7 +66,7 @@ func loadInterfaceConfigurations(dir string) ([]config.InterfaceConfig, error) {
 	return retCfgs, nil
 }
 
-func startInterfaces(cfgs []config.InterfaceConfig, g *mux2.GatewayMux, o *metadata.DeviceOrganiser, directories Directories, stack layers.OutputStack) ([]StartedInterface, error) {
+func startInterfaces(cfgs []config.InterfaceConfig, g *mux2.Mux, o *metadata.DeviceOrganiser, directories Directories, stack layers.OutputStack) ([]StartedInterface, error) {
 	var retGws []StartedInterface
 
 	for _, cfg := range cfgs {
@@ -89,7 +89,7 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *mux2.GatewayMux, o *metad
 	return retGws, nil
 }
 
-func startInterface(cfg config.InterfaceConfig, g *mux2.GatewayMux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack) (func() error, error) {
+func startInterface(cfg config.InterfaceConfig, g *mux2.Mux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack) (func() error, error) {
 	switch gwCfg := cfg.Config.(type) {
 	case *config.HTTPInterfaceConfig:
 		return startHTTPInterface(*gwCfg, g, o, cfgDig, stack)
@@ -110,7 +110,7 @@ func containsString(haystack []string, needle string) bool {
 	return false
 }
 
-func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *mux2.GatewayMux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack) (func() error, error) {
+func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *mux2.Mux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack) (func() error, error) {
 	r := mux.NewRouter()
 
 	if containsString(cfg.EnabledAPIs, "swagger") {
@@ -139,7 +139,7 @@ func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *mux2.GatewayMux, o *m
 	}, nil
 }
 
-func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *mux2.GatewayMux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack) (func() error, error) {
+func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *mux2.Mux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack) (func() error, error) {
 	clientId, err := randomClientID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random client id: %w", err)
