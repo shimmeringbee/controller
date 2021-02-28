@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
@@ -44,10 +45,7 @@ func main() {
 	}
 
 	l.LogInfo(ctx, "Loaded gateway configurations.", lw.Datum("configCount", len(gatewayCfgs)))
-	gwMux := GatewayMux{
-		deviceByIdentifier: map[string]da.Device{},
-		gatewayByName:      map[string]da.Gateway{},
-	}
+	gwMux := gateway.New()
 
 	l.LogInfo(ctx, "Linking device organiser to mux.")
 	deviceOrganiserMuxCh := updateDeviceOrganiserFromMux(&deviceOrganiser)
@@ -56,13 +54,13 @@ func main() {
 	outputStack := layers.PassThruStack{}
 
 	l.LogInfo(ctx, "Starting interfaces.")
-	startedInterfaces, err := startInterfaces(interfaceCfgs, &gwMux, &deviceOrganiser, directories, outputStack)
+	startedInterfaces, err := startInterfaces(interfaceCfgs, gwMux, &deviceOrganiser, directories, outputStack)
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start interfaces.", lw.Err(err))
 	}
 
 	l.LogInfo(ctx, "Starting gateways.")
-	startedGateways, err := startGateways(gatewayCfgs, &gwMux, directories)
+	startedGateways, err := startGateways(gatewayCfgs, gwMux, directories)
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start gateways.", lw.Err(err))
 	}

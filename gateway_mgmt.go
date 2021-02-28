@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shimmeringbee/controller/config"
+	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/zda"
 	"github.com/shimmeringbee/zda/capability/alarm_sensor"
@@ -34,7 +35,7 @@ type StartedGateway struct {
 	Shutdown func()
 }
 
-func startGateways(cfgs []config.GatewayConfig, mux *GatewayMux, directories Directories) ([]StartedGateway, error) {
+func startGateways(cfgs []config.GatewayConfig, mux *gateway.GatewayMux, directories Directories) ([]StartedGateway, error) {
 	var retGws []StartedGateway
 
 	for _, cfg := range cfgs {

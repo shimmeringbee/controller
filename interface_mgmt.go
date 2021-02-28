@@ -2,12 +2,19 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	pahomqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/config"
-	"github.com/shimmeringbee/controller/http/swagger"
-	v1 "github.com/shimmeringbee/controller/http/v1"
+	mux2 "github.com/shimmeringbee/controller/gateway"
+	"github.com/shimmeringbee/controller/interface/http/swagger"
+	v1 "github.com/shimmeringbee/controller/interface/http/v1"
+	mqtt "github.com/shimmeringbee/controller/interface/mqtt"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"io/ioutil"
@@ -59,7 +66,7 @@ func loadInterfaceConfigurations(dir string) ([]config.InterfaceConfig, error) {
 	return retCfgs, nil
 }
 
-func startInterfaces(cfgs []config.InterfaceConfig, g *GatewayMux, o *metadata.DeviceOrganiser, directories Directories, stack layers.OutputStack) ([]StartedInterface, error) {
+func startInterfaces(cfgs []config.InterfaceConfig, g *mux2.GatewayMux, o *metadata.DeviceOrganiser, directories Directories, stack layers.OutputStack) ([]StartedInterface, error) {
 	var retGws []StartedInterface
 
 	for _, cfg := range cfgs {
@@ -82,10 +89,12 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *GatewayMux, o *metadata.D
 	return retGws, nil
 }
 
-func startInterface(cfg config.InterfaceConfig, g *GatewayMux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack) (func() error, error) {
+func startInterface(cfg config.InterfaceConfig, g *mux2.GatewayMux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack) (func() error, error) {
 	switch gwCfg := cfg.Config.(type) {
 	case *config.HTTPInterfaceConfig:
 		return startHTTPInterface(*gwCfg, g, o, cfgDig, stack)
+	case *config.MQTTInterfaceConfig:
+		return startMQTTInterface(*gwCfg, g, o, cfgDig, stack)
 	default:
 		return nil, fmt.Errorf("unknown gateway type loaded: %s", cfg.Type)
 	}
@@ -101,7 +110,7 @@ func containsString(haystack []string, needle string) bool {
 	return false
 }
 
-func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *GatewayMux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack) (func() error, error) {
+func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *mux2.GatewayMux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack) (func() error, error) {
 	r := mux.NewRouter()
 
 	if containsString(cfg.EnabledAPIs, "swagger") {
@@ -128,4 +137,107 @@ func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *GatewayMux, o *metada
 	return func() error {
 		return srv.Shutdown(context.Background())
 	}, nil
+}
+
+func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *mux2.GatewayMux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack) (func() error, error) {
+	clientId, err := randomClientID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate random client id: %w", err)
+	}
+
+	clientOptions := pahomqtt.NewClientOptions()
+	clientOptions.ClientID = clientId
+
+	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, OutputStack: stack}
+
+	clientOptions.OnConnect = func(client pahomqtt.Client) {
+		client.Subscribe(prefixTopic(cfg.TopicPrefix, "+"), 0, func(client pahomqtt.Client, message pahomqtt.Message) {
+			i.IncomingMessage(stripPrefixTopic(cfg.TopicPrefix, message.Topic()), message.Payload())
+		})
+
+		client.Publish(prefixTopic(cfg.TopicPrefix, "controller/online"), cfg.QOS, cfg.Retained, `true`)
+
+		i.Connected(func(prefix string, payload []byte) {
+			client.Publish(prefixTopic(cfg.TopicPrefix, prefix), cfg.QOS, cfg.Retained, payload)
+		}, cfg.PublishAllOnConnect)
+	}
+
+	clientOptions.SetConnectionLostHandler(func(client pahomqtt.Client, err error) {
+		i.Disconnected()
+	})
+
+	clientOptions.SetWill(prefixTopic(cfg.TopicPrefix, "controller/online"), `false`, cfg.QOS, cfg.Retained)
+
+	if cfg.Credentials != nil {
+		clientOptions.SetUsername(cfg.Credentials.Username)
+		clientOptions.SetPassword(cfg.Credentials.Password)
+	}
+
+	if cfg.TLS != nil {
+		tlsConfig := &tls.Config{}
+
+		if len(cfg.TLS.Cert) > 0 {
+			cert, err := tls.LoadX509KeyPair(cfg.TLS.Cert, cfg.TLS.Key)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load TLS certificate/key for mqtt: %w", err)
+			}
+
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+
+		if len(cfg.TLS.CACert) > 0 {
+			caCerts, err := ioutil.ReadFile(filepath.Clean(cfg.TLS.CACert))
+			if err != nil {
+				return nil, fmt.Errorf("failed to load CA TLS certificats for mqtt: %w", err)
+			}
+
+			certPool, err := x509.SystemCertPool()
+			if err != nil {
+				certPool = x509.NewCertPool()
+			}
+
+			certPool.AppendCertsFromPEM(caCerts)
+
+			tlsConfig.RootCAs = certPool
+		}
+
+		clientOptions.SetTLSConfig(tlsConfig)
+	}
+
+	i.Start()
+
+	client := pahomqtt.NewClient(clientOptions)
+	client.Connect()
+
+	return func() error {
+		client.Disconnect(1500)
+		i.Stop()
+		return nil
+	}, nil
+}
+
+func prefixTopic(topicPrefix string, topic string) string {
+	if len(topicPrefix) > 0 {
+		return fmt.Sprintf("%s/%s", topicPrefix, topic)
+	}
+
+	return topic
+}
+
+func stripPrefixTopic(topicPrefix string, topic string) string {
+	if len(topicPrefix) > 0 {
+		if strings.HasPrefix(topic, topicPrefix) {
+			return topic[len(topicPrefix):]
+		}
+	}
+
+	return topic
+}
+
+func randomClientID() (string, error) {
+	bytes := make([]byte, 8)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
