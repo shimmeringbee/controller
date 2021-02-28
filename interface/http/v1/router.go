@@ -3,7 +3,8 @@ package v1
 import (
 	"embed"
 	"github.com/gorilla/mux"
-	gw "github.com/shimmeringbee/controller/gateway"
+	"github.com/shimmeringbee/controller/gateway"
+	"github.com/shimmeringbee/controller/interface/exporter"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"net/http"
@@ -12,17 +13,17 @@ import (
 //go:embed openapi.json
 var openapi embed.FS
 
-func ConstructRouter(mapper gw.Mapper, deviceOrganiser *metadata.DeviceOrganiser, stack layers.OutputStack) http.Handler {
+func ConstructRouter(mapper gateway.Mapper, deviceOrganiser *metadata.DeviceOrganiser, stack layers.OutputStack) http.Handler {
 	r := mux.NewRouter()
 
-	deviceConverter := DeviceConverter{
-		gatewayMapper:   mapper,
-		deviceOrganiser: deviceOrganiser,
+	deviceConverter := exporter.DeviceExporter{
+		GatewayMapper:   mapper,
+		DeviceOrganiser: deviceOrganiser,
 	}
 
 	dc := deviceController{
 		gatewayMapper:   mapper,
-		deviceConverter: &deviceConverter,
+		deviceExporter:  &deviceConverter,
 		deviceAction:    doDeviceCapabilityAction,
 		deviceOrganiser: deviceOrganiser,
 		stack:           stack,
@@ -30,7 +31,7 @@ func ConstructRouter(mapper gw.Mapper, deviceOrganiser *metadata.DeviceOrganiser
 
 	gc := gatewayController{
 		gatewayMapper:    mapper,
-		gatewayConverter: convertDAGatewayToGateway,
+		gatewayConverter: exporter.ExportGateway,
 		deviceConverter:  &deviceConverter,
 	}
 

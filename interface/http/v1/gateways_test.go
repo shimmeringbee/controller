@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/gateway"
+	"github.com/shimmeringbee/controller/interface/exporter"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
@@ -30,20 +31,20 @@ func Test_gatewayController_listGateways(t *testing.T) {
 			"two": &mgwTwo,
 		})
 
-		mdc := MockGatewayConverter{}
+		mdc := exporter.MockGatewayExporter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("ConvertDAGatewayToGateway", &mgwOne).Return(ExportedGateway{
+		mdc.On("ConvertDAGatewayToGateway", &mgwOne).Return(exporter.ExportedGateway{
 			Capabilities: []string{"capOne"},
 			SelfDevice:   "one",
 		})
-		mdc.On("ConvertDAGatewayToGateway", &mgwTwo).Return(ExportedGateway{
+		mdc.On("ConvertDAGatewayToGateway", &mgwTwo).Return(exporter.ExportedGateway{
 			Capabilities: []string{"capTwo"},
 			SelfDevice:   "two",
 		})
 
 		controller := gatewayController{gatewayMapper: &mgm, gatewayConverter: mdc.ConvertDAGatewayToGateway}
 
-		expectedGateways := map[string]ExportedGateway{
+		expectedGateways := map[string]exporter.ExportedGateway{
 			"one": {
 				Identifier:   "one",
 				Capabilities: []string{"capOne"},
@@ -70,7 +71,7 @@ func Test_gatewayController_listGateways(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		actualData := []byte(rr.Body.String())
-		actualGateways := map[string]ExportedGateway{}
+		actualGateways := map[string]exporter.ExportedGateway{}
 
 		err = json.Unmarshal(actualData, &actualGateways)
 		assert.NoError(t, err)
@@ -116,16 +117,16 @@ func Test_gatewayController_getGateway(t *testing.T) {
 			"one": &mgwOne,
 		})
 
-		mdc := MockGatewayConverter{}
+		mdc := exporter.MockGatewayExporter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("ConvertDAGatewayToGateway", &mgwOne).Return(ExportedGateway{
+		mdc.On("ConvertDAGatewayToGateway", &mgwOne).Return(exporter.ExportedGateway{
 			Capabilities: []string{"capOne"},
 			SelfDevice:   "one",
 		})
 
 		controller := gatewayController{gatewayMapper: &mgm, gatewayConverter: mdc.ConvertDAGatewayToGateway}
 
-		expectedGateways := ExportedGateway{
+		expectedGateways := exporter.ExportedGateway{
 			Identifier:   "one",
 			Capabilities: []string{"capOne"},
 			SelfDevice:   "one",
@@ -145,7 +146,7 @@ func Test_gatewayController_getGateway(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		actualData := []byte(rr.Body.String())
-		actualGateways := ExportedGateway{}
+		actualGateways := exporter.ExportedGateway{}
 
 		err = json.Unmarshal(actualData, &actualGateways)
 		assert.NoError(t, err)
@@ -193,7 +194,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 			DeviceCapabilities: []da.Capability{},
 		}
 
-		expectedDeviceOne := ExportedDevice{
+		expectedDeviceOne := exporter.ExportedDevice{
 			Identifier:   "one-one",
 			Capabilities: map[string]interface{}{"capOne": struct{}{}},
 			Gateway:      "one",
@@ -201,13 +202,13 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 
 		mgwOne.On("Devices").Return([]da.Device{daDeviceOne})
 
-		mdc := MockDeviceConverter{}
+		mdc := exporter.MockDeviceExporter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("ConvertDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
+		mdc.On("ExportDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
 
 		controller := gatewayController{gatewayMapper: &mgm, deviceConverter: &mdc}
 
-		expectedDevices := map[string]ExportedDevice{
+		expectedDevices := map[string]exporter.ExportedDevice{
 			"one-one": {
 				Identifier:   "one-one",
 				Capabilities: map[string]interface{}{"capOne": map[string]interface{}{}},
@@ -229,7 +230,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		actualData := []byte(rr.Body.String())
-		actualDevices := map[string]ExportedDevice{}
+		actualDevices := map[string]exporter.ExportedDevice{}
 
 		err = json.Unmarshal(actualData, &actualDevices)
 		assert.NoError(t, err)

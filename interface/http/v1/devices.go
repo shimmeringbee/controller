@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/gorilla/mux"
 	gw "github.com/shimmeringbee/controller/gateway"
+	"github.com/shimmeringbee/controller/interface/exporter"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
@@ -13,26 +14,26 @@ import (
 	"net/http"
 )
 
-type deviceConverter interface {
-	ConvertDevice(context.Context, da.Device) ExportedDevice
+type deviceExporter interface {
+	ExportDevice(context.Context, da.Device) exporter.ExportedDevice
 }
 
 type deviceAction func(context.Context, da.Device, interface{}, string, []byte) (interface{}, error)
 
 type deviceController struct {
 	gatewayMapper   gw.Mapper
-	deviceConverter deviceConverter
+	deviceExporter  deviceExporter
 	deviceAction    deviceAction
 	deviceOrganiser *metadata.DeviceOrganiser
 	stack           layers.OutputStack
 }
 
 func (d *deviceController) listDevices(w http.ResponseWriter, r *http.Request) {
-	apiDevices := make(map[string]ExportedDevice)
+	apiDevices := make(map[string]exporter.ExportedDevice)
 
 	for _, gateway := range d.gatewayMapper.Gateways() {
 		for _, daDevice := range gateway.Devices() {
-			d := d.deviceConverter.ConvertDevice(r.Context(), daDevice)
+			d := d.deviceExporter.ExportDevice(r.Context(), daDevice)
 			apiDevices[d.Identifier] = d
 		}
 	}
@@ -62,7 +63,7 @@ func (d *deviceController) getDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiDevice := d.deviceConverter.ConvertDevice(r.Context(), daDevice)
+	apiDevice := d.deviceExporter.ExportDevice(r.Context(), daDevice)
 	data, err := json.Marshal(apiDevice)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
