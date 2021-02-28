@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gorilla/mux"
+	gw "github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/metadata"
 	"io/ioutil"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 
 type zoneController struct {
 	deviceOrganiser *metadata.DeviceOrganiser
-	gatewayMapper   GatewayMapper
+	gatewayMapper   gw.Mapper
 	deviceConverter deviceConverter
 }
 

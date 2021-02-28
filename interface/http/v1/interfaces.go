@@ -6,13 +6,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type GatewayMapper interface {
-	Gateways() map[string]da.Gateway
-	Capability(string, da.Capability) interface{}
-	Device(string) (da.Device, bool)
-	GatewayName(da.Gateway) (string, bool)
-}
-
 type mockGatewayMapper struct {
 	mock.Mock
 }

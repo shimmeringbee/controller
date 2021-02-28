@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	gw "github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
@@ -15,7 +16,7 @@ const DefaultCapabilityTimeout = 1 * time.Second
 
 type DeviceConverter struct {
 	deviceOrganiser *metadata.DeviceOrganiser
-	gatewayMapper   GatewayMapper
+	gatewayMapper   gw.Mapper
 }
 
 func (dc *DeviceConverter) convertDevice(ctx context.Context, daDevice da.Device) device {

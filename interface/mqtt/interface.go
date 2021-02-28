@@ -13,8 +13,8 @@ type Interface struct {
 	stop      chan bool
 
 	DeviceOrganiser   *metadata.DeviceOrganiser
-	GatewayMux        gateway.GatewayMapper
-	GatewaySubscriber gateway.GatewaySubscriber
+	GatewayMux        gateway.Mapper
+	GatewaySubscriber gateway.Subscriber
 	OutputStack       layers.OutputStack
 }
 

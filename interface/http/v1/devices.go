@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gorilla/mux"
+	gw "github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
@@ -19,7 +20,7 @@ type deviceConverter interface {
 type deviceAction func(context.Context, da.Device, interface{}, string, []byte) (interface{}, error)
 
 type deviceController struct {
-	gatewayMapper   GatewayMapper
+	gatewayMapper   gw.Mapper
 	deviceConverter deviceConverter
 	deviceAction    deviceAction
 	deviceOrganiser *metadata.DeviceOrganiser
