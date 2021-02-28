@@ -43,8 +43,8 @@ type HTTPInterfaceConfig struct {
 type MQTTInterfaceConfig struct {
 	Server string
 
-	TLS         MQTTTLS
-	Credentials MQTTCredentials
+	TLS         *MQTTTLS
+	Credentials *MQTTCredentials
 
 	Retained bool
 	QOS      byte
