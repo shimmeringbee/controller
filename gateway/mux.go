@@ -1,4 +1,4 @@
-package main
+package gateway
 
 import (
 	"context"
@@ -30,6 +30,13 @@ type GatewayMux struct {
 	shutdownCh         []chan struct{}
 
 	listeners []chan interface{}
+}
+
+func New() *GatewayMux {
+	return &GatewayMux{
+		deviceByIdentifier: map[string]da.Device{},
+		gatewayByName:      map[string]da.Gateway{},
+	}
 }
 
 func (m *GatewayMux) Add(n string, g da.Gateway) {
