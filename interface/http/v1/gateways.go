@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-type gatewayConverter func(da.Gateway) gateway
+type gatewayConverter func(da.Gateway) ExportedGateway
 
 type gatewayController struct {
 	gatewayMapper    gw.Mapper
@@ -19,7 +19,7 @@ type gatewayController struct {
 }
 
 func (g *gatewayController) listGateways(w http.ResponseWriter, r *http.Request) {
-	apiGateways := make(map[string]gateway)
+	apiGateways := make(map[string]ExportedGateway)
 
 	for name, gw := range g.gatewayMapper.Gateways() {
 		tg := g.gatewayConverter(gw)
@@ -81,10 +81,10 @@ func (g *gatewayController) listDevicesOnGateway(w http.ResponseWriter, r *http.
 		return
 	}
 
-	apiDevices := make(map[string]device)
+	apiDevices := make(map[string]ExportedDevice)
 
 	for _, daDevice := range gw.Devices() {
-		d := g.deviceConverter.convertDevice(r.Context(), daDevice)
+		d := g.deviceConverter.ConvertDevice(r.Context(), daDevice)
 		apiDevices[d.Identifier] = d
 	}
 

@@ -7,10 +7,10 @@ require (
 	github.com/eclipse/paho.mqtt.golang v1.3.2
 	github.com/gorilla/mux v1.8.0
 	github.com/peterbourgon/ff/v3 v3.0.0
-	github.com/shimmeringbee/da v0.0.0-20210130160408-1806474f6de9
+	github.com/shimmeringbee/da v0.0.0-20210228215143-9d48e6b053d2
 	github.com/shimmeringbee/logwrap v0.0.0-20201104114416-23aeb26f66f1
 	github.com/shimmeringbee/zda v0.0.0-20210131144648-39a170bb01e5
-	github.com/shimmeringbee/zigbee v0.0.0-20210113213523-03b7d3b8c37c
+	github.com/shimmeringbee/zigbee v0.0.0-20210228205504-e2ee01977a3b
 	github.com/shimmeringbee/zstack v0.0.0-20210113211336-649362018b66
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.6.8

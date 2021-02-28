@@ -33,7 +33,7 @@ func (z *zoneController) listZones(w http.ResponseWriter, r *http.Request) {
 	devices := includesString(includes, "devices")
 	subzones := includesString(includes, "subzones")
 
-	returnZones := []zone{}
+	returnZones := make([]ExportedZone, 0)
 
 	for _, nZ := range z.deviceOrganiser.RootZones() {
 		returnZones = append(returnZones, z.enumerateZone(nZ, devices, subzones))
@@ -49,9 +49,9 @@ func (z *zoneController) listZones(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (z *zoneController) enumerateZone(nZ metadata.Zone, includeDevices bool, includeSubzones bool) zone {
-	var subZones []zone
-	var devices []device
+func (z *zoneController) enumerateZone(nZ metadata.Zone, includeDevices bool, includeSubzones bool) ExportedZone {
+	var subZones []ExportedZone
+	var devices []ExportedDevice
 
 	if includeSubzones {
 		subZones = z.enumerateZones(nZ.SubZones, includeDevices)
@@ -60,13 +60,13 @@ func (z *zoneController) enumerateZone(nZ metadata.Zone, includeDevices bool, in
 	if includeDevices {
 		for _, id := range nZ.Devices {
 			if daDevice, found := z.gatewayMapper.Device(id); found {
-				dev := z.deviceConverter.convertDevice(context.Background(), daDevice)
+				dev := z.deviceConverter.ConvertDevice(context.Background(), daDevice)
 				devices = append(devices, dev)
 			}
 		}
 	}
 
-	return zone{
+	return ExportedZone{
 		Identifier: nZ.Identifier,
 		Name:       nZ.Name,
 		SubZones:   subZones,
@@ -74,8 +74,8 @@ func (z *zoneController) enumerateZone(nZ metadata.Zone, includeDevices bool, in
 	}
 }
 
-func (z *zoneController) enumerateZones(zoneIds []int, devices bool) []zone {
-	var zones []zone
+func (z *zoneController) enumerateZones(zoneIds []int, devices bool) []ExportedZone {
+	var zones []ExportedZone
 
 	for _, zoneId := range zoneIds {
 		if nZ, found := z.deviceOrganiser.Zone(zoneId); found {

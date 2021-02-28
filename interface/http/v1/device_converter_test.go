@@ -3,42 +3,45 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"github.com/shimmeringbee/da/capabilities/color"
+	capabilitymocks "github.com/shimmeringbee/da/capabilities/mocks"
+	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
 	"time"
 )
 
-type mockDeviceConverter struct {
+type MockDeviceConverter struct {
 	mock.Mock
 }
 
-func (m *mockDeviceConverter) convertDevice(ctx context.Context, daDevice da.Device) device {
+func (m *MockDeviceConverter) ConvertDevice(ctx context.Context, daDevice da.Device) ExportedDevice {
 	args := m.Called(ctx, daDevice)
-	return args.Get(0).(device)
+	return args.Get(0).(ExportedDevice)
 }
 
-type mockGatewayConverter struct {
+type MockGatewayConverter struct {
 	mock.Mock
 }
 
-func (m *mockGatewayConverter) convertDAGatewayToGateway(daGateway da.Gateway) gateway {
+func (m *MockGatewayConverter) ConvertDAGatewayToGateway(daGateway da.Gateway) ExportedGateway {
 	args := m.Called(daGateway)
-	return args.Get(0).(gateway)
+	return args.Get(0).(ExportedGateway)
 }
 
 func Test_convertDADeviceToDevice(t *testing.T) {
 	t.Run("converts a da device with basic information and capability list", func(t *testing.T) {
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
 		capOne := da.Capability(1)
 
-		mockCapOne := mockBasicCapability{}
+		mockCapOne := mocks.BasicCapability{}
 		defer mockCapOne.AssertExpectations(t)
 		mockCapOne.On("Name").Return("capOne")
 		mgwOne.On("Capability", capOne).Return(&mockCapOne)
@@ -55,7 +58,7 @@ func Test_convertDADeviceToDevice(t *testing.T) {
 			DeviceCapabilities: []da.Capability{capOne},
 		}
 
-		expected := device{
+		expected := ExportedDevice{
 			Identifier:   "one-one",
 			Capabilities: map[string]interface{}{"capOne": struct{}{}},
 			Metadata: metadata.DeviceMetadata{
@@ -65,32 +68,23 @@ func Test_convertDADeviceToDevice(t *testing.T) {
 			Gateway: "gw",
 		}
 
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgm.On("GatewayName", mock.Anything).Return("gw", true)
 
 		dc := DeviceConverter{deviceOrganiser: &do, gatewayMapper: &mgm}
-		actual := dc.convertDevice(context.Background(), input)
+		actual := dc.ConvertDevice(context.Background(), input)
 
 		assert.Equal(t, expected, actual)
 	})
-}
-
-type mockHasProductInformation struct {
-	mock.Mock
-}
-
-func (m *mockHasProductInformation) ProductInformation(c context.Context, d da.Device) (capabilities.ProductInformation, error) {
-	args := m.Called(c, d)
-	return args.Get(0).(capabilities.ProductInformation), args.Error(1)
 }
 
 func Test_convertHasProductInformation(t *testing.T) {
 	t.Run("retrieves and returns all data from HasProductInformation", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		mhpi := mockHasProductInformation{}
+		mhpi := capabilitymocks.HasProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
 		mhpi.On("ProductInformation", mock.Anything, d).Return(capabilities.ProductInformation{
@@ -113,20 +107,11 @@ func Test_convertHasProductInformation(t *testing.T) {
 	})
 }
 
-type mockTemperatureSensor struct {
-	mock.Mock
-}
-
-func (m *mockTemperatureSensor) Reading(c context.Context, d da.Device) ([]capabilities.TemperatureReading, error) {
-	args := m.Called(c, d)
-	return args.Get(0).([]capabilities.TemperatureReading), args.Error(1)
-}
-
 func Test_convertTemperatureSensor(t *testing.T) {
 	t.Run("retrieves and returns all data from TemperatureSensor", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		mts := mockTemperatureSensor{}
+		mts := capabilitymocks.TemperatureSensor{}
 		defer mts.AssertExpectations(t)
 
 		mts.On("Reading", mock.Anything, d).Return([]capabilities.TemperatureReading{
@@ -150,20 +135,11 @@ func Test_convertTemperatureSensor(t *testing.T) {
 	})
 }
 
-type mockRelativeHumiditySensor struct {
-	mock.Mock
-}
-
-func (m *mockRelativeHumiditySensor) Reading(c context.Context, d da.Device) ([]capabilities.RelativeHumidityReading, error) {
-	args := m.Called(c, d)
-	return args.Get(0).([]capabilities.RelativeHumidityReading), args.Error(1)
-}
-
 func Test_convertRelativeHumiditySensor(t *testing.T) {
 	t.Run("retrieves and returns all data from RelativeHumiditySensor", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		mts := mockRelativeHumiditySensor{}
+		mts := capabilitymocks.RelativeHumiditySensor{}
 		defer mts.AssertExpectations(t)
 
 		mts.On("Reading", mock.Anything, d).Return([]capabilities.RelativeHumidityReading{
@@ -187,20 +163,11 @@ func Test_convertRelativeHumiditySensor(t *testing.T) {
 	})
 }
 
-type mockPressureSensor struct {
-	mock.Mock
-}
-
-func (m *mockPressureSensor) Reading(c context.Context, d da.Device) ([]capabilities.PressureReading, error) {
-	args := m.Called(c, d)
-	return args.Get(0).([]capabilities.PressureReading), args.Error(1)
-}
-
 func Test_convertPressureSensor(t *testing.T) {
 	t.Run("retrieves and returns all data from PressureSensor", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		mts := mockPressureSensor{}
+		mts := capabilitymocks.PressureSensor{}
 		defer mts.AssertExpectations(t)
 
 		mts.On("Reading", mock.Anything, d).Return([]capabilities.PressureReading{
@@ -224,30 +191,11 @@ func Test_convertPressureSensor(t *testing.T) {
 	})
 }
 
-type mockDeviceDiscovery struct {
-	mock.Mock
-}
-
-func (m *mockDeviceDiscovery) Status(c context.Context, d da.Device) (capabilities.DeviceDiscoveryStatus, error) {
-	args := m.Called(c, d)
-	return args.Get(0).(capabilities.DeviceDiscoveryStatus), args.Error(1)
-}
-
-func (m *mockDeviceDiscovery) Enable(c context.Context, d da.Device, du time.Duration) error {
-	args := m.Called(c, d, du)
-	return args.Error(0)
-}
-
-func (m *mockDeviceDiscovery) Disable(c context.Context, d da.Device) error {
-	args := m.Called(c, d)
-	return args.Error(0)
-}
-
 func Test_convertDeviceDiscovery(t *testing.T) {
 	t.Run("retrieves and returns all data from DeviceDiscovery", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		mdd := mockDeviceDiscovery{}
+		mdd := capabilitymocks.DeviceDiscovery{}
 		defer mdd.AssertExpectations(t)
 
 		mdd.On("Status", mock.Anything, d).Return(capabilities.DeviceDiscoveryStatus{
@@ -267,25 +215,11 @@ func Test_convertDeviceDiscovery(t *testing.T) {
 	})
 }
 
-type mockEnumerateDevice struct {
-	mock.Mock
-}
-
-func (m *mockEnumerateDevice) Status(c context.Context, d da.Device) (capabilities.EnumerationStatus, error) {
-	args := m.Called(c, d)
-	return args.Get(0).(capabilities.EnumerationStatus), args.Error(1)
-}
-
-func (m *mockEnumerateDevice) Enumerate(c context.Context, d da.Device) error {
-	args := m.Called(c, d)
-	return args.Error(0)
-}
-
 func Test_convertEnumerateDevice(t *testing.T) {
 	t.Run("retrieves and returns all data from EnumerateDevice", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		med := mockEnumerateDevice{}
+		med := capabilitymocks.EnumerateDevice{}
 		defer med.AssertExpectations(t)
 
 		med.On("Status", mock.Anything, d).Return(capabilities.EnumerationStatus{
@@ -303,20 +237,11 @@ func Test_convertEnumerateDevice(t *testing.T) {
 	})
 }
 
-type mockAlarmSensor struct {
-	mock.Mock
-}
-
-func (m *mockAlarmSensor) Status(c context.Context, d da.Device) (map[capabilities.SensorType]bool, error) {
-	args := m.Called(c, d)
-	return args.Get(0).(map[capabilities.SensorType]bool), args.Error(1)
-}
-
 func Test_convertAlarmSensor(t *testing.T) {
 	t.Run("retrieves and returns all data from AlarmSensor", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		mas := mockAlarmSensor{}
+		mas := capabilitymocks.AlarmSensor{}
 		defer mas.AssertExpectations(t)
 
 		mas.On("Status", mock.Anything, d).Return(map[capabilities.SensorType]bool{
@@ -338,30 +263,11 @@ func Test_convertAlarmSensor(t *testing.T) {
 	})
 }
 
-type mockOnOff struct {
-	mock.Mock
-}
-
-func (m *mockOnOff) Status(c context.Context, d da.Device) (bool, error) {
-	args := m.Called(c, d)
-	return args.Bool(0), args.Error(1)
-}
-
-func (m *mockOnOff) On(c context.Context, d da.Device) error {
-	args := m.Called(c, d)
-	return args.Error(0)
-}
-
-func (m *mockOnOff) Off(c context.Context, d da.Device) error {
-	args := m.Called(c, d)
-	return args.Error(0)
-}
-
 func Test_convertOnOff(t *testing.T) {
 	t.Run("retrieves and returns all data from OnOff", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		moo := mockOnOff{}
+		moo := capabilitymocks.OnOff{}
 		defer moo.AssertExpectations(t)
 
 		moo.Mock.On("Status", mock.Anything, d).Return(true, nil)
@@ -377,20 +283,11 @@ func Test_convertOnOff(t *testing.T) {
 	})
 }
 
-type mockPowerSupply struct {
-	mock.Mock
-}
-
-func (m *mockPowerSupply) Status(c context.Context, d da.Device) (capabilities.PowerStatus, error) {
-	args := m.Called(c, d)
-	return args.Get(0).(capabilities.PowerStatus), args.Error(1)
-}
-
 func Test_convertPowerStatus(t *testing.T) {
 	t.Run("retrieves and returns all data from PowerSupply", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		mps := mockPowerSupply{}
+		mps := capabilitymocks.PowerSupply{}
 		defer mps.AssertExpectations(t)
 
 		mps.Mock.On("Status", mock.Anything, d).Return(capabilities.PowerStatus{
@@ -450,35 +347,11 @@ func Test_convertPowerStatus(t *testing.T) {
 	})
 }
 
-type mockAlarmWarningDevice struct {
-	mock.Mock
-}
-
-func (m *mockAlarmWarningDevice) Alarm(c context.Context, d da.Device, a capabilities.AlarmType, vol float64, vis bool, dur time.Duration) error {
-	args := m.Called(c, d, a, vol, vis, dur)
-	return args.Error(0)
-}
-
-func (m *mockAlarmWarningDevice) Clear(c context.Context, d da.Device) error {
-	args := m.Called(c, d)
-	return args.Error(0)
-}
-
-func (m *mockAlarmWarningDevice) Alert(c context.Context, d da.Device, alarm capabilities.AlarmType, alert capabilities.AlertType, vol float64, vis bool) error {
-	args := m.Called(c, d, alarm, alert, vol, vis)
-	return args.Error(0)
-}
-
-func (m *mockAlarmWarningDevice) Status(c context.Context, d da.Device) (capabilities.WarningDeviceState, error) {
-	args := m.Called(c, d)
-	return args.Get(0).(capabilities.WarningDeviceState), args.Error(1)
-}
-
 func Test_convertAlarmWarningDevice(t *testing.T) {
 	t.Run("retrieves and returns all data from AlarmWarningDevice", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		mawd := mockAlarmWarningDevice{}
+		mawd := capabilitymocks.AlarmWarningDevice{}
 		defer mawd.AssertExpectations(t)
 
 		retVal := capabilities.WarningDeviceState{
@@ -510,25 +383,11 @@ func Test_convertAlarmWarningDevice(t *testing.T) {
 	})
 }
 
-type mockLevel struct {
-	mock.Mock
-}
-
-func (m *mockLevel) Status(c context.Context, d da.Device) (capabilities.LevelStatus, error) {
-	args := m.Called(c, d)
-	return args.Get(0).(capabilities.LevelStatus), args.Error(1)
-}
-
-func (m *mockLevel) Change(c context.Context, d da.Device, l float64, t time.Duration) error {
-	args := m.Called(c, d, l, t)
-	return args.Error(0)
-}
-
 func Test_convertLevel(t *testing.T) {
 	t.Run("retrieves and returns all data from OnOff", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		ml := mockLevel{}
+		ml := capabilitymocks.Level{}
 		defer ml.AssertExpectations(t)
 
 		ml.Mock.On("Status", mock.Anything, d).Return(capabilities.LevelStatus{
@@ -550,40 +409,11 @@ func Test_convertLevel(t *testing.T) {
 	})
 }
 
-type mockColor struct {
-	mock.Mock
-}
-
-func (m *mockColor) ChangeColor(ctx context.Context, d da.Device, color color.ConvertibleColor, duration time.Duration) error {
-	args := m.Called(ctx, d, color, duration)
-	return args.Error(0)
-}
-
-func (m *mockColor) ChangeTemperature(ctx context.Context, d da.Device, f float64, duration time.Duration) error {
-	args := m.Called(ctx, d, f, duration)
-	return args.Error(0)
-}
-
-func (m *mockColor) SupportsColor(ctx context.Context, device da.Device) (bool, error) {
-	args := m.Called(ctx, device)
-	return args.Bool(0), args.Error(1)
-}
-
-func (m *mockColor) SupportsTemperature(ctx context.Context, device da.Device) (bool, error) {
-	args := m.Called(ctx, device)
-	return args.Bool(0), args.Error(1)
-}
-
-func (m *mockColor) Status(ctx context.Context, d da.Device) (capabilities.ColorStatus, error) {
-	args := m.Called(ctx, d)
-	return args.Get(0).(capabilities.ColorStatus), args.Error(1)
-}
-
 func Test_convertColor(t *testing.T) {
 	t.Run("retrieves and returns all data from Color, color output", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		mc := mockColor{}
+		mc := capabilitymocks.Color{}
 		defer mc.AssertExpectations(t)
 
 		mc.Mock.On("Status", mock.Anything, d).Return(capabilities.ColorStatus{
@@ -655,7 +485,7 @@ func Test_convertColor(t *testing.T) {
 	t.Run("retrieves and returns all data from Color, temperature output", func(t *testing.T) {
 		d := da.BaseDevice{}
 
-		mc := mockColor{}
+		mc := capabilitymocks.Color{}
 		defer mc.AssertExpectations(t)
 
 		mc.Mock.On("Status", mock.Anything, d).Return(capabilities.ColorStatus{
@@ -689,15 +519,6 @@ func Test_convertColor(t *testing.T) {
 
 		assert.Equal(t, expected, actual)
 	})
-}
-
-type mockDeviceRemoval struct {
-	mock.Mock
-}
-
-func (m *mockDeviceRemoval) Remove(c context.Context, d da.Device) error {
-	args := m.Called(c, d)
-	return args.Error(0)
 }
 
 type mockTemperatureSensorWithUpdateTime struct {
@@ -757,7 +578,7 @@ func Test_convertCapabilityWithLastUpdateTime(t *testing.T) {
 		}
 
 		dc := DeviceConverter{}
-		actual := dc.convertDADeviceCapability(context.Background(), d, &mts)
+		actual := dc.ConvertDADeviceCapability(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -792,7 +613,7 @@ func Test_convertCapabilityWithLastChangeTime(t *testing.T) {
 		}
 
 		dc := DeviceConverter{}
-		actual := dc.convertDADeviceCapability(context.Background(), d, &mts)
+		actual := dc.ConvertDADeviceCapability(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
 	})

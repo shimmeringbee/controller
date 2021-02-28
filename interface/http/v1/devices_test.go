@@ -3,8 +3,10 @@ package v1
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
+	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"net/http"
@@ -23,13 +25,13 @@ func (s SimpleIdentifier) String() string {
 
 func Test_deviceController_listDevices(t *testing.T) {
 	t.Run("returns a list of devices across multiple gateways", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		mgwTwo := mockGateway{}
+		mgwTwo := mocks.Gateway{}
 		defer mgwTwo.AssertExpectations(t)
 
 		mgm.On("Gateways").Return(map[string]da.Gateway{
@@ -43,7 +45,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 			DeviceCapabilities: []da.Capability{},
 		}
 
-		expectedDeviceOne := device{
+		expectedDeviceOne := ExportedDevice{
 			Identifier:   "one-one",
 			Capabilities: map[string]interface{}{"capOne": struct{}{}},
 			Gateway:      "one",
@@ -57,7 +59,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 			DeviceCapabilities: []da.Capability{},
 		}
 
-		expectedDeviceTwo := device{
+		expectedDeviceTwo := ExportedDevice{
 			Identifier:   "two-two",
 			Capabilities: map[string]interface{}{"capTwo": struct{}{}},
 			Gateway:      "two",
@@ -65,16 +67,16 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 		mgwTwo.On("Devices").Return([]da.Device{daDeviceTwo})
 
-		mdc := mockDeviceConverter{}
+		mdc := MockDeviceConverter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("convertDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
-		mdc.On("convertDevice", mock.Anything, daDeviceTwo).Return(expectedDeviceTwo)
+		mdc.On("ConvertDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
+		mdc.On("ConvertDevice", mock.Anything, daDeviceTwo).Return(expectedDeviceTwo)
 
 		do := metadata.NewDeviceOrganiser()
 
 		controller := deviceController{gatewayMapper: &mgm, deviceConverter: &mdc, deviceOrganiser: &do}
 
-		expectedDevices := map[string]device{
+		expectedDevices := map[string]ExportedDevice{
 			"one-one": {
 				Identifier:   "one-one",
 				Capabilities: map[string]interface{}{"capOne": map[string]interface{}{}},
@@ -101,7 +103,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		actualData := []byte(rr.Body.String())
-		actualDevices := map[string]device{}
+		actualDevices := map[string]ExportedDevice{}
 
 		err = json.Unmarshal(actualData, &actualDevices)
 		assert.NoError(t, err)
@@ -112,10 +114,10 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 func Test_deviceController_getDevice(t *testing.T) {
 	t.Run("returns a device if present", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgwOne := mockGateway{}
+		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
 		daDeviceOne := da.BaseDevice{
@@ -126,19 +128,19 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 		mgm.On("Device", "one").Return(daDeviceOne, true)
 
-		expectedDeviceOne := device{
+		expectedDeviceOne := ExportedDevice{
 			Identifier:   "one-one",
 			Capabilities: map[string]interface{}{"capOne": struct{}{}},
 			Gateway:      "one",
 		}
 
-		mdc := mockDeviceConverter{}
+		mdc := MockDeviceConverter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("convertDevice", mock.Anything, daDeviceOne, mock.Anything).Return(expectedDeviceOne)
+		mdc.On("ConvertDevice", mock.Anything, daDeviceOne, mock.Anything).Return(expectedDeviceOne)
 
 		controller := deviceController{gatewayMapper: &mgm, deviceConverter: &mdc}
 
-		expectedDevice := device{
+		expectedDevice := ExportedDevice{
 			Identifier:   "one-one",
 			Capabilities: map[string]interface{}{"capOne": map[string]interface{}{}},
 			Gateway:      "one",
@@ -158,7 +160,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rr.Code)
 
 		actualData := []byte(rr.Body.String())
-		actualDevice := device{}
+		actualDevice := ExportedDevice{}
 
 		err = json.Unmarshal(actualData, &actualDevice)
 		assert.NoError(t, err)
@@ -167,7 +169,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 	})
 
 	t.Run("returns a 404 if device is not present", func(t *testing.T) {
-		mgm := mockGatewayMapper{}
+		mgm := gateway.MockMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
@@ -190,13 +192,13 @@ func Test_deviceController_getDevice(t *testing.T) {
 }
 
 func Test_deviceController_updateDevice(t *testing.T) {
-	t.Run("updates an individual device with name", func(t *testing.T) {
+	t.Run("updates an individual ExportedDevice with name", func(t *testing.T) {
 		do := metadata.NewDeviceOrganiser()
 		do.AddDevice("one")
 
 		controller := deviceController{deviceOrganiser: &do}
 
-		req, err := http.NewRequest("PATCH", "/devices/one", strings.NewReader(`{"Name":"device"}`))
+		req, err := http.NewRequest("PATCH", "/devices/one", strings.NewReader(`{"Name":"ExportedDevice"}`))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -211,6 +213,6 @@ func Test_deviceController_updateDevice(t *testing.T) {
 
 		d, found := do.Device("one")
 		assert.True(t, found)
-		assert.Equal(t, "device", d.Name)
+		assert.Equal(t, "ExportedDevice", d.Name)
 	})
 }
