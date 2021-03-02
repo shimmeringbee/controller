@@ -8,7 +8,7 @@ import (
 )
 
 func TestExportGateway(t *testing.T) {
-	t.Run("converts a da ExportedGateway with basic information and capability list", func(t *testing.T) {
+	t.Run("converts a da gateway with basic information and capability list", func(t *testing.T) {
 		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
