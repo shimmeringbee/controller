@@ -40,7 +40,7 @@ func Test_zoneController_listZones(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZones := []exporter.ExportedZone{
+		expectedZones := []ExportedZone{
 			{
 				Identifier: 1,
 				Name:       "one",
@@ -52,7 +52,7 @@ func Test_zoneController_listZones(t *testing.T) {
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZones := []exporter.ExportedZone{}
+		actualZones := []ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZones)
 		assert.NoError(t, err)
@@ -111,7 +111,7 @@ func Test_zoneController_listZones(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZones := []exporter.ExportedZone{
+		expectedZones := []ExportedZone{
 			{
 				Identifier: 1,
 				Name:       "one",
@@ -133,7 +133,7 @@ func Test_zoneController_listZones(t *testing.T) {
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZones := []exporter.ExportedZone{}
+		actualZones := []ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZones)
 		assert.NoError(t, err)
@@ -165,11 +165,11 @@ func Test_zoneController_listZones(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZones := []exporter.ExportedZone{
+		expectedZones := []ExportedZone{
 			{
 				Identifier: 1,
 				Name:       "one",
-				SubZones: []exporter.ExportedZone{
+				SubZones: []ExportedZone{
 					{
 						Identifier: 2,
 						Name:       "two",
@@ -183,7 +183,7 @@ func Test_zoneController_listZones(t *testing.T) {
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZones := []exporter.ExportedZone{}
+		actualZones := []ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZones)
 		assert.NoError(t, err)
@@ -216,14 +216,14 @@ func Test_zoneController_getZone(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZone := exporter.ExportedZone{
+		expectedZone := ExportedZone{
 			Identifier: 2,
 			Name:       "two",
 			SubZones:   nil,
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZone := exporter.ExportedZone{}
+		actualZone := ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZone)
 		assert.NoError(t, err)
@@ -272,7 +272,7 @@ func Test_zoneController_getZone(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZone := exporter.ExportedZone{
+		expectedZone := ExportedZone{
 			Identifier: 2,
 			Name:       "two",
 			SubZones:   nil,
@@ -284,7 +284,7 @@ func Test_zoneController_getZone(t *testing.T) {
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZone := exporter.ExportedZone{}
+		actualZone := ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZone)
 		assert.NoError(t, err)
@@ -315,10 +315,10 @@ func Test_zoneController_getZone(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rr.Code)
 
-		expectedZone := exporter.ExportedZone{
+		expectedZone := ExportedZone{
 			Identifier: 1,
 			Name:       "one",
-			SubZones: []exporter.ExportedZone{
+			SubZones: []ExportedZone{
 				{
 					Identifier: 2,
 					Name:       "two",
@@ -327,7 +327,7 @@ func Test_zoneController_getZone(t *testing.T) {
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZone := exporter.ExportedZone{}
+		actualZone := ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZone)
 		assert.NoError(t, err)
@@ -359,14 +359,14 @@ func Test_zoneController_createZone(t *testing.T) {
 		assert.True(t, found)
 		assert.Equal(t, "ExportedZone", z.Name)
 
-		expectedZone := exporter.ExportedZone{
+		expectedZone := ExportedZone{
 			Identifier: 1,
 			Name:       "ExportedZone",
 			SubZones:   nil,
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZone := exporter.ExportedZone{}
+		actualZone := ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZone)
 		assert.NoError(t, err)
@@ -424,14 +424,14 @@ func Test_zoneController_updateZone(t *testing.T) {
 		assert.True(t, found)
 		assert.Equal(t, "ExportedZone", z.Name)
 
-		expectedZone := exporter.ExportedZone{
+		expectedZone := ExportedZone{
 			Identifier: 1,
 			Name:       "ExportedZone",
 			SubZones:   nil,
 		}
 
 		actualData := []byte(rr.Body.String())
-		actualZone := exporter.ExportedZone{}
+		actualZone := ExportedZone{}
 
 		err = json.Unmarshal(actualData, &actualZone)
 		assert.NoError(t, err)

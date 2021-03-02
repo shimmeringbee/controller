@@ -13,6 +13,13 @@ import (
 	"strconv"
 )
 
+type ExportedZone struct {
+	Identifier int
+	Name       string
+	SubZones   []ExportedZone            `json:",omitempty"`
+	Devices    []exporter.ExportedDevice `json:",omitempty"`
+}
+
 type zoneController struct {
 	deviceOrganiser *metadata.DeviceOrganiser
 	gatewayMapper   gateway.Mapper
@@ -34,7 +41,7 @@ func (z *zoneController) listZones(w http.ResponseWriter, r *http.Request) {
 	devices := includesString(includes, "devices")
 	subzones := includesString(includes, "subzones")
 
-	returnZones := make([]exporter.ExportedZone, 0)
+	returnZones := make([]ExportedZone, 0)
 
 	for _, nZ := range z.deviceOrganiser.RootZones() {
 		returnZones = append(returnZones, z.enumerateZone(nZ, devices, subzones))
@@ -50,8 +57,8 @@ func (z *zoneController) listZones(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (z *zoneController) enumerateZone(nZ metadata.Zone, includeDevices bool, includeSubzones bool) exporter.ExportedZone {
-	var subZones []exporter.ExportedZone
+func (z *zoneController) enumerateZone(nZ metadata.Zone, includeDevices bool, includeSubzones bool) ExportedZone {
+	var subZones []ExportedZone
 	var devices []exporter.ExportedDevice
 
 	if includeSubzones {
@@ -67,7 +74,7 @@ func (z *zoneController) enumerateZone(nZ metadata.Zone, includeDevices bool, in
 		}
 	}
 
-	return exporter.ExportedZone{
+	return ExportedZone{
 		Identifier: nZ.Identifier,
 		Name:       nZ.Name,
 		SubZones:   subZones,
@@ -75,8 +82,8 @@ func (z *zoneController) enumerateZone(nZ metadata.Zone, includeDevices bool, in
 	}
 }
 
-func (z *zoneController) enumerateZones(zoneIds []int, devices bool) []exporter.ExportedZone {
-	var zones []exporter.ExportedZone
+func (z *zoneController) enumerateZones(zoneIds []int, devices bool) []ExportedZone {
+	var zones []ExportedZone
 
 	for _, zoneId := range zoneIds {
 		if nZ, found := z.deviceOrganiser.Zone(zoneId); found {

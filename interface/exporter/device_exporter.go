@@ -25,13 +25,6 @@ type ExportedGateway struct {
 	SelfDevice   string
 }
 
-type ExportedZone struct {
-	Identifier int
-	Name       string
-	SubZones   []ExportedZone   `json:",omitempty"`
-	Devices    []ExportedDevice `json:",omitempty"`
-}
-
 const DefaultCapabilityTimeout = 1 * time.Second
 
 type DeviceExporter struct {
@@ -39,19 +32,19 @@ type DeviceExporter struct {
 	GatewayMapper   gateway.Mapper
 }
 
-func (dc *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) ExportedDevice {
+func (de *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) ExportedDevice {
 	capabilityList := map[string]interface{}{}
 
 	for _, capFlag := range daDevice.Capabilities() {
 		uncastCapability := daDevice.Gateway().Capability(capFlag)
 
 		if basicCapability, ok := uncastCapability.(da.BasicCapability); ok {
-			capabilityList[basicCapability.Name()] = dc.exportCapability(ctx, daDevice, uncastCapability)
+			capabilityList[basicCapability.Name()] = de.exportCapability(ctx, daDevice, uncastCapability)
 		}
 	}
 
-	md, _ := dc.DeviceOrganiser.Device(daDevice.Identifier().String())
-	gwName, _ := dc.GatewayMapper.GatewayName(daDevice.Gateway())
+	md, _ := de.DeviceOrganiser.Device(daDevice.Identifier().String())
+	gwName, _ := de.GatewayMapper.GatewayName(daDevice.Gateway())
 
 	return ExportedDevice{
 		Identifier:   daDevice.Identifier().String(),
@@ -61,7 +54,7 @@ func (dc *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) 
 	}
 }
 
-func (dc *DeviceExporter) exportCapability(pctx context.Context, device da.Device, uncastCapability interface{}) interface{} {
+func (de *DeviceExporter) exportCapability(pctx context.Context, device da.Device, uncastCapability interface{}) interface{} {
 	ctx, cancel := context.WithTimeout(pctx, DefaultCapabilityTimeout)
 	defer cancel()
 
@@ -69,29 +62,29 @@ func (dc *DeviceExporter) exportCapability(pctx context.Context, device da.Devic
 
 	switch capability := uncastCapability.(type) {
 	case capabilities.HasProductInformation:
-		retVal = dc.convertHasProductInformation(ctx, device, capability)
+		retVal = de.convertHasProductInformation(ctx, device, capability)
 	case capabilities.TemperatureSensor:
-		retVal = dc.convertTemperatureSensor(ctx, device, capability)
+		retVal = de.convertTemperatureSensor(ctx, device, capability)
 	case capabilities.RelativeHumiditySensor:
-		retVal = dc.convertRelativeHumiditySensor(ctx, device, capability)
+		retVal = de.convertRelativeHumiditySensor(ctx, device, capability)
 	case capabilities.PressureSensor:
-		retVal = dc.convertPressureSensor(ctx, device, capability)
+		retVal = de.convertPressureSensor(ctx, device, capability)
 	case capabilities.DeviceDiscovery:
-		retVal = dc.convertDeviceDiscovery(ctx, device, capability)
+		retVal = de.convertDeviceDiscovery(ctx, device, capability)
 	case capabilities.EnumerateDevice:
-		retVal = dc.convertEnumerateDevice(ctx, device, capability)
+		retVal = de.convertEnumerateDevice(ctx, device, capability)
 	case capabilities.AlarmSensor:
-		retVal = dc.convertAlarmSensor(ctx, device, capability)
+		retVal = de.convertAlarmSensor(ctx, device, capability)
 	case capabilities.OnOff:
-		retVal = dc.convertOnOff(ctx, device, capability)
+		retVal = de.convertOnOff(ctx, device, capability)
 	case capabilities.PowerSupply:
-		retVal = dc.convertPowerSupply(ctx, device, capability)
+		retVal = de.convertPowerSupply(ctx, device, capability)
 	case capabilities.AlarmWarningDevice:
-		retVal = dc.convertAlarmWarningDevice(ctx, device, capability)
+		retVal = de.convertAlarmWarningDevice(ctx, device, capability)
 	case capabilities.Level:
-		retVal = dc.convertLevel(ctx, device, capability)
+		retVal = de.convertLevel(ctx, device, capability)
 	case capabilities.Color:
-		retVal = dc.convertColor(ctx, device, capability)
+		retVal = de.convertColor(ctx, device, capability)
 	default:
 		return struct{}{}
 	}
@@ -159,7 +152,7 @@ type HasProductInformation struct {
 	Serial       string `json:",omitempty"`
 }
 
-func (dc *DeviceExporter) convertHasProductInformation(ctx context.Context, device da.Device, hpi capabilities.HasProductInformation) interface{} {
+func (de *DeviceExporter) convertHasProductInformation(ctx context.Context, device da.Device, hpi capabilities.HasProductInformation) interface{} {
 	pi, err := hpi.ProductInformation(ctx, device)
 	if err != nil {
 		return nil
@@ -178,7 +171,7 @@ type TemperatureSensor struct {
 	LastChange
 }
 
-func (dc *DeviceExporter) convertTemperatureSensor(ctx context.Context, device da.Device, ts capabilities.TemperatureSensor) interface{} {
+func (de *DeviceExporter) convertTemperatureSensor(ctx context.Context, device da.Device, ts capabilities.TemperatureSensor) interface{} {
 	tsReadings, err := ts.Reading(ctx, device)
 	if err != nil {
 		return nil
@@ -195,7 +188,7 @@ type RelativeHumiditySensor struct {
 	LastChange
 }
 
-func (dc *DeviceExporter) convertRelativeHumiditySensor(ctx context.Context, device da.Device, rhs capabilities.RelativeHumiditySensor) interface{} {
+func (de *DeviceExporter) convertRelativeHumiditySensor(ctx context.Context, device da.Device, rhs capabilities.RelativeHumiditySensor) interface{} {
 	rhReadings, err := rhs.Reading(ctx, device)
 	if err != nil {
 		return nil
@@ -212,7 +205,7 @@ type PressureSensor struct {
 	LastChange
 }
 
-func (dc *DeviceExporter) convertPressureSensor(ctx context.Context, device da.Device, ps capabilities.PressureSensor) interface{} {
+func (de *DeviceExporter) convertPressureSensor(ctx context.Context, device da.Device, ps capabilities.PressureSensor) interface{} {
 	psReadings, err := ps.Reading(ctx, device)
 	if err != nil {
 		return nil
@@ -230,7 +223,7 @@ type DeviceDiscovery struct {
 	LastChange
 }
 
-func (dc *DeviceExporter) convertDeviceDiscovery(ctx context.Context, device da.Device, dd capabilities.DeviceDiscovery) interface{} {
+func (de *DeviceExporter) convertDeviceDiscovery(ctx context.Context, device da.Device, dd capabilities.DeviceDiscovery) interface{} {
 	discoveryState, err := dd.Status(ctx, device)
 	if err != nil {
 		return nil
@@ -250,7 +243,7 @@ type EnumerateDevice struct {
 	LastChange
 }
 
-func (dc *DeviceExporter) convertEnumerateDevice(ctx context.Context, device da.Device, ed capabilities.EnumerateDevice) interface{} {
+func (de *DeviceExporter) convertEnumerateDevice(ctx context.Context, device da.Device, ed capabilities.EnumerateDevice) interface{} {
 	enumerateDeviceState, err := ed.Status(ctx, device)
 	if err != nil {
 		return nil
@@ -267,7 +260,7 @@ type AlarmSensor struct {
 	LastChange
 }
 
-func (dc *DeviceExporter) convertAlarmSensor(ctx context.Context, device da.Device, as capabilities.AlarmSensor) interface{} {
+func (de *DeviceExporter) convertAlarmSensor(ctx context.Context, device da.Device, as capabilities.AlarmSensor) interface{} {
 	alarmSensorState, err := as.Status(ctx, device)
 	if err != nil {
 		return nil
@@ -290,7 +283,7 @@ type OnOff struct {
 	LastChange
 }
 
-func (dc *DeviceExporter) convertOnOff(ctx context.Context, device da.Device, oo capabilities.OnOff) interface{} {
+func (de *DeviceExporter) convertOnOff(ctx context.Context, device da.Device, oo capabilities.OnOff) interface{} {
 	state, err := oo.Status(ctx, device)
 	if err != nil {
 		return nil
@@ -322,7 +315,7 @@ type PowerBatteryStatus struct {
 	Available      *bool    `json:",omitempty"`
 }
 
-func (dc *DeviceExporter) convertPowerSupply(ctx context.Context, d da.Device, capability capabilities.PowerSupply) interface{} {
+func (de *DeviceExporter) convertPowerSupply(ctx context.Context, d da.Device, capability capabilities.PowerSupply) interface{} {
 	state, err := capability.Status(ctx, d)
 	if err != nil {
 		return nil
@@ -391,7 +384,7 @@ type AlarmWarningDeviceStatus struct {
 	LastChange
 }
 
-func (dc *DeviceExporter) convertAlarmWarningDevice(ctx context.Context, d da.Device, capability capabilities.AlarmWarningDevice) interface{} {
+func (de *DeviceExporter) convertAlarmWarningDevice(ctx context.Context, d da.Device, capability capabilities.AlarmWarningDevice) interface{} {
 	state, err := capability.Status(ctx, d)
 	if err != nil {
 		return nil
@@ -422,7 +415,7 @@ type Level struct {
 	LastChange
 }
 
-func (dc *DeviceExporter) convertLevel(ctx context.Context, device da.Device, l capabilities.Level) interface{} {
+func (de *DeviceExporter) convertLevel(ctx context.Context, device da.Device, l capabilities.Level) interface{} {
 	state, err := l.Status(ctx, device)
 	if err != nil {
 		return nil
@@ -481,7 +474,7 @@ type Color struct {
 	LastChange
 }
 
-func (dc *DeviceExporter) convertColor(ctx context.Context, device da.Device, c capabilities.Color) interface{} {
+func (de *DeviceExporter) convertColor(ctx context.Context, device da.Device, c capabilities.Color) interface{} {
 	state, err := c.Status(ctx, device)
 	if err != nil {
 		return nil
