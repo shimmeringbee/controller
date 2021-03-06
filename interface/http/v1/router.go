@@ -7,13 +7,14 @@ import (
 	"github.com/shimmeringbee/controller/interface/exporter"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/logwrap"
 	"net/http"
 )
 
 //go:embed openapi.json
 var openapi embed.FS
 
-func ConstructRouter(mapper gateway.Mapper, deviceOrganiser *metadata.DeviceOrganiser, stack layers.OutputStack) http.Handler {
+func ConstructRouter(mapper gateway.Mapper, deviceOrganiser *metadata.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger) http.Handler {
 	r := mux.NewRouter()
 
 	deviceConverter := exporter.DeviceExporter{

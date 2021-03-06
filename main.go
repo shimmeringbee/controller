@@ -31,10 +31,14 @@ func main() {
 		l.LogFatal(ctx, "Failed to load gateway configurations.", lw.Err(err))
 	}
 
+	l.LogInfo(ctx, "Loaded gateway configurations.", lw.Datum("configCount", len(gatewayCfgs)))
+
 	interfaceCfgs, err := loadInterfaceConfigurations(filepath.Join(directories.Config, "interfaces"))
 	if err != nil {
 		l.LogFatal(ctx, "Failed to load interface configurations.", lw.Err(err))
 	}
+
+	l.LogInfo(ctx, "Loaded interface configurations.", lw.Datum("configCount", len(interfaceCfgs)))
 
 	l.LogInfo(ctx, "Initialising device organiser.")
 	deviceOrganiser := metadata.NewDeviceOrganiser()
@@ -44,7 +48,6 @@ func main() {
 		l.LogFatal(ctx, "Failed to initialise device organiser.", lw.Err(err))
 	}
 
-	l.LogInfo(ctx, "Loaded gateway configurations.", lw.Datum("configCount", len(gatewayCfgs)))
 	gwMux := gateway.New()
 
 	l.LogInfo(ctx, "Linking device organiser to mux.")
@@ -54,13 +57,13 @@ func main() {
 	outputStack := layers.PassThruStack{}
 
 	l.LogInfo(ctx, "Starting interfaces.")
-	startedInterfaces, err := startInterfaces(interfaceCfgs, gwMux, &deviceOrganiser, directories, outputStack)
+	startedInterfaces, err := startInterfaces(interfaceCfgs, gwMux, &deviceOrganiser, directories, outputStack, l)
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start interfaces.", lw.Err(err))
 	}
 
 	l.LogInfo(ctx, "Starting gateways.")
-	startedGateways, err := startGateways(gatewayCfgs, gwMux, directories)
+	startedGateways, err := startGateways(gatewayCfgs, gwMux, directories, l)
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start gateways.", lw.Err(err))
 	}
