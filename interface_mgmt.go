@@ -9,25 +9,32 @@ import (
 	"encoding/json"
 	"fmt"
 	pahomqtt "github.com/eclipse/paho.mqtt.golang"
-	"github.com/gorilla/mux"
+	gorillamux "github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/config"
-	mux2 "github.com/shimmeringbee/controller/gateway"
+	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/interface/http/swagger"
-	v1 "github.com/shimmeringbee/controller/interface/http/v1"
-	mqtt "github.com/shimmeringbee/controller/interface/mqtt"
+	"github.com/shimmeringbee/controller/interface/http/v1"
+	"github.com/shimmeringbee/controller/interface/mqtt"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/logwrap"
+	"github.com/shimmeringbee/logwrap/impl/nest"
 	"io/ioutil"
 	"net/http"
+	url2 "net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"time"
 )
 
 type StartedInterface struct {
 	Name     string
 	Shutdown func() error
 }
+
+const DefaultMQTTEventDuration = 1 * time.Second
 
 func loadInterfaceConfigurations(dir string) ([]config.InterfaceConfig, error) {
 	if err := os.MkdirAll(dir, DefaultDirectoryPermissions); err != nil {
@@ -66,7 +73,7 @@ func loadInterfaceConfigurations(dir string) ([]config.InterfaceConfig, error) {
 	return retCfgs, nil
 }
 
-func startInterfaces(cfgs []config.InterfaceConfig, g *mux2.Mux, o *metadata.DeviceOrganiser, directories Directories, stack layers.OutputStack) ([]StartedInterface, error) {
+func startInterfaces(cfgs []config.InterfaceConfig, g *gateway.Mux, o *metadata.DeviceOrganiser, directories Directories, stack layers.OutputStack, l logwrap.Logger) ([]StartedInterface, error) {
 	var retGws []StartedInterface
 
 	for _, cfg := range cfgs {
@@ -76,7 +83,7 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *mux2.Mux, o *metadata.Dev
 			return nil, fmt.Errorf("failed to create interface data directory '%s': %w", dataDir, err)
 		}
 
-		if shutdown, err := startInterface(cfg, g, o, dataDir, stack); err != nil {
+		if shutdown, err := startInterface(cfg, g, o, dataDir, stack, l); err != nil {
 			return nil, fmt.Errorf("failed to start interface '%s': %w", cfg.Name, err)
 		} else {
 			retGws = append(retGws, StartedInterface{
@@ -89,12 +96,17 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *mux2.Mux, o *metadata.Dev
 	return retGws, nil
 }
 
-func startInterface(cfg config.InterfaceConfig, g *mux2.Mux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack) (func() error, error) {
+func startInterface(cfg config.InterfaceConfig, g *gateway.Mux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+	wl := logwrap.New(nest.Wrap(l))
+	wl.AddOptionsToLogger(logwrap.Datum("interface", cfg.Name))
+
 	switch gwCfg := cfg.Config.(type) {
 	case *config.HTTPInterfaceConfig:
-		return startHTTPInterface(*gwCfg, g, o, cfgDig, stack)
+		wl.AddOptionsToLogger(logwrap.Source("http"))
+		return startHTTPInterface(*gwCfg, g, o, cfgDig, stack, wl)
 	case *config.MQTTInterfaceConfig:
-		return startMQTTInterface(*gwCfg, g, o, cfgDig, stack)
+		wl.AddOptionsToLogger(logwrap.Source("mqtt"))
+		return startMQTTInterface(*gwCfg, g, o, cfgDig, stack, wl)
 	default:
 		return nil, fmt.Errorf("unknown gateway type loaded: %s", cfg.Type)
 	}
@@ -110,10 +122,12 @@ func containsString(haystack []string, needle string) bool {
 	return false
 }
 
-func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *mux2.Mux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack) (func() error, error) {
-	r := mux.NewRouter()
+func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *gateway.Mux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+	r := gorillamux.NewRouter()
 
 	if containsString(cfg.EnabledAPIs, "swagger") {
+		l.LogInfo(context.Background(), "Mounting swagger endpoint on /swagger.")
+
 		swaggerRouter := swagger.ConstructRouter()
 		// This route is needed because the redirect provided by http.FileServer is incorrect due to the http.StripPrefix
 		// below. As such we need to perform a manual redirect before the http.FileServer has the opportunity. Also use
@@ -123,7 +137,9 @@ func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *mux2.Mux, o *metadata
 	}
 
 	if containsString(cfg.EnabledAPIs, "v1") {
-		v1Router := v1.ConstructRouter(g, o, stack)
+		l.LogInfo(context.Background(), "Mounting v1 API endpoint on /api/v1.")
+
+		v1Router := v1.ConstructRouter(g, o, stack, l)
 		// Use http.StripPrefix to obscure the real path from the v1 api code, though this will cause issues if we
 		// ever issue redirects from the API.
 		r.PathPrefix("/api/v1").Handler(http.StripPrefix("/api/v1", v1Router))
@@ -132,41 +148,91 @@ func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *mux2.Mux, o *metadata
 	bindAddress := fmt.Sprintf(":%d", cfg.Port)
 	srv := &http.Server{Addr: bindAddress, Handler: r}
 
-	go srv.ListenAndServe()
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			l.LogError(context.Background(), "Failed to start http server.", logwrap.Err(err))
+		}
+	}()
 
 	return func() error {
 		return srv.Shutdown(context.Background())
 	}, nil
 }
 
-func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *mux2.Mux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack) (func() error, error) {
+func awaitToken(ctx context.Context, token pahomqtt.Token) error {
+	select {
+	case <-token.Done():
+		return token.Error()
+	case <-ctx.Done():
+		return context.DeadlineExceeded
+	}
+}
+
+func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	clientId, err := randomClientID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random client id: %w", err)
 	}
 
+	l.LogInfo(context.Background(), "Constructing new MQTT client.", logwrap.Datum("clientId", clientId), logwrap.Datum("server", cfg.Server))
+
 	clientOptions := pahomqtt.NewClientOptions()
 	clientOptions.ClientID = clientId
 
-	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, OutputStack: stack}
+	if url, err := url2.Parse(cfg.Server); err != nil {
+		l.LogError(context.Background(), "Failed to parse MQTT server URL.", logwrap.Err(err))
+		return nil, err
+	} else {
+		clientOptions.Servers = []*url2.URL{url}
+	}
+
+	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, OutputStack: stack, Logger: l}
+
+	lastWillTopic := prefixTopic(cfg.TopicPrefix, "controller/online")
 
 	clientOptions.OnConnect = func(client pahomqtt.Client) {
-		client.Subscribe(prefixTopic(cfg.TopicPrefix, "+"), 0, func(client pahomqtt.Client, message pahomqtt.Message) {
-			i.IncomingMessage(stripPrefixTopic(cfg.TopicPrefix, message.Topic()), message.Payload())
+		ctx, cancel := context.WithTimeout(context.Background(), DefaultMQTTEventDuration)
+		defer cancel()
+
+		l.LogInfo(context.Background(), "MQTT client successfully connected.", logwrap.Datum("clientId", clientId), logwrap.Datum("server", cfg.Server))
+
+		subTopic := prefixTopic(cfg.TopicPrefix, "+")
+		subscribeToken := client.Subscribe(subTopic, 0, func(client pahomqtt.Client, message pahomqtt.Message) {
+			ctx, cancel := context.WithTimeout(context.Background(), DefaultMQTTEventDuration)
+			defer cancel()
+
+			if i.IncomingMessage(ctx, stripPrefixTopic(cfg.TopicPrefix, message.Topic()), message.Payload()) != nil {
+				l.LogError(ctx, "Failed to handle incoming message.", logwrap.Datum("topic", message.Topic()), logwrap.Err(err))
+			}
 		})
 
-		client.Publish(prefixTopic(cfg.TopicPrefix, "controller/online"), cfg.QOS, cfg.Retained, `true`)
+		if err := awaitToken(ctx, subscribeToken); err != nil {
+			l.LogError(ctx, "Failed to subscribe to topic in MQTT.", logwrap.Datum("topic", subTopic), logwrap.Err(err))
+		}
 
-		i.Connected(func(prefix string, payload []byte) {
-			client.Publish(prefixTopic(cfg.TopicPrefix, prefix), cfg.QOS, cfg.Retained, payload)
-		}, cfg.PublishAllOnConnect)
+		client.Publish(lastWillTopic, cfg.QOS, cfg.Retained, `true`)
+
+		if err := i.Connected(context.Background(), func(ctx context.Context, topic string, payload []byte) error {
+			prefixedTopic := prefixTopic(cfg.TopicPrefix, topic)
+
+			token := client.Publish(prefixedTopic, cfg.QOS, cfg.Retained, payload)
+			if err := awaitToken(ctx, token); err != nil {
+				l.LogError(ctx, "Failed to publish message to MQTT.", logwrap.Datum("topic", prefixedTopic), logwrap.Err(err))
+				return err
+			}
+
+			return nil
+		}, cfg.PublishAllOnConnect); err != nil {
+			l.LogError(context.Background(), "Failed to execute connection handler in MQTT interface.", logwrap.Err(err))
+		}
 	}
 
 	clientOptions.SetConnectionLostHandler(func(client pahomqtt.Client, err error) {
+		l.LogInfo(context.Background(), "MQTT client disconnected.", logwrap.Datum("clientId", clientId), logwrap.Datum("server", cfg.Server), logwrap.Err(err))
 		i.Disconnected()
 	})
 
-	clientOptions.SetWill(prefixTopic(cfg.TopicPrefix, "controller/online"), `false`, cfg.QOS, cfg.Retained)
+	clientOptions.SetWill(lastWillTopic, `false`, cfg.QOS, cfg.Retained)
 
 	if cfg.Credentials != nil {
 		clientOptions.SetUsername(cfg.Credentials.Username)
@@ -174,7 +240,11 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *mux2.Mux, o *metadata
 	}
 
 	if cfg.TLS != nil {
-		tlsConfig := &tls.Config{}
+		tlsConfig := &tls.Config{InsecureSkipVerify: cfg.TLS.SkipCertificateVerification}
+
+		if cfg.TLS.SkipCertificateVerification {
+			l.LogWarn(context.Background(), "Set to ignore remote TLS certificate, this is considered insecure.")
+		}
 
 		if len(cfg.TLS.Cert) > 0 {
 			cert, err := tls.LoadX509KeyPair(cfg.TLS.Cert, cfg.TLS.Key)
@@ -185,21 +255,37 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *mux2.Mux, o *metadata
 			tlsConfig.Certificates = []tls.Certificate{cert}
 		}
 
+		var certPool *x509.CertPool
+
+		if cfg.TLS.IgnoreSystemRootCertificates {
+			l.LogInfo(context.Background(), "Configured to ignore system root certificates, ensure you are providing your own.", logwrap.Err(err))
+			certPool = x509.NewCertPool()
+		} else {
+			certPool, err = x509.SystemCertPool()
+			if err != nil {
+				// This call fails on Windows with an error, but is not typed appropriately so it's impossible to switch, as
+				// such we continue on with an empty certificate pool.
+
+				if runtime.GOOS == "windows" {
+					l.LogWarn(context.Background(), "Failed to load system certificate pool for root CAs, this is expected on Windows (see Go Issues 16736 and 18609), you must provide the CA root certificate for your servers trust chain.", logwrap.Err(err))
+					certPool = x509.NewCertPool()
+				} else {
+					l.LogError(context.Background(), "Failed to load system certificate pool for root CAs, you may disable loading system certificates by setting $.Config.TLS.IgnoreSystemRootCertificates and providing your own CA certificate.", logwrap.Err(err))
+					return nil, fmt.Errorf("failed to load system certiticate pool: %w", err)
+				}
+			}
+		}
+
 		if len(cfg.TLS.CACert) > 0 {
 			caCerts, err := ioutil.ReadFile(filepath.Clean(cfg.TLS.CACert))
 			if err != nil {
 				return nil, fmt.Errorf("failed to load CA TLS certificats for mqtt: %w", err)
 			}
 
-			certPool, err := x509.SystemCertPool()
-			if err != nil {
-				certPool = x509.NewCertPool()
-			}
-
 			certPool.AppendCertsFromPEM(caCerts)
-
-			tlsConfig.RootCAs = certPool
 		}
+
+		tlsConfig.RootCAs = certPool
 
 		clientOptions.SetTLSConfig(tlsConfig)
 	}
@@ -207,7 +293,24 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *mux2.Mux, o *metadata
 	i.Start()
 
 	client := pahomqtt.NewClient(clientOptions)
-	client.Connect()
+
+	go func() {
+		ctx := context.Background()
+
+		retry := time.NewTicker(1 * time.Second)
+		for {
+			select {
+			case <-retry.C:
+				if token := client.Connect(); token.Wait() && token.Error() != nil {
+					l.LogError(ctx, "Failed initial connection to MQTT server.", logwrap.Datum("clientId", clientId), logwrap.Datum("server", cfg.Server), logwrap.Err(token.Error()))
+				} else {
+					l.LogInfo(ctx, "Initial MQTT connection call completed.", logwrap.Datum("clientId", clientId), logwrap.Datum("server", cfg.Server))
+					retry.Stop()
+					return
+				}
+			}
+		}
+	}()
 
 	return func() error {
 		client.Disconnect(1500)

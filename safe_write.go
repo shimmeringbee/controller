@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 )
@@ -13,7 +12,7 @@ func safeWriteFile(name string, data []byte, perm os.FileMode) error {
 	newName := fmt.Sprintf("%s-new", baseName)
 	oldName := fmt.Sprintf("%s-old", baseName)
 
-	if err := ioutil.WriteFile(newName, data, perm); err != nil {
+	if err := os.WriteFile(newName, data, perm); err != nil {
 		return fmt.Errorf("failed to write new file: %w", err)
 	}
 

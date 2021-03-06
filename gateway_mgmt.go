@@ -7,6 +7,8 @@ import (
 	"github.com/shimmeringbee/controller/config"
 	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/da"
+	"github.com/shimmeringbee/logwrap"
+	"github.com/shimmeringbee/logwrap/impl/nest"
 	"github.com/shimmeringbee/zda"
 	"github.com/shimmeringbee/zda/capability/alarm_sensor"
 	"github.com/shimmeringbee/zda/capability/alarm_warning_device"
@@ -35,7 +37,7 @@ type StartedGateway struct {
 	Shutdown func()
 }
 
-func startGateways(cfgs []config.GatewayConfig, mux *gateway.Mux, directories Directories) ([]StartedGateway, error) {
+func startGateways(cfgs []config.GatewayConfig, mux *gateway.Mux, directories Directories, l logwrap.Logger) ([]StartedGateway, error) {
 	var retGws []StartedGateway
 
 	for _, cfg := range cfgs {
@@ -45,7 +47,7 @@ func startGateways(cfgs []config.GatewayConfig, mux *gateway.Mux, directories Di
 			return nil, fmt.Errorf("failed to create gateway data directory '%s': %w", dataDir, err)
 		}
 
-		if gw, shutdown, err := startGateway(cfg, dataDir); err != nil {
+		if gw, shutdown, err := startGateway(cfg, dataDir, l); err != nil {
 			return nil, fmt.Errorf("failed to start gateway '%s': %w", cfg.Name, err)
 		} else {
 			mux.Add(cfg.Name, gw)
@@ -60,17 +62,21 @@ func startGateways(cfgs []config.GatewayConfig, mux *gateway.Mux, directories Di
 	return retGws, nil
 }
 
-func startGateway(cfg config.GatewayConfig, cfgDig string) (da.Gateway, func(), error) {
+func startGateway(cfg config.GatewayConfig, cfgDig string, l logwrap.Logger) (da.Gateway, func(), error) {
+	wl := logwrap.New(nest.Wrap(l))
+	wl.AddOptionsToLogger(logwrap.Datum("gateway", cfg.Name))
+
 	switch gwCfg := cfg.Config.(type) {
 	case *config.ZDAConfig:
-		return startZDAGateway(*gwCfg, cfgDig)
+		wl.AddOptionsToLogger(logwrap.Source("zda"))
+		return startZDAGateway(*gwCfg, cfgDig, wl)
 	default:
 		return nil, nil, fmt.Errorf("unknown gateway type loaded: %s", cfg.Type)
 	}
 }
 
-func startZDAGateway(cfg config.ZDAConfig, cfgDig string) (da.Gateway, func(), error) {
-	provider, providerShut, err := startZigbeeProvider(cfg.Provider, *cfg.Network, cfgDig)
+func startZDAGateway(cfg config.ZDAConfig, cfgDig string, l logwrap.Logger) (da.Gateway, func(), error) {
+	provider, providerShut, err := startZigbeeProvider(cfg.Provider, *cfg.Network, cfgDig, l)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to start zigbee provider: %w", err)
 	}
@@ -86,6 +92,8 @@ func startZDAGateway(cfg config.ZDAConfig, cfgDig string) (da.Gateway, func(), e
 	}
 
 	gw := zda.New(provider, r)
+	gw.WithLogWrapLogger(l)
+
 	gw.CapabilityManager.Add(&has_product_information.Implementation{})
 	gw.CapabilityManager.Add(&on_off.Implementation{})
 	gw.CapabilityManager.Add(&level.Implementation{})
@@ -196,16 +204,16 @@ func loadZDARules(file string) (*rules.Rule, error) {
 	return &rule, nil
 }
 
-func startZigbeeProvider(providerCfg config.ZDAProvider, network zigbee.NetworkConfiguration, cfgDig string) (zigbee.Provider, func(), error) {
+func startZigbeeProvider(providerCfg config.ZDAProvider, network zigbee.NetworkConfiguration, cfgDig string, l logwrap.Logger) (zigbee.Provider, func(), error) {
 	switch pvdCfg := providerCfg.Config.(type) {
 	case *config.ZStackProvider:
-		return startZStackProvider(*pvdCfg, network, cfgDig)
+		return startZStackProvider(*pvdCfg, network, cfgDig, l)
 	default:
 		return nil, nil, fmt.Errorf("unknown provider type loaded: %s", providerCfg.Type)
 	}
 }
 
-func startZStackProvider(cfg config.ZStackProvider, network zigbee.NetworkConfiguration, cfgDig string) (zigbee.Provider, func(), error) {
+func startZStackProvider(cfg config.ZStackProvider, network zigbee.NetworkConfiguration, cfgDig string, l logwrap.Logger) (zigbee.Provider, func(), error) {
 	port, err := serial.Open(cfg.Port.Name, &serial.Mode{BaudRate: cfg.Port.Baud})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open serial port for zstack '%s': %w", cfg.Port.Name, err)
@@ -222,7 +230,11 @@ func startZStackProvider(cfg config.ZStackProvider, network zigbee.NetworkConfig
 		return nil, nil, fmt.Errorf("failed to save/create node cache for zstack: %w", err)
 	}
 
+	wl := logwrap.New(nest.Wrap(l))
+	wl.AddOptionsToLogger(logwrap.Source("zstack"))
+
 	z := zstack.New(port, nodeCache)
+	z.WithLogWrapLogger(wl)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
