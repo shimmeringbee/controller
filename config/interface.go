@@ -54,9 +54,11 @@ type MQTTInterfaceConfig struct {
 }
 
 type MQTTTLS struct {
-	Key    string
-	Cert   string
-	CACert string
+	IgnoreSystemRootCertificates bool
+	SkipCertificateVerification  bool
+	Key                          string
+	Cert                         string
+	CACert                       string
 }
 
 type MQTTCredentials struct {

@@ -52,8 +52,10 @@ func TestParseInterface(t *testing.T) {
 			data := []byte(`{
   "Type": "mqtt",
   "Config": {
-    "Server": "tcp://127.0.0.1:1883",
+    "Server": "tcp://127.0.0.1:1883", 
     "TLS": {
+      "SkipCertificateVerification": true,
+      "IgnoreSystemRootCertificates": true,
       "Key": "key.pem",
       "Cert": "cert.pem",
       "CACert": "cacert.pem"
@@ -78,6 +80,9 @@ func TestParseInterface(t *testing.T) {
 			assert.True(t, ok)
 
 			assert.Equal(t, "tcp://127.0.0.1:1883", mqttInt.Server)
+
+			assert.True(t, mqttInt.TLS.SkipCertificateVerification)
+			assert.True(t, mqttInt.TLS.IgnoreSystemRootCertificates)
 
 			assert.Equal(t, "key.pem", mqttInt.TLS.Key)
 			assert.Equal(t, "cert.pem", mqttInt.TLS.Cert)
