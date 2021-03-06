@@ -39,7 +39,7 @@ func (de *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) 
 		uncastCapability := daDevice.Gateway().Capability(capFlag)
 
 		if basicCapability, ok := uncastCapability.(da.BasicCapability); ok {
-			capabilityList[basicCapability.Name()] = de.exportCapability(ctx, daDevice, uncastCapability)
+			capabilityList[basicCapability.Name()] = de.ExportCapability(ctx, daDevice, uncastCapability)
 		}
 	}
 
@@ -54,7 +54,7 @@ func (de *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) 
 	}
 }
 
-func (de *DeviceExporter) exportCapability(pctx context.Context, device da.Device, uncastCapability interface{}) interface{} {
+func (de *DeviceExporter) ExportCapability(pctx context.Context, device da.Device, uncastCapability interface{}) interface{} {
 	ctx, cancel := context.WithTimeout(pctx, DefaultCapabilityTimeout)
 	defer cancel()
 

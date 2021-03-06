@@ -568,7 +568,7 @@ func Test_convertCapabilityWithLastUpdateTime(t *testing.T) {
 		}
 
 		dc := DeviceExporter{}
-		actual := dc.exportCapability(context.Background(), d, &mts)
+		actual := dc.ExportCapability(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
 	})
@@ -603,7 +603,7 @@ func Test_convertCapabilityWithLastChangeTime(t *testing.T) {
 		}
 
 		dc := DeviceExporter{}
-		actual := dc.exportCapability(context.Background(), d, &mts)
+		actual := dc.ExportCapability(context.Background(), d, &mts)
 
 		assert.Equal(t, expected, actual)
 	})
