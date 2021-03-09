@@ -186,7 +186,7 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metad
 		clientOptions.Servers = []*url2.URL{url}
 	}
 
-	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, OutputStack: stack, Logger: l}
+	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, OutputStack: stack, Logger: l, PublishStateOnConnect: cfg.PublishStateOnConnect, PublishSummaryState: cfg.PublishSummaryState}
 
 	lastWillTopic := prefixTopic(cfg.TopicPrefix, "controller/online")
 
@@ -222,7 +222,7 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metad
 			}
 
 			return nil
-		}, cfg.PublishAllOnConnect); err != nil {
+		}); err != nil {
 			l.LogError(context.Background(), "Failed to execute connection handler in MQTT interface.", logwrap.Err(err))
 		}
 	}
@@ -270,7 +270,7 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metad
 					l.LogWarn(context.Background(), "Failed to load system certificate pool for root CAs, this is expected on Windows (see Go Issues 16736 and 18609), you must provide the CA root certificate for your servers trust chain.", logwrap.Err(err))
 					certPool = x509.NewCertPool()
 				} else {
-					l.LogError(context.Background(), "Failed to load system certificate pool for root CAs, you may disable loading system certificates by setting $.Config.TLS.IgnoreSystemRootCertificates and providing your own CA certificate.", logwrap.Err(err))
+					l.LogError(context.Background(), "Failed to load system certificate pool for root CAs, you may disable loading system certificates by setting $.Config.TLS.IgnoreSystemRootCertificates and provide your own CA certificate.", logwrap.Err(err))
 					return nil, fmt.Errorf("failed to load system certiticate pool: %w", err)
 				}
 			}

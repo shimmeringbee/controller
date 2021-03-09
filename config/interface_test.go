@@ -68,7 +68,8 @@ func TestParseInterface(t *testing.T) {
     "QOS": 2,
     "TopicPrefix": "home/controller1",
 
-	"PublishAllOnConnect": true
+	"PublishStateOnConnect": true,
+    "PublishSummaryState": true
   }
 }`)
 			gw := InterfaceConfig{}
@@ -96,7 +97,8 @@ func TestParseInterface(t *testing.T) {
 
 			assert.Equal(t, "home/controller1", mqttInt.TopicPrefix)
 
-			assert.True(t, mqttInt.PublishAllOnConnect)
+			assert.True(t, mqttInt.PublishStateOnConnect)
+			assert.True(t, mqttInt.PublishSummaryState)
 		})
 	})
 }
