@@ -8,7 +8,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/peterbourgon/ff/v3 v3.0.0
 	github.com/shimmeringbee/callbacks v0.0.0-20210228205504-eae70ee401f3 // indirect
-	github.com/shimmeringbee/da v0.0.0-20210228215143-9d48e6b053d2
+	github.com/shimmeringbee/da v0.0.0-20210309132736-76764b633456
 	github.com/shimmeringbee/logwrap v0.0.0-20210228205504-ec4498cd3a41
 	github.com/shimmeringbee/unpi v0.0.0-20210228205505-862f12969c1f // indirect
 	github.com/shimmeringbee/zcl v0.0.0-20210228205506-7c69558adab2 // indirect

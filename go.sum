@@ -40,6 +40,8 @@ github.com/shimmeringbee/da v0.0.0-20210228214324-4bbaa2344afb h1:9GvLrlnbdBw6Ca
 github.com/shimmeringbee/da v0.0.0-20210228214324-4bbaa2344afb/go.mod h1:6Oji+jlg9NfJrlAcsGduhcQVffH7v57IRHguPF1JmgA=
 github.com/shimmeringbee/da v0.0.0-20210228215143-9d48e6b053d2 h1:wAsweQv/jQQRGd72nft297DX6xSGUX6GlSEKubGObBs=
 github.com/shimmeringbee/da v0.0.0-20210228215143-9d48e6b053d2/go.mod h1:6Oji+jlg9NfJrlAcsGduhcQVffH7v57IRHguPF1JmgA=
+github.com/shimmeringbee/da v0.0.0-20210309132736-76764b633456 h1:1NyggTmczdPhk0hUKXD5gpQ+i+TPUPUy7nAItT8ulwc=
+github.com/shimmeringbee/da v0.0.0-20210309132736-76764b633456/go.mod h1:6Oji+jlg9NfJrlAcsGduhcQVffH7v57IRHguPF1JmgA=
 github.com/shimmeringbee/logwrap v0.0.0-20201104114416-23aeb26f66f1 h1:HWCH7L4EyiipHROSw0iyPG0Nv9YUZHkYBGjo3BHCnko=
 github.com/shimmeringbee/logwrap v0.0.0-20201104114416-23aeb26f66f1/go.mod h1:NBAcZCUl6aFOGnWTs8m67EUAmWFZXRhoRQf5nknY8W0=
 github.com/shimmeringbee/logwrap v0.0.0-20210228205504-ec4498cd3a41 h1:ZyQT0LgUA8s7UyMRvi444yROU4TXFxvz3XIqpIvlgbs=
