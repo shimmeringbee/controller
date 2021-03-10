@@ -9,6 +9,7 @@ import (
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
+	"github.com/shimmeringbee/da/capabilities"
 	"github.com/shimmeringbee/logwrap"
 	"time"
 )
@@ -121,9 +122,47 @@ func (i *Interface) handleEvents(ch chan interface{}) {
 	for {
 		select {
 		case event := <-ch:
-			_ = event
+			i.serviceUpdateOnEvent(event)
 		case <-i.stop:
 			return
 		}
+	}
+}
+
+const MaximumServiceUpdateTime = 1 * time.Second
+
+func (i *Interface) serviceUpdateOnEvent(e interface{}) {
+	ctx, cancel := context.WithTimeout(context.Background(), MaximumServiceUpdateTime)
+	defer cancel()
+
+	switch event := e.(type) {
+	case capabilities.AlarmSensorUpdate:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.AlarmSensorFlag)
+	case capabilities.AlarmWarningDeviceUpdate:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.AlarmWarningDeviceFlag)
+	case capabilities.ColorStatusUpdate:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.ColorFlag)
+	case capabilities.DeviceDiscoveryEnabled:
+		i.publishDeviceCapability(ctx, event.Gateway.Self(), capabilities.DeviceDiscoveryFlag)
+	case capabilities.DeviceDiscoveryDisabled:
+		i.publishDeviceCapability(ctx, event.Gateway.Self(), capabilities.DeviceDiscoveryFlag)
+	case capabilities.EnumerateDeviceStart:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.EnumerateDeviceFlag)
+	case capabilities.EnumerateDeviceFailure:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.EnumerateDeviceFlag)
+	case capabilities.EnumerateDeviceSuccess:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.EnumerateDeviceFlag)
+	case capabilities.LevelStatusUpdate:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.LevelFlag)
+	case capabilities.OnOffState:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.OnOffFlag)
+	case capabilities.PowerStatusUpdate:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.PowerSupplyFlag)
+	case capabilities.PressureSensorState:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.PressureSensorFlag)
+	case capabilities.RelativeHumiditySensorState:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.RelativeHumiditySensorFlag)
+	case capabilities.TemperatureSensorState:
+		i.publishDeviceCapability(ctx, event.Device, capabilities.TemperatureSensorFlag)
 	}
 }
