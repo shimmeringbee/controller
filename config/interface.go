@@ -50,8 +50,9 @@ type MQTTInterfaceConfig struct {
 	QOS         byte
 	TopicPrefix string
 
-	PublishStateOnConnect bool
-	PublishSummaryState   bool
+	PublishStateOnConnect  bool
+	PublishAggregatedState bool
+	PublishIndividualState bool
 }
 
 type MQTTTLS struct {

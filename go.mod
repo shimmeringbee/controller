@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/creack/goselect v0.1.2 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.3.2
 	github.com/gorilla/mux v1.8.0
 	github.com/peterbourgon/ff/v3 v3.0.0
