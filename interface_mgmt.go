@@ -186,7 +186,7 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metad
 		clientOptions.Servers = []*url2.URL{url}
 	}
 
-	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, OutputStack: stack, Logger: l, PublishStateOnConnect: cfg.PublishStateOnConnect, PublishSummaryState: cfg.PublishSummaryState}
+	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, OutputStack: stack, Logger: l, Publisher: mqtt.EmptyPublisher, PublishStateOnConnect: cfg.PublishStateOnConnect, PublishIndividualState: cfg.PublishIndividualState, PublishAggregatedState: cfg.PublishAggregatedState}
 
 	lastWillTopic := prefixTopic(cfg.TopicPrefix, "controller/online")
 

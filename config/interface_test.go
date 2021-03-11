@@ -69,7 +69,8 @@ func TestParseInterface(t *testing.T) {
     "TopicPrefix": "home/controller1",
 
 	"PublishStateOnConnect": true,
-    "PublishSummaryState": true
+    "PublishAggregatedState": true,
+    "PublishIndividualState": true
   }
 }`)
 			gw := InterfaceConfig{}
@@ -98,7 +99,8 @@ func TestParseInterface(t *testing.T) {
 			assert.Equal(t, "home/controller1", mqttInt.TopicPrefix)
 
 			assert.True(t, mqttInt.PublishStateOnConnect)
-			assert.True(t, mqttInt.PublishSummaryState)
+			assert.True(t, mqttInt.PublishAggregatedState)
+			assert.True(t, mqttInt.PublishIndividualState)
 		})
 	})
 }
