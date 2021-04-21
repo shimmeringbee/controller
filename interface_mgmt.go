@@ -196,7 +196,7 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metad
 
 		l.LogInfo(context.Background(), "MQTT client successfully connected.", logwrap.Datum("clientId", clientId), logwrap.Datum("server", cfg.Server))
 
-		subTopic := prefixTopic(cfg.TopicPrefix, "+")
+		subTopic := prefixTopic(cfg.TopicPrefix, "#")
 		subscribeToken := client.Subscribe(subTopic, 0, func(client pahomqtt.Client, message pahomqtt.Message) {
 			ctx, cancel := context.WithTimeout(context.Background(), DefaultMQTTEventDuration)
 			defer cancel()
