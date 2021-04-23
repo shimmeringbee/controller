@@ -531,6 +531,8 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 func TestDeviceOrganiser_persistZones(t *testing.T) {
 	t.Run("saves and reloads zones successfully", func(t *testing.T) {
 		file, err := ioutil.TempFile(os.TempDir(), "shimmeringbeecontrollertest")
+		file.Close()
+
 		assert.NoError(t, err)
 		defer os.Remove(file.Name())
 
@@ -562,6 +564,8 @@ func TestDeviceOrganiser_persistZones(t *testing.T) {
 func TestDeviceOrganiser_persistDevices(t *testing.T) {
 	t.Run("saves and reloads devices successfully", func(t *testing.T) {
 		file, err := ioutil.TempFile(os.TempDir(), "shimmeringbeecontrollertest")
+		file.Close()
+
 		assert.NoError(t, err)
 		defer os.Remove(file.Name())
 

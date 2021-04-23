@@ -11,10 +11,23 @@ import (
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"github.com/shimmeringbee/logwrap"
+	"strings"
 	"time"
 )
 
 type Publisher func(ctx context.Context, topic string, payload []byte) error
+
+type mqttError string
+
+func (m mqttError) Error() string {
+	return string(m)
+}
+
+const DefaultMqttOutputLayer string = "mqtt"
+
+const UnknownTopic = mqttError("unknown topic")
+const UnknownDevice = mqttError("unknown device")
+const UnknownOutputLayer = mqttError("output layer requested could not be found")
 
 type Interface struct {
 	Publisher Publisher
@@ -24,6 +37,7 @@ type Interface struct {
 	GatewayMux        gateway.Mapper
 	GatewaySubscriber gateway.Subscriber
 	OutputStack       layers.OutputStack
+	DeviceInvoker     exporter.Invoker
 
 	deviceExporter exporter.DeviceExporter
 	Logger         logwrap.Logger
@@ -34,7 +48,58 @@ type Interface struct {
 }
 
 func (i *Interface) IncomingMessage(ctx context.Context, topic string, payload []byte) error {
-	return nil
+	topicParts := strings.Split(topic, "/")
+
+	if len(topicParts) > 0 {
+		switch topicParts[0] {
+		case "devices":
+			return i.IncomingMessageDevices(ctx, topicParts[1:], payload)
+		}
+	}
+
+	return fmt.Errorf("%w: %s", UnknownTopic, topic)
+}
+
+func (i *Interface) IncomingMessageDevices(ctx context.Context, topic []string, payload []byte) error {
+	if len(topic) > 0 {
+		d, ok := i.GatewayMux.Device(topic[0])
+
+		if ok {
+			return i.IncomingMessageDevicesWith(ctx, topic[1:], payload, d)
+		}
+	}
+
+	return fmt.Errorf("%w: %s", UnknownDevice, topic)
+}
+
+func (i *Interface) IncomingMessageDevicesWith(ctx context.Context, topic []string, payload []byte, d da.Device) error {
+	if len(topic) > 0 {
+		switch topic[0] {
+		case "capabilities":
+			return i.IncomingMessageDevicesWithCapabilities(ctx, topic[1:], payload, d)
+		}
+	}
+
+	return fmt.Errorf("%w: %s", UnknownTopic, topic)
+}
+
+func (i *Interface) IncomingMessageDevicesWithCapabilities(ctx context.Context, topic []string, payload []byte, d da.Device) error {
+	if len(topic) >= 3 && topic[2] == "invoke" {
+		o := i.OutputStack.Lookup(DefaultMqttOutputLayer)
+		if o == nil {
+			return fmt.Errorf("%w: %s", UnknownOutputLayer, DefaultMqttOutputLayer)
+		}
+
+		r := layers.OneShot
+
+		if _, err := i.DeviceInvoker(ctx, o, r, d, topic[0], topic[1], payload); err != nil {
+			return fmt.Errorf("unable to invoke action on device: %w", err)
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("%w: %s", UnknownTopic, topic)
 }
 
 func EmptyPublisher(ctx context.Context, topic string, payload []byte) error {

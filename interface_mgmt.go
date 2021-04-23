@@ -12,6 +12,7 @@ import (
 	gorillamux "github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/config"
 	"github.com/shimmeringbee/controller/gateway"
+	"github.com/shimmeringbee/controller/interface/exporter"
 	"github.com/shimmeringbee/controller/interface/http/swagger"
 	"github.com/shimmeringbee/controller/interface/http/v1"
 	"github.com/shimmeringbee/controller/interface/mqtt"
@@ -168,6 +169,10 @@ func awaitToken(ctx context.Context, token pahomqtt.Token) error {
 	}
 }
 
+type errorReply struct {
+	Error error `json:"error"`
+}
+
 func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	clientId, err := randomClientID()
 	if err != nil {
@@ -186,25 +191,25 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metad
 		clientOptions.Servers = []*url2.URL{url}
 	}
 
-	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, OutputStack: stack, Logger: l, Publisher: mqtt.EmptyPublisher, PublishStateOnConnect: cfg.PublishStateOnConnect, PublishIndividualState: cfg.PublishIndividualState, PublishAggregatedState: cfg.PublishAggregatedState}
+	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, DeviceInvoker: exporter.InvokeDeviceAction, OutputStack: stack, Logger: l, Publisher: mqtt.EmptyPublisher, PublishStateOnConnect: cfg.PublishStateOnConnect, PublishIndividualState: cfg.PublishIndividualState, PublishAggregatedState: cfg.PublishAggregatedState}
 
 	lastWillTopic := prefixTopic(cfg.TopicPrefix, "controller/online")
 
 	clientOptions.OnConnect = func(client pahomqtt.Client) {
-		ctx, cancel := context.WithTimeout(context.Background(), DefaultMQTTEventDuration)
-		defer cancel()
-
 		l.LogInfo(context.Background(), "MQTT client successfully connected.", logwrap.Datum("clientId", clientId), logwrap.Datum("server", cfg.Server))
 
-		subTopic := prefixTopic(cfg.TopicPrefix, "#")
+		subTopic := prefixTopic(cfg.TopicPrefix, "devices/+/capabilities/+/+/invoke")
 		subscribeToken := client.Subscribe(subTopic, 0, func(client pahomqtt.Client, message pahomqtt.Message) {
 			ctx, cancel := context.WithTimeout(context.Background(), DefaultMQTTEventDuration)
 			defer cancel()
 
-			if i.IncomingMessage(ctx, stripPrefixTopic(cfg.TopicPrefix, message.Topic()), message.Payload()) != nil {
+			if err := i.IncomingMessage(ctx, stripPrefixTopic(cfg.TopicPrefix, message.Topic()), message.Payload()); err != nil {
 				l.LogError(ctx, "Failed to handle incoming message.", logwrap.Datum("topic", message.Topic()), logwrap.Err(err))
 			}
 		})
+
+		ctx, cancel := context.WithTimeout(context.Background(), DefaultMQTTEventDuration)
+		defer cancel()
 
 		if err := awaitToken(ctx, subscribeToken); err != nil {
 			l.LogError(ctx, "Failed to subscribe to topic in MQTT.", logwrap.Datum("topic", subTopic), logwrap.Err(err))
@@ -329,6 +334,7 @@ func prefixTopic(topicPrefix string, topic string) string {
 
 func stripPrefixTopic(topicPrefix string, topic string) string {
 	if len(topicPrefix) > 0 {
+		topicPrefix = fmt.Sprintf("%s/", topicPrefix)
 		if strings.HasPrefix(topic, topicPrefix) {
 			return topic[len(topicPrefix):]
 		}
