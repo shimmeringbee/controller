@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type Invoker func(ctx context.Context, s layers.OutputStack, o layers.OutputLayer, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error)
+type Invoker func(ctx context.Context, s layers.OutputStack, l string, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error)
 
 type ActionError string
 
@@ -23,7 +23,14 @@ const CapabilityNotSupported = ActionError("capability not available on device")
 const ActionNotSupported = ActionError("action not available on capability")
 const ActionUserError = ActionError("user provided bad data")
 
-func InvokeDeviceAction(ctx context.Context, s layers.OutputStack, o layers.OutputLayer, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error) {
+func InvokeDeviceAction(ctx context.Context, s layers.OutputStack, l string, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error) {
+	l, r, err := resolveOutputLayerAndRetention(l, r, payload)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshal payload: %w", err)
+	}
+
+	o := s.Lookup(l)
+
 	for _, capFlag := range dad.Capabilities() {
 		uncastCap := o.Capability(r, capFlag, dad)
 
@@ -37,6 +44,43 @@ func InvokeDeviceAction(ctx context.Context, s layers.OutputStack, o layers.Outp
 	}
 
 	return nil, CapabilityNotSupported
+}
+
+type OutputLayerMetadata struct {
+	Layer     string `json:"layer"`
+	Retention string `json:"retention"`
+}
+
+type ControlMetadata struct {
+	OutputLayer OutputLayerMetadata `json:"output"`
+}
+
+type MetadataPayload struct {
+	Control ControlMetadata `json:"control"`
+}
+
+func resolveOutputLayerAndRetention(l string, r layers.RetentionLevel, payload []byte) (string, layers.RetentionLevel, error) {
+	if payload == nil || len(payload) == 0 {
+		return l, r, nil
+	}
+
+	var metadata MetadataPayload
+	if err := json.Unmarshal(payload, &metadata); err != nil {
+		return l, r, fmt.Errorf("failed to unmarshal payload: %w", err)
+	}
+
+	if metadata.Control.OutputLayer.Layer != "nil" {
+		l = metadata.Control.OutputLayer.Layer
+	}
+
+	switch metadata.Control.OutputLayer.Retention {
+	case "oneshot":
+		r = layers.OneShot
+	case "maintain":
+		r = layers.Maintain
+	}
+
+	return l, r, nil
 }
 
 func doDeviceCapabilityAction(ctx context.Context, d da.Device, c interface{}, a string, b []byte) (interface{}, error) {
