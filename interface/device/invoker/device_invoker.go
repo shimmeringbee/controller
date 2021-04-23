@@ -69,7 +69,7 @@ func resolveOutputLayerAndRetention(l string, r layers.RetentionLevel, payload [
 		return l, r, fmt.Errorf("failed to unmarshal payload: %w", err)
 	}
 
-	if metadata.Control.OutputLayer.Layer != "nil" {
+	if metadata.Control.OutputLayer.Layer != "" {
 		l = metadata.Control.OutputLayer.Layer
 	}
 
