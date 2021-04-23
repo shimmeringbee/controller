@@ -153,7 +153,7 @@ func saveZDAState(gw *zda.ZigbeeGateway, file string) error {
 			return fmt.Errorf("failed to save zda state, no content in data")
 		}
 
-		if err := safeWriteFile(file, data, DefaultFilePermissions); err != nil {
+		if err := config.SafeWriteFile(file, data, DefaultFilePermissions); err != nil {
 			return fmt.Errorf("failed to save zda state: %w", err)
 		}
 	}
@@ -276,7 +276,7 @@ func saveZStackNodeCache(cache *zstack.NodeTable, file string) error {
 			return fmt.Errorf("failed to save zstack node cache, no content in data")
 		}
 
-		if err := safeWriteFile(file, data, DefaultFilePermissions); err != nil {
+		if err := config.SafeWriteFile(file, data, DefaultFilePermissions); err != nil {
 			return fmt.Errorf("failed to save zstack node cache: %w", err)
 		}
 	}

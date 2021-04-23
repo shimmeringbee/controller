@@ -58,7 +58,7 @@ func TestDeviceExporter_ExportDevice(t *testing.T) {
 			Gateway: "gw",
 		}
 
-		mgm := gateway.MockMapper{}
+		mgm := gateway.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgm.On("GatewayName", mock.Anything).Return("gw", true)

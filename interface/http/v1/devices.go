@@ -14,16 +14,16 @@ import (
 	"net/http"
 )
 
+const DefaultHttpOutputLayer string = "http"
+
 type deviceExporter interface {
 	ExportDevice(context.Context, da.Device) exporter.ExportedDevice
 }
 
-type deviceAction func(context.Context, da.Device, interface{}, string, []byte) (interface{}, error)
-
 type deviceController struct {
 	gatewayMapper   gw.Mapper
 	deviceExporter  deviceExporter
-	deviceAction    deviceAction
+	deviceInvoker   exporter.Invoker
 	deviceOrganiser *metadata.DeviceOrganiser
 	stack           layers.OutputStack
 }
@@ -114,4 +114,83 @@ func (d *deviceController) updateDevice(w http.ResponseWriter, r *http.Request) 
 	}
 
 	http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
+}
+
+func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	id, ok := params["identifier"]
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	capabilityName, ok := params["name"]
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	capabilityAction, ok := params["action"]
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	daDevice, found := d.gatewayMapper.Device(id)
+	if !found {
+		http.NotFound(w, r)
+		return
+	}
+
+	layer := r.URL.Query().Get("layer")
+	if layer == "" {
+		layer = DefaultHttpOutputLayer
+	}
+
+	outputLayer := d.stack.Lookup(layer)
+	if outputLayer == nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	retention := layers.OneShot
+	if r.URL.Query().Get("retention") == "maintain" {
+		retention = layers.Maintain
+	}
+
+	var body []byte
+	var err error
+
+	if r.Body != nil {
+		body, err = ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		if r.Body.Close() != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if data, err := d.deviceInvoker(r.Context(), outputLayer, retention, daDevice, capabilityName, capabilityAction, body); err != nil {
+		if errors.Is(err, exporter.ActionNotSupported) {
+			http.NotFound(w, r)
+		} else if errors.Is(err, exporter.ActionUserError) {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		} else if errors.Is(err, exporter.CapabilityNotSupported) {
+			http.NotFound(w, r)
+		} else {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+	} else {
+		if jsonData, err := json.Marshal(data); err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			w.Write(jsonData)
+		}
+	}
 }

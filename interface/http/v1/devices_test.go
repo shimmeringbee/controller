@@ -2,14 +2,17 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/interface/exporter"
+	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,7 +29,7 @@ func (s SimpleIdentifier) String() string {
 
 func Test_deviceController_listDevices(t *testing.T) {
 	t.Run("returns a list of devices across multiple gateways", func(t *testing.T) {
-		mgm := gateway.MockMapper{}
+		mgm := gateway.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -115,7 +118,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 func Test_deviceController_getDevice(t *testing.T) {
 	t.Run("returns a device if present", func(t *testing.T) {
-		mgm := gateway.MockMapper{}
+		mgm := gateway.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -170,7 +173,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 	})
 
 	t.Run("returns a 404 if device is not present", func(t *testing.T) {
-		mgm := gateway.MockMapper{}
+		mgm := gateway.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
@@ -215,5 +218,317 @@ func Test_deviceController_updateDevice(t *testing.T) {
 		d, found := do.Device("one")
 		assert.True(t, found)
 		assert.Equal(t, "ExportedDevice", d.Name)
+	})
+}
+
+func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
+	t.Run("returns a 404 if device is not present", func(t *testing.T) {
+		mgm := gateway.MockMux{}
+		defer mgm.AssertExpectations(t)
+
+		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
+
+		controller := deviceController{gatewayMapper: &mgm}
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("returns a 404 if device does not support capability", func(t *testing.T) {
+		mgm := gateway.MockMux{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mocks.Gateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		device := da.BaseDevice{
+			DeviceCapabilities: []da.Capability{},
+			DeviceGateway:      &mgwOne,
+		}
+
+		mgm.On("Device", "one").Return(device, true)
+
+		mda := exporter.MockDeviceInvoker{}
+		defer mda.AssertExpectations(t)
+
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(nil)).Return(nil, exporter.CapabilityNotSupported)
+
+		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("returns a 404 if action is not recognised on capability", func(t *testing.T) {
+		mgm := gateway.MockMux{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mocks.Gateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		capOne := da.Capability(1)
+
+		device := da.BaseDevice{
+			DeviceCapabilities: []da.Capability{capOne},
+			DeviceGateway:      &mgwOne,
+		}
+		mgm.On("Device", "one").Return(device, true)
+
+		mda := exporter.MockDeviceInvoker{}
+		defer mda.AssertExpectations(t)
+
+		bodyText := "{}"
+
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return(nil, exporter.ActionNotSupported)
+
+		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
+
+		body := strings.NewReader(bodyText)
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusNotFound, rr.Code)
+	})
+
+	t.Run("returns a 500 if action causes an error", func(t *testing.T) {
+		mgm := gateway.MockMux{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mocks.Gateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		capOne := da.Capability(1)
+
+		device := da.BaseDevice{
+			DeviceCapabilities: []da.Capability{capOne},
+			DeviceGateway:      &mgwOne,
+		}
+		mgm.On("Device", "one").Return(device, true)
+
+		mda := exporter.MockDeviceInvoker{}
+		defer mda.AssertExpectations(t)
+
+		bodyText := "{}"
+
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("unknown error"))
+
+		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
+
+		body := strings.NewReader(bodyText)
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	})
+
+	t.Run("returns a 400 if user provides invalid data", func(t *testing.T) {
+		mgm := gateway.MockMux{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mocks.Gateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		capOne := da.Capability(1)
+
+		device := da.BaseDevice{
+			DeviceCapabilities: []da.Capability{capOne},
+			DeviceGateway:      &mgwOne,
+		}
+		mgm.On("Device", "one").Return(device, true)
+
+		mda := exporter.MockDeviceInvoker{}
+		defer mda.AssertExpectations(t)
+
+		bodyText := "{}"
+
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("%w: unknown error", exporter.ActionUserError))
+
+		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
+
+		body := strings.NewReader(bodyText)
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("returns a 400 if the layer does not exist", func(t *testing.T) {
+		mgm := gateway.MockMux{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mocks.Gateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		mbc := mocks.BasicCapability{}
+		defer mbc.AssertExpectations(t)
+
+		capOne := da.Capability(1)
+
+		device := da.BaseDevice{
+			DeviceCapabilities: []da.Capability{capOne},
+			DeviceGateway:      &mgwOne,
+		}
+		mgm.On("Device", "one").Return(device, true)
+
+		mda := exporter.MockDeviceInvoker{}
+		defer mda.AssertExpectations(t)
+
+		bodyText := "{}"
+
+		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.NoLayersStack{}}
+
+		body := strings.NewReader(bodyText)
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusBadRequest, rr.Code)
+	})
+
+	t.Run("returns a 200 with the body of the action", func(t *testing.T) {
+		mgm := gateway.MockMux{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := mocks.Gateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		capOne := da.Capability(1)
+
+		device := da.BaseDevice{
+			DeviceCapabilities: []da.Capability{capOne},
+			DeviceGateway:      &mgwOne,
+		}
+		mgm.On("Device", "one").Return(device, true)
+
+		mda := exporter.MockDeviceInvoker{}
+		defer mda.AssertExpectations(t)
+
+		bodyText := "{}"
+
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return(struct{}{}, nil)
+
+		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
+
+		body := strings.NewReader(bodyText)
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		bodyContent, _ := ioutil.ReadAll(rr.Body)
+		assert.Equal(t, "{}", string(bodyContent))
+	})
+
+	t.Run("returns a 200 with the body of the action, with custom layer and retention set", func(t *testing.T) {
+		mgm := &gateway.MockMux{}
+		defer mgm.AssertExpectations(t)
+
+		mgwOne := &mocks.Gateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		capOne := da.Capability(1)
+
+		device := da.BaseDevice{
+			DeviceCapabilities: []da.Capability{capOne},
+			DeviceGateway:      mgwOne,
+		}
+		mgm.On("Device", "one").Return(device, true)
+
+		mda := &exporter.MockDeviceInvoker{}
+		defer mda.AssertExpectations(t)
+
+		bodyText := "{}"
+
+		mol := &layers.MockOutputLayer{}
+		defer mol.AssertExpectations(t)
+
+		mos := &layers.MockOutputStack{}
+		defer mos.AssertExpectations(t)
+
+		mos.On("Lookup", "test").Return(mol)
+
+		mda.On("InvokeDevice", mock.Anything, mol, layers.Maintain, device, "name", "action", []byte(bodyText)).Return(struct{}{}, nil)
+
+		controller := deviceController{gatewayMapper: mgm, deviceInvoker: mda.InvokeDevice, stack: mos}
+
+		body := strings.NewReader(bodyText)
+
+		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action?layer=test&retention=maintain", body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		rr := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
+		router.ServeHTTP(rr, req)
+
+		assert.Equal(t, http.StatusOK, rr.Code)
+		bodyContent, _ := ioutil.ReadAll(rr.Body)
+		assert.Equal(t, "{}", string(bodyContent))
 	})
 }

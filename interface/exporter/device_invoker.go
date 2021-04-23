@@ -1,19 +1,17 @@
-package v1
+package exporter
 
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
-	daColor "github.com/shimmeringbee/da/capabilities/color"
-	"io/ioutil"
-	"net/http"
+	color2 "github.com/shimmeringbee/da/capabilities/color"
 	"time"
 )
+
+type Invoker func(ctx context.Context, o layers.OutputLayer, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error)
 
 type ActionError string
 
@@ -21,93 +19,24 @@ func (e ActionError) Error() string {
 	return string(e)
 }
 
+const CapabilityNotSupported = ActionError("capability not available on device")
 const ActionNotSupported = ActionError("action not available on capability")
 const ActionUserError = ActionError("user provided bad data")
 
-const DefaultHttpOutputLayer string = "http"
-
-func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-
-	id, ok := params["identifier"]
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	capabilityName, ok := params["name"]
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	capabilityAction, ok := params["action"]
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
-
-	daDevice, found := d.gatewayMapper.Device(id)
-	if !found {
-		http.NotFound(w, r)
-		return
-	}
-
-	layer := r.URL.Query().Get("layer")
-	if layer == "" {
-		layer = DefaultHttpOutputLayer
-	}
-
-	outputLayer := d.stack.Lookup(layer)
-	if outputLayer == nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
-	retention := layers.OneShot
-	if r.URL.Query().Get("retention") == "maintain" {
-		retention = layers.Maintain
-	}
-
-	for _, capFlag := range daDevice.Capabilities() {
-		uncastCap := outputLayer.Capability(retention, capFlag, daDevice)
+func InvokeDeviceAction(ctx context.Context, o layers.OutputLayer, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error) {
+	for _, capFlag := range dad.Capabilities() {
+		uncastCap := o.Capability(r, capFlag, dad)
 
 		if uncastCap != nil {
 			if castCap, ok := uncastCap.(da.BasicCapability); ok {
 				if castCap.Name() == capabilityName {
-					body, err := ioutil.ReadAll(r.Body)
-					if err != nil {
-						http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-						return
-					}
-
-					if data, err := d.deviceAction(r.Context(), daDevice, uncastCap, capabilityAction, body); err != nil {
-						if errors.Is(err, ActionNotSupported) {
-							http.NotFound(w, r)
-							return
-						} else if errors.Is(err, ActionUserError) {
-							http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-							return
-						} else {
-							http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-							return
-						}
-					} else {
-						if jsonData, err := json.Marshal(data); err != nil {
-							http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-							return
-						} else {
-							w.WriteHeader(http.StatusOK)
-							w.Write(jsonData)
-							return
-						}
-					}
+					return doDeviceCapabilityAction(ctx, dad, uncastCap, actionName, payload)
 				}
 			}
 		}
 	}
 
-	http.NotFound(w, r)
+	return nil, CapabilityNotSupported
 }
 
 func doDeviceCapabilityAction(ctx context.Context, d da.Device, c interface{}, a string, b []byte) (interface{}, error) {
@@ -304,22 +233,22 @@ func doColor(ctx context.Context, d da.Device, c capabilities.Color, a string, b
 			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, err.Error())
 		}
 
-		var color daColor.ConvertibleColor
+		var color color2.ConvertibleColor
 
 		if input.XYY != nil {
-			color = daColor.XYColor{
+			color = color2.XYColor{
 				X:  input.XYY.X,
 				Y:  input.XYY.Y,
 				Y2: input.XYY.Y2,
 			}
 		} else if input.HSV != nil {
-			color = daColor.HSVColor{
+			color = color2.HSVColor{
 				Hue:   input.HSV.Hue,
 				Sat:   input.HSV.Saturation,
 				Value: input.HSV.Value,
 			}
 		} else if input.RGB != nil {
-			color = daColor.SRGBColor{
+			color = color2.SRGBColor{
 				R: input.RGB.R,
 				G: input.RGB.G,
 				B: input.RGB.B,

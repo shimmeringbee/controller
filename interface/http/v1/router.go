@@ -25,7 +25,7 @@ func ConstructRouter(mapper gateway.Mapper, deviceOrganiser *metadata.DeviceOrga
 	dc := deviceController{
 		gatewayMapper:   mapper,
 		deviceExporter:  &deviceConverter,
-		deviceAction:    doDeviceCapabilityAction,
+		deviceInvoker:   exporter.InvokeDeviceAction,
 		deviceOrganiser: deviceOrganiser,
 		stack:           stack,
 	}

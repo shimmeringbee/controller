@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func safeWriteFile(name string, data []byte, perm os.FileMode) error {
+func SafeWriteFile(name string, data []byte, perm os.FileMode) error {
 	ut := time.Now().UnixNano() / int64(time.Millisecond)
 	baseName := fmt.Sprintf("%s-%d", name, ut)
 	newName := fmt.Sprintf("%s-new", baseName)

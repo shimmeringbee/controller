@@ -3,6 +3,7 @@ package metadata
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/shimmeringbee/controller/config"
 	"io/ioutil"
 	"os"
 	"sync"
@@ -438,7 +439,7 @@ func SaveZones(fileLocation string, do *DeviceOrganiser) error {
 		return err
 	}
 
-	return ioutil.WriteFile(fileLocation, data, DefaultFilePermissions)
+	return config.SafeWriteFile(fileLocation, data, DefaultFilePermissions)
 }
 
 func recurseSaveZones(do *DeviceOrganiser, id int, saved *SavedZones) {
@@ -540,5 +541,5 @@ func SaveDevices(fileLocation string, do *DeviceOrganiser) error {
 		return err
 	}
 
-	return ioutil.WriteFile(fileLocation, data, DefaultFilePermissions)
+	return config.SafeWriteFile(fileLocation, data, DefaultFilePermissions)
 }

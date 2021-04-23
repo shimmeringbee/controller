@@ -16,7 +16,7 @@ import (
 
 func Test_gatewayController_listGateways(t *testing.T) {
 	t.Run("returns a list of gateways", func(t *testing.T) {
-		mgm := gateway.MockMapper{}
+		mgm := gateway.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -82,7 +82,7 @@ func Test_gatewayController_listGateways(t *testing.T) {
 
 func Test_gatewayController_getGateway(t *testing.T) {
 	t.Run("returns a 404 if ExportedGateway is not present", func(t *testing.T) {
-		mgm := gateway.MockMapper{}
+		mgm := gateway.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -107,7 +107,7 @@ func Test_gatewayController_getGateway(t *testing.T) {
 	})
 
 	t.Run("returns a ExportedGateway if present", func(t *testing.T) {
-		mgm := gateway.MockMapper{}
+		mgm := gateway.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -157,7 +157,7 @@ func Test_gatewayController_getGateway(t *testing.T) {
 
 func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 	t.Run("returns 404, not found when ExportedGateway does not exist", func(t *testing.T) {
-		mgm := gateway.MockMapper{}
+		mgm := gateway.MockMux{}
 		defer mgm.AssertExpectations(t)
 		mgm.On("Gateways").Return(map[string]da.Gateway{})
 
@@ -178,7 +178,7 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 	})
 
 	t.Run("returns list of devices found on ExportedGateway", func(t *testing.T) {
-		mgm := gateway.MockMapper{}
+		mgm := gateway.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
