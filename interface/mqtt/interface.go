@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/exporter"
+	"github.com/shimmeringbee/controller/interface/device/exporter"
+	"github.com/shimmeringbee/controller/interface/device/invoker"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
@@ -37,7 +38,7 @@ type Interface struct {
 	GatewayMux        gateway.Mapper
 	GatewaySubscriber gateway.Subscriber
 	OutputStack       layers.OutputStack
-	DeviceInvoker     exporter.Invoker
+	DeviceInvoker     invoker.Invoker
 
 	deviceExporter exporter.DeviceExporter
 	Logger         logwrap.Logger

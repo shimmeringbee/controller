@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/exporter"
+	"github.com/shimmeringbee/controller/interface/device/invoker"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
@@ -139,7 +139,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 		d := da.BaseDevice{}
 		mgw.On("Device", "devId").Return(d, true)
 
-		mdi := exporter.MockDeviceInvoker{}
+		mdi := invoker.MockDeviceInvoker{}
 		defer mdi.AssertExpectations(t)
 
 		mos := layers.MockOutputStack{}
@@ -168,7 +168,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 		d := da.BaseDevice{}
 		mgw.On("Device", "devId").Return(d, true)
 
-		mdi := exporter.MockDeviceInvoker{}
+		mdi := invoker.MockDeviceInvoker{}
 		defer mdi.AssertExpectations(t)
 
 		mos := layers.MockOutputStack{}

@@ -12,7 +12,7 @@ import (
 	gorillamux "github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/config"
 	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/exporter"
+	"github.com/shimmeringbee/controller/interface/device/invoker"
 	"github.com/shimmeringbee/controller/interface/http/swagger"
 	"github.com/shimmeringbee/controller/interface/http/v1"
 	"github.com/shimmeringbee/controller/interface/mqtt"
@@ -191,7 +191,7 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metad
 		clientOptions.Servers = []*url2.URL{url}
 	}
 
-	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, DeviceInvoker: exporter.InvokeDeviceAction, OutputStack: stack, Logger: l, Publisher: mqtt.EmptyPublisher, PublishStateOnConnect: cfg.PublishStateOnConnect, PublishIndividualState: cfg.PublishIndividualState, PublishAggregatedState: cfg.PublishAggregatedState}
+	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, DeviceInvoker: invoker.InvokeDeviceAction, OutputStack: stack, Logger: l, Publisher: mqtt.EmptyPublisher, PublishStateOnConnect: cfg.PublishStateOnConnect, PublishIndividualState: cfg.PublishIndividualState, PublishAggregatedState: cfg.PublishAggregatedState}
 
 	lastWillTopic := prefixTopic(cfg.TopicPrefix, "controller/online")
 
