@@ -86,14 +86,14 @@ func (i *Interface) IncomingMessageDevicesWith(ctx context.Context, topic []stri
 
 func (i *Interface) IncomingMessageDevicesWithCapabilities(ctx context.Context, topic []string, payload []byte, d da.Device) error {
 	if len(topic) >= 3 && topic[2] == "invoke" {
-		o := i.OutputStack.Lookup(DefaultMqttOutputLayer)
-		if o == nil {
+		l := i.OutputStack.Lookup(DefaultMqttOutputLayer)
+		if l == nil {
 			return fmt.Errorf("%w: %s", UnknownOutputLayer, DefaultMqttOutputLayer)
 		}
 
 		r := layers.OneShot
 
-		if _, err := i.DeviceInvoker(ctx, o, r, d, topic[0], topic[1], payload); err != nil {
+		if _, err := i.DeviceInvoker(ctx, i.OutputStack, l, r, d, topic[0], topic[1], payload); err != nil {
 			return fmt.Errorf("unable to invoke action on device: %w", err)
 		}
 

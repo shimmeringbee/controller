@@ -262,7 +262,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		mda := invoker.MockDeviceInvoker{}
 		defer mda.AssertExpectations(t)
 
-		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(nil)).Return(nil, invoker.CapabilityNotSupported)
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(nil)).Return(nil, invoker.CapabilityNotSupported)
 
 		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
 
@@ -300,7 +300,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		bodyText := "{}"
 
-		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return(nil, invoker.ActionNotSupported)
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return(nil, invoker.ActionNotSupported)
 
 		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
 
@@ -340,7 +340,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		bodyText := "{}"
 
-		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("unknown error"))
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("unknown error"))
 
 		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
 
@@ -380,7 +380,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		bodyText := "{}"
 
-		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("%w: unknown error", invoker.ActionUserError))
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("%w: unknown error", invoker.ActionUserError))
 
 		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
 
@@ -461,7 +461,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		bodyText := "{}"
 
-		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return(struct{}{}, nil)
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return(struct{}{}, nil)
 
 		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
 
@@ -511,7 +511,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		mos.On("Lookup", "test").Return(mol)
 
-		mda.On("InvokeDevice", mock.Anything, mol, layers.Maintain, device, "name", "action", []byte(bodyText)).Return(struct{}{}, nil)
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mol, layers.Maintain, device, "name", "action", []byte(bodyText)).Return(struct{}{}, nil)
 
 		controller := deviceController{gatewayMapper: mgm, deviceInvoker: mda.InvokeDevice, stack: mos}
 
