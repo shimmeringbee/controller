@@ -149,12 +149,6 @@ func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *h
 		layer = DefaultHttpOutputLayer
 	}
 
-	outputLayer := d.stack.Lookup(layer)
-	if outputLayer == nil {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-
 	retention := layers.OneShot
 	if r.URL.Query().Get("retention") == "maintain" {
 		retention = layers.Maintain
@@ -176,7 +170,7 @@ func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *h
 		}
 	}
 
-	if data, err := d.deviceInvoker(r.Context(), d.stack, outputLayer, retention, daDevice, capabilityName, capabilityAction, body); err != nil {
+	if data, err := d.deviceInvoker(r.Context(), d.stack, layer, retention, daDevice, capabilityName, capabilityAction, body); err != nil {
 		if errors.Is(err, invoker.ActionNotSupported) {
 			http.NotFound(w, r)
 		} else if errors.Is(err, invoker.ActionUserError) {

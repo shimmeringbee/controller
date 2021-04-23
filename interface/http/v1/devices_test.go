@@ -400,47 +400,6 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, rr.Code)
 	})
 
-	t.Run("returns a 400 if the layer does not exist", func(t *testing.T) {
-		mgm := gateway.MockMux{}
-		defer mgm.AssertExpectations(t)
-
-		mgwOne := mocks.Gateway{}
-		defer mgwOne.AssertExpectations(t)
-
-		mbc := mocks.BasicCapability{}
-		defer mbc.AssertExpectations(t)
-
-		capOne := da.Capability(1)
-
-		device := da.BaseDevice{
-			DeviceCapabilities: []da.Capability{capOne},
-			DeviceGateway:      &mgwOne,
-		}
-		mgm.On("Device", "one").Return(device, true)
-
-		mda := invoker.MockDeviceInvoker{}
-		defer mda.AssertExpectations(t)
-
-		bodyText := "{}"
-
-		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.NoLayersStack{}}
-
-		body := strings.NewReader(bodyText)
-
-		req, err := http.NewRequest("POST", "/devices/one/capabilities/name/action", body)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		rr := httptest.NewRecorder()
-
-		router := mux.NewRouter()
-		router.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", controller.useDeviceCapabilityAction).Methods("POST")
-		router.ServeHTTP(rr, req)
-
-		assert.Equal(t, http.StatusBadRequest, rr.Code)
-	})
-
 	t.Run("returns a 200 with the body of the action", func(t *testing.T) {
 		mgm := gateway.MockMux{}
 		defer mgm.AssertExpectations(t)
@@ -503,15 +462,10 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		bodyText := "{}"
 
-		mol := &layers.MockOutputLayer{}
-		defer mol.AssertExpectations(t)
-
 		mos := &layers.MockOutputStack{}
 		defer mos.AssertExpectations(t)
 
-		mos.On("Lookup", "test").Return(mol)
-
-		mda.On("InvokeDevice", mock.Anything, mock.Anything, mol, layers.Maintain, device, "name", "action", []byte(bodyText)).Return(struct{}{}, nil)
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, "test", layers.Maintain, device, "name", "action", []byte(bodyText)).Return(struct{}{}, nil)
 
 		controller := deviceController{gatewayMapper: mgm, deviceInvoker: mda.InvokeDevice, stack: mos}
 
