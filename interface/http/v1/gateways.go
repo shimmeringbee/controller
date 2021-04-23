@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	gw "github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/exporter"
+	"github.com/shimmeringbee/controller/interface/device/exporter"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
 	"net/http"

@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/exporter"
+	"github.com/shimmeringbee/controller/interface/device/exporter"
+	"github.com/shimmeringbee/controller/interface/device/invoker"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
@@ -258,10 +259,10 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := exporter.MockDeviceInvoker{}
+		mda := invoker.MockDeviceInvoker{}
 		defer mda.AssertExpectations(t)
 
-		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(nil)).Return(nil, exporter.CapabilityNotSupported)
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(nil)).Return(nil, invoker.CapabilityNotSupported)
 
 		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
 
@@ -294,12 +295,12 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := exporter.MockDeviceInvoker{}
+		mda := invoker.MockDeviceInvoker{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
 
-		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return(nil, exporter.ActionNotSupported)
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return(nil, invoker.ActionNotSupported)
 
 		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
 
@@ -334,7 +335,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := exporter.MockDeviceInvoker{}
+		mda := invoker.MockDeviceInvoker{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
@@ -374,12 +375,12 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := exporter.MockDeviceInvoker{}
+		mda := invoker.MockDeviceInvoker{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
 
-		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("%w: unknown error", exporter.ActionUserError))
+		mda.On("InvokeDevice", mock.Anything, mock.Anything, mock.Anything, device, "name", "action", []byte(bodyText)).Return([]byte{}, fmt.Errorf("%w: unknown error", invoker.ActionUserError))
 
 		controller := deviceController{gatewayMapper: &mgm, deviceInvoker: mda.InvokeDevice, stack: layers.PassThruStack{}}
 
@@ -417,7 +418,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := exporter.MockDeviceInvoker{}
+		mda := invoker.MockDeviceInvoker{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
@@ -455,7 +456,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := exporter.MockDeviceInvoker{}
+		mda := invoker.MockDeviceInvoker{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"
@@ -497,7 +498,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		}
 		mgm.On("Device", "one").Return(device, true)
 
-		mda := &exporter.MockDeviceInvoker{}
+		mda := &invoker.MockDeviceInvoker{}
 		defer mda.AssertExpectations(t)
 
 		bodyText := "{}"

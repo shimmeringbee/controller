@@ -6,7 +6,8 @@ import (
 	"errors"
 	"github.com/gorilla/mux"
 	gw "github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/exporter"
+	"github.com/shimmeringbee/controller/interface/device/exporter"
+	"github.com/shimmeringbee/controller/interface/device/invoker"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/da"
@@ -23,7 +24,7 @@ type deviceExporter interface {
 type deviceController struct {
 	gatewayMapper   gw.Mapper
 	deviceExporter  deviceExporter
-	deviceInvoker   exporter.Invoker
+	deviceInvoker   invoker.Invoker
 	deviceOrganiser *metadata.DeviceOrganiser
 	stack           layers.OutputStack
 }
@@ -176,11 +177,11 @@ func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *h
 	}
 
 	if data, err := d.deviceInvoker(r.Context(), outputLayer, retention, daDevice, capabilityName, capabilityAction, body); err != nil {
-		if errors.Is(err, exporter.ActionNotSupported) {
+		if errors.Is(err, invoker.ActionNotSupported) {
 			http.NotFound(w, r)
-		} else if errors.Is(err, exporter.ActionUserError) {
+		} else if errors.Is(err, invoker.ActionUserError) {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		} else if errors.Is(err, exporter.CapabilityNotSupported) {
+		} else if errors.Is(err, invoker.CapabilityNotSupported) {
 			http.NotFound(w, r)
 		} else {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

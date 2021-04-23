@@ -4,7 +4,8 @@ import (
 	"embed"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/exporter"
+	"github.com/shimmeringbee/controller/interface/device/exporter"
+	"github.com/shimmeringbee/controller/interface/device/invoker"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/logwrap"
@@ -25,7 +26,7 @@ func ConstructRouter(mapper gateway.Mapper, deviceOrganiser *metadata.DeviceOrga
 	dc := deviceController{
 		gatewayMapper:   mapper,
 		deviceExporter:  &deviceConverter,
-		deviceInvoker:   exporter.InvokeDeviceAction,
+		deviceInvoker:   invoker.InvokeDeviceAction,
 		deviceOrganiser: deviceOrganiser,
 		stack:           stack,
 	}
