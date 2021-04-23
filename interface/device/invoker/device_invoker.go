@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type Invoker func(ctx context.Context, o layers.OutputLayer, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error)
+type Invoker func(ctx context.Context, s layers.OutputStack, o layers.OutputLayer, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error)
 
 type ActionError string
 
@@ -23,7 +23,7 @@ const CapabilityNotSupported = ActionError("capability not available on device")
 const ActionNotSupported = ActionError("action not available on capability")
 const ActionUserError = ActionError("user provided bad data")
 
-func InvokeDeviceAction(ctx context.Context, o layers.OutputLayer, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error) {
+func InvokeDeviceAction(ctx context.Context, s layers.OutputStack, o layers.OutputLayer, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error) {
 	for _, capFlag := range dad.Capabilities() {
 		uncastCap := o.Capability(r, capFlag, dad)
 

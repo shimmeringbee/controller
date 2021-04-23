@@ -11,7 +11,7 @@ type MockDeviceInvoker struct {
 	mock.Mock
 }
 
-func (m *MockDeviceInvoker) InvokeDevice(ctx context.Context, o layers.OutputLayer, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error) {
-	args := m.Called(ctx, o, r, dad, capabilityName, actionName, payload)
+func (m *MockDeviceInvoker) InvokeDevice(ctx context.Context, s layers.OutputStack, o layers.OutputLayer, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error) {
+	args := m.Called(ctx, s, o, r, dad, capabilityName, actionName, payload)
 	return args.Get(0), args.Error(1)
 }

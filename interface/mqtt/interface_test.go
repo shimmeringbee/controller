@@ -152,7 +152,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 
 		expectedError := errors.New("an error")
 
-		mdi.On("InvokeDevice", mock.Anything, &mol, layers.OneShot, d, "capName", "actionName", []byte(nil)).Return(nil, expectedError)
+		mdi.On("InvokeDevice", mock.Anything, &mos, &mol, layers.OneShot, d, "capName", "actionName", []byte(nil)).Return(nil, expectedError)
 
 		i := Interface{Logger: logwrap.New(discard.Discard()), DeviceInvoker: mdi.InvokeDevice, OutputStack: &mos, GatewayMux: &mgw}
 
@@ -179,7 +179,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 
 		mos.On("Lookup", "mqtt").Return(&mol)
 
-		mdi.On("InvokeDevice", mock.Anything, &mol, layers.OneShot, d, "capName", "actionName", []byte(nil)).Return(nil, nil)
+		mdi.On("InvokeDevice", mock.Anything, &mos, &mol, layers.OneShot, d, "capName", "actionName", []byte(nil)).Return(nil, nil)
 
 		i := Interface{Logger: logwrap.New(discard.Discard()), DeviceInvoker: mdi.InvokeDevice, OutputStack: &mos, GatewayMux: &mgw}
 
