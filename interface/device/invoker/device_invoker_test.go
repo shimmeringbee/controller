@@ -3,6 +3,7 @@ package invoker
 import (
 	"context"
 	"encoding/json"
+	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"github.com/shimmeringbee/da/capabilities/color"
@@ -12,6 +13,74 @@ import (
 	"testing"
 	"time"
 )
+
+func TestInvokeDeviceAction(t *testing.T) {
+	t.Run("a payload with no output layer details uses provided values", func(t *testing.T) {
+		d := da.BaseDevice{DeviceCapabilities: []da.Capability{capabilities.DeviceDiscoveryFlag}}
+		expectedDuration := 10 * time.Minute
+
+		inputBytes, _ := json.Marshal(DeviceDiscoveryEnable{Duration: 600000})
+		capability := "DeviceDiscovery"
+		action := "Enable"
+
+		mockCapability := &mocks.DeviceDiscovery{}
+		defer mockCapability.AssertExpectations(t)
+		mockCapability.On("Enable", mock.Anything, d, expectedDuration).Return(nil)
+		mockCapability.On("Name").Return(capability)
+
+		mos := layers.MockOutputStack{}
+		defer mos.AssertExpectations(t)
+
+		mol := layers.MockOutputLayer{}
+		defer mol.AssertExpectations(t)
+
+		mol.On("Capability", layers.Maintain, capabilities.DeviceDiscoveryFlag, d).Return(mockCapability)
+
+		expectedLayer := "layer"
+
+		mos.On("Lookup", expectedLayer).Return(&mol)
+
+		_, err := InvokeDeviceAction(context.Background(), &mos, expectedLayer, layers.Maintain, d, capability, action, inputBytes)
+		assert.NoError(t, err)
+	})
+
+	t.Run("a payload with overridden output layer details uses new values", func(t *testing.T) {
+		d := da.BaseDevice{DeviceCapabilities: []da.Capability{capabilities.DeviceDiscoveryFlag}}
+		expectedDuration := 0 * time.Minute
+
+		inputBytes := []byte(`{
+  "control": {
+    "output": {
+      "layer": "layer",
+      "retention": "maintain"
+    }
+  }
+}`)
+
+		capability := "DeviceDiscovery"
+		action := "Enable"
+
+		mockCapability := &mocks.DeviceDiscovery{}
+		defer mockCapability.AssertExpectations(t)
+		mockCapability.On("Enable", mock.Anything, d, expectedDuration).Return(nil)
+		mockCapability.On("Name").Return(capability)
+
+		mos := layers.MockOutputStack{}
+		defer mos.AssertExpectations(t)
+
+		mol := layers.MockOutputLayer{}
+		defer mol.AssertExpectations(t)
+
+		mol.On("Capability", layers.Maintain, capabilities.DeviceDiscoveryFlag, d).Return(mockCapability)
+
+		expectedLayer := "layer"
+
+		mos.On("Lookup", expectedLayer).Return(&mol)
+
+		_, err := InvokeDeviceAction(context.Background(), &mos, "unusedLayer", layers.OneShot, d, capability, action, inputBytes)
+		assert.NoError(t, err)
+	})
+}
 
 func Test_doDeviceCapabilityAction_DeviceDiscovery(t *testing.T) {
 	t.Run("Enable invokes the capability", func(t *testing.T) {
