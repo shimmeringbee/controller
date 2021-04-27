@@ -392,13 +392,14 @@ func Test_doDeviceCapabilityAction_DeviceRemoval(t *testing.T) {
 		defer mockCapability.AssertExpectations(t)
 
 		device := da.BaseDevice{}
-		mockCapability.On("Remove", mock.Anything, device).Return(nil)
+		mockCapability.On("Remove", mock.Anything, device, capabilities.Force).Return(nil)
 
+		inputBytes, _ := json.Marshal(RemoveDevice{Force: true})
 		action := "Remove"
 
 		expectedResult := struct{}{}
 
-		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, nil)
+		actualResult, err := doDeviceCapabilityAction(context.Background(), device, mockCapability, action, inputBytes)
 		assert.NoError(t, err)
 
 		assert.Equal(t, expectedResult, actualResult)

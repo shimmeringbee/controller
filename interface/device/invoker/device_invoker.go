@@ -319,10 +319,24 @@ func doColor(ctx context.Context, d da.Device, c capabilities.Color, a string, b
 	return nil, ActionNotSupported
 }
 
+type RemoveDevice struct {
+	Force bool
+}
+
 func doDeviceRemoval(ctx context.Context, d da.Device, c capabilities.DeviceRemoval, a string, b []byte) (interface{}, error) {
 	switch a {
 	case "Remove":
-		return struct{}{}, c.Remove(ctx, d)
+		input := RemoveDevice{}
+		if err := json.Unmarshal(b, &input); err != nil {
+			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, err.Error())
+		}
+
+		rt := capabilities.Request
+		if input.Force {
+			rt = capabilities.Force
+		}
+
+		return struct{}{}, c.Remove(ctx, d, rt)
 	}
 
 	return nil, ActionNotSupported
