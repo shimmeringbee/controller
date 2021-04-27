@@ -24,6 +24,9 @@ const ActionNotSupported = ActionError("action not available on capability")
 const ActionUserError = ActionError("user provided bad data")
 
 func InvokeDeviceAction(ctx context.Context, s layers.OutputStack, l string, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error) {
+	invokeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
 	l, r, err := resolveOutputLayerAndRetention(l, r, payload)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshal payload: %w", err)
@@ -37,7 +40,7 @@ func InvokeDeviceAction(ctx context.Context, s layers.OutputStack, l string, r l
 		if uncastCap != nil {
 			if castCap, ok := uncastCap.(da.BasicCapability); ok {
 				if castCap.Name() == capabilityName {
-					return doDeviceCapabilityAction(ctx, dad, uncastCap, actionName, payload)
+					return doDeviceCapabilityAction(invokeCtx, dad, uncastCap, actionName, payload)
 				}
 			}
 		}

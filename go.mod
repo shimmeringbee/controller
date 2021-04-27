@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/creack/goselect v0.1.2 // indirect
+	github.com/eclipse/paho.mqtt.golang v1.3.3
 	github.com/gorilla/mux v1.8.0
 	github.com/peterbourgon/ff/v3 v3.0.0
 	github.com/shimmeringbee/callbacks v0.0.0-20210228205504-eae70ee401f3 // indirect
@@ -13,9 +14,10 @@ require (
 	github.com/shimmeringbee/zcl v0.0.0-20210228205506-7c69558adab2 // indirect
 	github.com/shimmeringbee/zda v0.0.0-20210425123929-bb007a7f9565
 	github.com/shimmeringbee/zigbee v0.0.0-20210228205504-e2ee01977a3b
-	github.com/shimmeringbee/zstack v0.0.0-20210425173341-2733843357e7
+	github.com/shimmeringbee/zstack v0.0.0-20210425190531-7a774bf63d2a
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.7.5
 	go.bug.st/serial.v1 v0.0.0-20191202182710-24a6610f0541
-	golang.org/x/sys v0.0.0-20210423185535-09eb48e85fd7 // indirect
+	golang.org/x/net v0.0.0-20210423184538-5f58ad60dda6 // indirect
+	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887 // indirect
 )
