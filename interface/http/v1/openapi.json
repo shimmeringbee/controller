@@ -559,7 +559,7 @@
         }
       }
     },
-    "/zones/{zoneId}/devices/{subZoneId}": {
+    "/zones/{zoneId}/subzones/{subZoneId}": {
       "put": {
         "tags": [
           "zones"
