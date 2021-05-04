@@ -89,6 +89,9 @@ func startZDAGateway(cfg config.ZDAConfig, cfgDig string, l logwrap.Logger) (da.
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to load zda rules '%s': %w", cfg.Rules, err)
 		}
+
+		r.PopulateParentage()
+		l.LogInfo(context.Background(), "Loaded ZDA rules.", logwrap.Datum("ruleFile", rulesFile))
 	}
 
 	gw := zda.New(provider, r)
