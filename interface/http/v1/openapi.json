@@ -20,6 +20,10 @@
   ],
   "tags": [
     {
+      "name": "auth",
+      "description": "Access to interface authentication control"
+    },
+    {
       "name": "devices",
       "description": "Access to individual devices connected to the controller"
     },
@@ -33,8 +37,64 @@
     }
   ],
   "paths": {
+    "/auth/type": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Return type of authentication",
+        "description": "Provides details of the type of authentication used by the API, as well as any hypermedia links to proceed with a login process.",
+        "responses": {
+          "200": {
+            "description": "successfully returned authentication type",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/auth/check": {
+      "get": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ],
+        "summary": "Return currently authenticated identity",
+        "description": "Retrieve the authentication state, and if successfully authenticated the current identity.",
+        "responses": {
+          "200": {
+            "description": "successfully returned authenticated state",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
+          }
+        }
+      }
+    },
     "/devices": {
       "get": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "devices"
         ],
@@ -46,12 +106,26 @@
             "content": {
               "application/json": {}
             }
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       }
     },
     "/devices/{deviceId}": {
       "get": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "devices"
         ],
@@ -77,10 +151,24 @@
           },
           "404": {
             "description": "device not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       },
       "patch": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "devices"
         ],
@@ -119,12 +207,26 @@
           },
           "400": {
             "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       }
     },
     "/devices/{deviceId}/capabilities/{capabilityName}/{capabilityAction}": {
       "post": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "devices"
         ],
@@ -206,12 +308,26 @@
           },
           "500": {
             "description": "internal error"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       }
     },
     "/gateways": {
       "get": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "gateways"
         ],
@@ -229,6 +345,14 @@
     },
     "/gateways/{gatewayId}": {
       "get": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "gateways"
         ],
@@ -254,12 +378,26 @@
           },
           "404": {
             "description": "gateway not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       }
     },
     "/gateways/{gatewayId}/devices": {
       "get": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "gateways"
         ],
@@ -285,12 +423,26 @@
           },
           "404": {
             "description": "gateway not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       }
     },
     "/zones": {
       "get": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "zones"
         ],
@@ -321,10 +473,24 @@
             "content": {
               "application/json": {}
             }
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       },
       "post": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "zones"
         ],
@@ -349,12 +515,26 @@
           },
           "400": {
             "description": "bad request"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       }
     },
     "/zones/{zoneId}": {
       "get": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "zones"
         ],
@@ -397,10 +577,24 @@
           },
           "404": {
             "description": "zone not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       },
       "delete": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "zones"
         ],
@@ -429,10 +623,24 @@
           },
           "404": {
             "description": "zone not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       },
       "patch": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "zones"
         ],
@@ -471,12 +679,26 @@
           },
           "404": {
             "description": "zone not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       }
     },
     "/zones/{zoneId}/devices/{deviceId}": {
       "put": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "zones"
         ],
@@ -514,10 +736,24 @@
           },
           "404": {
             "description": "zone/device not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       },
       "delete": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "zones"
         ],
@@ -555,12 +791,26 @@
           },
           "404": {
             "description": "zone/device not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       }
     },
     "/zones/{zoneId}/subzones/{subZoneId}": {
       "put": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "zones"
         ],
@@ -598,10 +848,24 @@
           },
           "404": {
             "description": "zone not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       },
       "delete": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
         "tags": [
           "zones"
         ],
@@ -639,6 +903,12 @@
           },
           "404": {
             "description": "zone not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
           }
         }
       }
@@ -680,6 +950,19 @@
             "example": 2
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Required if JWT authentication type is enabled in interface configuration."
+      },
+      "basicAuth": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "Required if basic authentication type is enabled in interface configuration."
       }
     }
   }

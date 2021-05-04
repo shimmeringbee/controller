@@ -58,6 +58,12 @@ func (a Authenticator) AuthenticationMiddleware(next http.Handler) http.Handler 
 	})
 }
 
+func (a Authenticator) AuthenticationType() interface{} {
+	return auth.AuthenticatorType{
+		Type: "jwt",
+	}
+}
+
 func (a Authenticator) Sign(uid string) (string, error) {
 	id := uuid.New().String()
 

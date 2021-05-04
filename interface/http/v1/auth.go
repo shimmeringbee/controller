@@ -40,3 +40,16 @@ func authenticationCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
+
+func authenticationType(ap auth.AuthenticationProvider) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data, err := json.Marshal(ap.AuthenticationType())
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	}
+}
