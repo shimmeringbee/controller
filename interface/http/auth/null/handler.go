@@ -20,3 +20,9 @@ func (a Authenticator) AuthenticationMiddleware(next http.Handler) http.Handler 
 func (a Authenticator) AuthenticationRouter() http.Handler {
 	return mux.NewRouter()
 }
+
+func (a Authenticator) AuthenticationType() interface{} {
+	return auth.AuthenticatorType{
+		Type: "null",
+	}
+}

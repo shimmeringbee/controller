@@ -65,6 +65,7 @@ func ConstructRouter(mapper gateway.Mapper, deviceOrganiser *metadata.DeviceOrga
 
 	apiRoot := mux.NewRouter()
 	apiRoot.Handle("/openapi.json", http.FileServer(http.FS(openapi))).Methods("GET")
+	apiRoot.Handle("/auth/type", authenticationType(ap)).Methods("GET")
 	apiRoot.Handle("/auth/check", ap.AuthenticationMiddleware(http.HandlerFunc(authenticationCheck))).Methods("GET")
 	apiRoot.PathPrefix("/auth").Handler(ap.AuthenticationRouter())
 	apiRoot.PathPrefix("/").Handler(ap.AuthenticationMiddleware(protected))
