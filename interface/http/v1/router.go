@@ -6,6 +6,7 @@ import (
 	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/interface/device/exporter"
 	"github.com/shimmeringbee/controller/interface/device/invoker"
+	"github.com/shimmeringbee/controller/interface/http/auth"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/metadata"
 	"github.com/shimmeringbee/logwrap"
@@ -15,8 +16,8 @@ import (
 //go:embed openapi.json
 var openapi embed.FS
 
-func ConstructRouter(mapper gateway.Mapper, deviceOrganiser *metadata.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger) http.Handler {
-	r := mux.NewRouter()
+func ConstructRouter(mapper gateway.Mapper, deviceOrganiser *metadata.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger, ap auth.AuthenticationProvider) http.Handler {
+	protected := mux.NewRouter()
 
 	deviceConverter := exporter.DeviceExporter{
 		GatewayMapper:   mapper,
@@ -43,26 +44,30 @@ func ConstructRouter(mapper gateway.Mapper, deviceOrganiser *metadata.DeviceOrga
 		deviceOrganiser: deviceOrganiser,
 	}
 
-	r.HandleFunc("/devices", dc.listDevices).Methods("GET")
-	r.HandleFunc("/devices/{identifier}", dc.getDevice).Methods("GET")
-	r.HandleFunc("/devices/{identifier}", dc.updateDevice).Methods("PATCH")
-	r.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", dc.useDeviceCapabilityAction).Methods("POST")
+	protected.HandleFunc("/devices", dc.listDevices).Methods("GET")
+	protected.HandleFunc("/devices/{identifier}", dc.getDevice).Methods("GET")
+	protected.HandleFunc("/devices/{identifier}", dc.updateDevice).Methods("PATCH")
+	protected.HandleFunc("/devices/{identifier}/capabilities/{name}/{action}", dc.useDeviceCapabilityAction).Methods("POST")
 
-	r.HandleFunc("/gateways", gc.listGateways).Methods("GET")
-	r.HandleFunc("/gateways/{identifier}", gc.getGateway).Methods("GET")
-	r.HandleFunc("/gateways/{identifier}/devices", gc.listDevicesOnGateway).Methods("GET")
+	protected.HandleFunc("/gateways", gc.listGateways).Methods("GET")
+	protected.HandleFunc("/gateways/{identifier}", gc.getGateway).Methods("GET")
+	protected.HandleFunc("/gateways/{identifier}/devices", gc.listDevicesOnGateway).Methods("GET")
 
-	r.HandleFunc("/zones", zc.listZones).Methods("GET")
-	r.HandleFunc("/zones", zc.createZone).Methods("POST")
-	r.HandleFunc("/zones/{identifier}", zc.getZone).Methods("GET")
-	r.HandleFunc("/zones/{identifier}", zc.deleteZone).Methods("DELETE")
-	r.HandleFunc("/zones/{identifier}", zc.updateZone).Methods("PATCH")
-	r.HandleFunc("/zones/{identifier}/devices/{deviceIdentifier}", zc.addDeviceToZone).Methods("PUT")
-	r.HandleFunc("/zones/{identifier}/devices/{deviceIdentifier}", zc.removeDeviceToZone).Methods("DELETE")
-	r.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.addSubzoneToZone).Methods("PUT")
-	r.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.removeSubzoneToZone).Methods("DELETE")
+	protected.HandleFunc("/zones", zc.listZones).Methods("GET")
+	protected.HandleFunc("/zones", zc.createZone).Methods("POST")
+	protected.HandleFunc("/zones/{identifier}", zc.getZone).Methods("GET")
+	protected.HandleFunc("/zones/{identifier}", zc.deleteZone).Methods("DELETE")
+	protected.HandleFunc("/zones/{identifier}", zc.updateZone).Methods("PATCH")
+	protected.HandleFunc("/zones/{identifier}/devices/{deviceIdentifier}", zc.addDeviceToZone).Methods("PUT")
+	protected.HandleFunc("/zones/{identifier}/devices/{deviceIdentifier}", zc.removeDeviceToZone).Methods("DELETE")
+	protected.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.addSubzoneToZone).Methods("PUT")
+	protected.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.removeSubzoneToZone).Methods("DELETE")
 
-	r.Handle("/openapi.json", http.FileServer(http.FS(openapi))).Methods("GET")
+	apiRoot := mux.NewRouter()
+	apiRoot.Handle("/openapi.json", http.FileServer(http.FS(openapi))).Methods("GET")
+	apiRoot.Handle("/auth/check", ap.AuthenticationMiddleware(http.HandlerFunc(authenticationCheck))).Methods("GET")
+	apiRoot.PathPrefix("/auth").Handler(ap.AuthenticationRouter())
+	apiRoot.PathPrefix("/").Handler(ap.AuthenticationMiddleware(protected))
 
-	return r
+	return apiRoot
 }

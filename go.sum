@@ -4,8 +4,12 @@ github.com/creack/goselect v0.1.2/go.mod h1:a/NhLweNvqIYMuxcMOuWY516Cimucms3DglD
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
+github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/eclipse/paho.mqtt.golang v1.3.3 h1:Fh1zsLniMFJByLqKrSB9ZRjkbpU0k1Xne23ZqEE/O08=
 github.com/eclipse/paho.mqtt.golang v1.3.3/go.mod h1:eTzb4gxwwyWpqBUHGQZ4ABAV7+Jgm1PklsYT/eo8Hcc=
+github.com/google/uuid v1.2.0 h1:qJYtXnJRWmpe7m/3XlyhrsLrEURqHRM2kxzoxXqyUDs=
+github.com/google/uuid v1.2.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/gorilla/mux v1.8.0 h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=
 github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
 github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0Ufc=
@@ -38,8 +42,8 @@ github.com/shimmeringbee/unpi v0.0.0-20210228205505-862f12969c1f h1:jZXsUdeA92pX
 github.com/shimmeringbee/unpi v0.0.0-20210228205505-862f12969c1f/go.mod h1:hOrncW6hd26Z18eayp99i7hNKj0aHtUx1SxXT49aEsk=
 github.com/shimmeringbee/zcl v0.0.0-20210228205506-7c69558adab2 h1:bplEkwoYwCwj8r9BWB1ZS03pl2OW6vGoIFQRq1Yrh6A=
 github.com/shimmeringbee/zcl v0.0.0-20210228205506-7c69558adab2/go.mod h1:oy+15b56Rms5RnwY/Ik4NlXSYusoAObOIVjfieLRfjQ=
-github.com/shimmeringbee/zda v0.0.0-20210428202814-97a041dfae3f h1:macdokPkaXUvYuqd3sqxnBJ68v/QZtP+oZduJ3uArjk=
-github.com/shimmeringbee/zda v0.0.0-20210428202814-97a041dfae3f/go.mod h1:N/gA9PkyLlzYYuUubJoSCjlhZEZPWykHfvurBHCe1hA=
+github.com/shimmeringbee/zda v0.0.0-20210428211833-a313157d62bc h1:2e5Z0Anb3U6WSkLjym9wgZijqmbvbmDHdphFebyIwWU=
+github.com/shimmeringbee/zda v0.0.0-20210428211833-a313157d62bc/go.mod h1:N/gA9PkyLlzYYuUubJoSCjlhZEZPWykHfvurBHCe1hA=
 github.com/shimmeringbee/zigbee v0.0.0-20201027194100-4e53cafc0f7a/go.mod h1:GMA6rVpzvUK16cZwi8uW11JUTx8xUGOk5DbkXYWvm/8=
 github.com/shimmeringbee/zigbee v0.0.0-20210427191220-76676a734066 h1:3ClT9MdUGZToPHXmLM+pC5csq5XptJ6thQTQbhjV6Dw=
 github.com/shimmeringbee/zigbee v0.0.0-20210427191220-76676a734066/go.mod h1:GMA6rVpzvUK16cZwi8uW11JUTx8xUGOk5DbkXYWvm/8=

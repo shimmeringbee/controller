@@ -13,6 +13,7 @@ import (
 	"github.com/shimmeringbee/controller/config"
 	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/interface/device/invoker"
+	"github.com/shimmeringbee/controller/interface/http/auth/null"
 	"github.com/shimmeringbee/controller/interface/http/swagger"
 	"github.com/shimmeringbee/controller/interface/http/v1"
 	"github.com/shimmeringbee/controller/interface/mqtt"
@@ -140,7 +141,8 @@ func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *gateway.Mux, o *metad
 	if containsString(cfg.EnabledAPIs, "v1") {
 		l.LogInfo(context.Background(), "Mounting v1 API endpoint on /api/v1.")
 
-		v1Router := v1.ConstructRouter(g, o, stack, l)
+		v1Router := v1.ConstructRouter(g, o, stack, l, null.Authenticator{})
+
 		// Use http.StripPrefix to obscure the real path from the v1 api code, though this will cause issues if we
 		// ever issue redirects from the API.
 		r.PathPrefix("/api/v1").Handler(http.StripPrefix("/api/v1", v1Router))
