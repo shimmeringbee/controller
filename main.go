@@ -26,6 +26,13 @@ func main() {
 
 	l.LogInfo(ctx, "Directory enumeration complete.", lw.Datum("directories", directories))
 
+	newLogger, err := configureLogging(filepath.Join(directories.Config, "logging"), directories.Log, l)
+	if err != nil {
+		l.LogFatal(ctx, "Failed to load logging configuration.", lw.Err(err))
+	}
+
+	l = newLogger
+
 	gatewayCfgs, err := loadGatewayConfigurations(filepath.Join(directories.Config, "gateways"))
 	if err != nil {
 		l.LogFatal(ctx, "Failed to load gateway configurations.", lw.Err(err))
