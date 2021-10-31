@@ -5,7 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/interface/http/auth"

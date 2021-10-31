@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/shimmeringbee/controller/interface/http/auth"
 	"github.com/stretchr/testify/assert"
 	"net/http"
