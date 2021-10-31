@@ -13,7 +13,7 @@ require (
 	github.com/shimmeringbee/logwrap v0.0.0-20210228205504-ec4498cd3a41
 	github.com/shimmeringbee/zda v0.0.0-20210428211833-a313157d62bc
 	github.com/shimmeringbee/zigbee v0.0.0-20210427191220-76676a734066
-	github.com/shimmeringbee/zstack v0.0.0-20210525165917-f3b4c8f9948a
+	github.com/shimmeringbee/zstack v0.0.0-20210807171913-f73efc814fd2
 	github.com/stretchr/testify v1.7.0
 	github.com/tidwall/gjson v1.8.0
 	go.bug.st/serial.v1 v0.0.0-20191202182710-24a6610f0541
