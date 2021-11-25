@@ -34,6 +34,10 @@
     {
       "name": "zones",
       "description": "Access to zone hierarchy, used to fetch data about zones and devices"
+    },
+    {
+      "name": "websocket",
+      "description": "Websocket for asynchronous notifications."
     }
   ],
   "paths": {
@@ -903,6 +907,67 @@
           },
           "404": {
             "description": "zone not found"
+          },
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
+          }
+        }
+      }
+    },
+    "/websocket": {
+      "get": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "websocket"
+        ],
+        "summary": "Receive asynchronous events",
+        "description": "Provides an asynchronous stream device and zone events, targeted for maintaining state in an application. A WebSocket client must be used, this is included here for informational purposes and will not function. Please note an appropriate form of HTTP authentication must be used before the connection upgrade.",
+        "parameters": [
+          {
+            "name": "Connection",
+            "in": "header",
+            "required": true
+          },
+          {
+            "name": "Upgrade",
+            "in": "header",
+            "required": true
+          },
+          {
+            "name": "Sec-WebSocket-Key",
+            "in": "header",
+            "required": true
+          },
+          {
+            "name": "Sec-WebSocket-Version",
+            "in": "header",
+            "required": true
+          }
+        ],
+        "responses": {
+          "101": {
+            "description": "switching protocols",
+            "headers": {
+              "Connection": {
+                "required": true
+              },
+              "Upgrade": {
+                "required": true
+              },
+              "Sec-WebSocket-Accept": {
+                "required": true
+              }
+            }
           },
           "401": {
             "description": "unauthorised, provide suitable authentication credentials"
