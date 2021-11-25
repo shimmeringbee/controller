@@ -5,9 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gorilla/mux"
-	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/device/exporter"
-	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/controller/interface/converters/exporter"
+	"github.com/shimmeringbee/controller/state"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -21,8 +20,8 @@ type ExportedZone struct {
 }
 
 type zoneController struct {
-	deviceOrganiser *metadata.DeviceOrganiser
-	gatewayMapper   gateway.Mapper
+	deviceOrganiser *state.DeviceOrganiser
+	gatewayMapper   state.GatewayMapper
 	deviceConverter deviceExporter
 }
 
@@ -57,7 +56,7 @@ func (z *zoneController) listZones(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func (z *zoneController) enumerateZone(nZ metadata.Zone, includeDevices bool, includeSubzones bool) ExportedZone {
+func (z *zoneController) enumerateZone(nZ state.Zone, includeDevices bool, includeSubzones bool) ExportedZone {
 	var subZones []ExportedZone
 	var devices []exporter.ExportedDevice
 
@@ -180,11 +179,11 @@ func (z *zoneController) deleteZone(w http.ResponseWriter, r *http.Request) {
 
 	err = z.deviceOrganiser.DeleteZone(id)
 	switch {
-	case errors.Is(err, metadata.ErrNotFound):
+	case errors.Is(err, state.ErrNotFound):
 		http.NotFound(w, r)
-	case errors.Is(err, metadata.ErrHasDevices):
+	case errors.Is(err, state.ErrHasDevices):
 		http.Error(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, metadata.ErrOrphanZone):
+	case errors.Is(err, state.ErrOrphanZone):
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
@@ -289,7 +288,7 @@ func (z *zoneController) addDeviceToZone(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := z.deviceOrganiser.AddDeviceToZone(deviceId, zoneId); err != nil {
-		if errors.Is(err, metadata.ErrNotFound) {
+		if errors.Is(err, state.ErrNotFound) {
 			http.NotFound(w, r)
 		} else {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -323,7 +322,7 @@ func (z *zoneController) removeDeviceToZone(w http.ResponseWriter, r *http.Reque
 	}
 
 	if err := z.deviceOrganiser.RemoveDeviceFromZone(deviceId, zoneId); err != nil {
-		if errors.Is(err, metadata.ErrNotFound) {
+		if errors.Is(err, state.ErrNotFound) {
 			http.NotFound(w, r)
 		} else {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -363,7 +362,7 @@ func (z *zoneController) addSubzoneToZone(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := z.deviceOrganiser.MoveZone(subzoneId, zoneId); err != nil {
-		if errors.Is(err, metadata.ErrNotFound) {
+		if errors.Is(err, state.ErrNotFound) {
 			http.NotFound(w, r)
 		} else {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -407,8 +406,8 @@ func (z *zoneController) removeSubzoneToZone(w http.ResponseWriter, r *http.Requ
 		http.NotFound(w, r)
 	}
 
-	if err := z.deviceOrganiser.MoveZone(subzoneId, metadata.RootZoneId); err != nil {
-		if errors.Is(err, metadata.ErrNotFound) {
+	if err := z.deviceOrganiser.MoveZone(subzoneId, state.RootZoneId); err != nil {
+		if errors.Is(err, state.ErrNotFound) {
 			http.NotFound(w, r)
 		} else {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

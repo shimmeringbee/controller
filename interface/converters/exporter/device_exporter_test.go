@@ -3,8 +3,7 @@ package exporter
 import (
 	"context"
 	"encoding/json"
-	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"github.com/shimmeringbee/da/capabilities/color"
@@ -36,7 +35,7 @@ func TestDeviceExporter_ExportDevice(t *testing.T) {
 		mockCapOne.On("Name").Return("capOne")
 		mgwOne.On("Capability", capOne).Return(&mockCapOne)
 
-		do := metadata.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser()
 		do.NewZone("one")
 		do.AddDevice("one-one")
 		do.NameDevice("one-one", "fancyname")
@@ -51,14 +50,14 @@ func TestDeviceExporter_ExportDevice(t *testing.T) {
 		expected := ExportedDevice{
 			Identifier:   "one-one",
 			Capabilities: map[string]interface{}{"capOne": struct{}{}},
-			Metadata: metadata.DeviceMetadata{
+			Metadata: state.DeviceMetadata{
 				Name:  "fancyname",
 				Zones: []int{1},
 			},
 			Gateway: "gw",
 		}
 
-		mgm := gateway.MockMux{}
+		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgm.On("GatewayName", mock.Anything).Return("gw", true)

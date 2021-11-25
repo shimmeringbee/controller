@@ -3,9 +3,8 @@ package v1
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
-	gw "github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/device/exporter"
-	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/controller/interface/converters/exporter"
+	gw "github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"net/http"
 )
@@ -13,10 +12,10 @@ import (
 type gatewayConverter func(da.Gateway) exporter.ExportedGateway
 
 type gatewayController struct {
-	gatewayMapper    gw.Mapper
+	gatewayMapper    gw.GatewayMapper
 	gatewayConverter gatewayConverter
 	deviceConverter  deviceExporter
-	deviceOrganiser  *metadata.DeviceOrganiser
+	deviceOrganiser  *gw.DeviceOrganiser
 }
 
 func (g *gatewayController) listGateways(w http.ResponseWriter, r *http.Request) {

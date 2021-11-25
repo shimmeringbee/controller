@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/gorilla/mux"
-	gw "github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/device/exporter"
-	"github.com/shimmeringbee/controller/interface/device/invoker"
+	"github.com/shimmeringbee/controller/interface/converters/exporter"
+	"github.com/shimmeringbee/controller/interface/converters/invoker"
 	"github.com/shimmeringbee/controller/layers"
-	"github.com/shimmeringbee/controller/metadata"
+	gw "github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"io/ioutil"
 	"net/http"
@@ -22,10 +21,10 @@ type deviceExporter interface {
 }
 
 type deviceController struct {
-	gatewayMapper   gw.Mapper
+	gatewayMapper   gw.GatewayMapper
 	deviceExporter  deviceExporter
 	deviceInvoker   invoker.Invoker
-	deviceOrganiser *metadata.DeviceOrganiser
+	deviceOrganiser *gw.DeviceOrganiser
 	stack           layers.OutputStack
 }
 
@@ -104,7 +103,7 @@ func (d *deviceController) updateDevice(w http.ResponseWriter, r *http.Request) 
 
 	if request.Name != nil {
 		if err := d.deviceOrganiser.NameDevice(id, *request.Name); err != nil {
-			if errors.Is(err, metadata.ErrNotFound) {
+			if errors.Is(err, gw.ErrNotFound) {
 				http.NotFound(w, r)
 			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

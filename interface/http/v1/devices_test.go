@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/device/exporter"
-	"github.com/shimmeringbee/controller/interface/device/invoker"
+	"github.com/shimmeringbee/controller/interface/converters/exporter"
+	"github.com/shimmeringbee/controller/interface/converters/invoker"
 	"github.com/shimmeringbee/controller/layers"
-	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +29,7 @@ func (s SimpleIdentifier) String() string {
 
 func Test_deviceController_listDevices(t *testing.T) {
 	t.Run("returns a list of devices across multiple gateways", func(t *testing.T) {
-		mgm := gateway.MockMux{}
+		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -77,7 +76,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 		mdc.On("ExportDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
 		mdc.On("ExportDevice", mock.Anything, daDeviceTwo).Return(expectedDeviceTwo)
 
-		do := metadata.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser()
 
 		controller := deviceController{gatewayMapper: &mgm, deviceExporter: &mdc, deviceOrganiser: &do}
 
@@ -119,7 +118,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 func Test_deviceController_getDevice(t *testing.T) {
 	t.Run("returns a device if present", func(t *testing.T) {
-		mgm := gateway.MockMux{}
+		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -174,7 +173,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 	})
 
 	t.Run("returns a 404 if device is not present", func(t *testing.T) {
-		mgm := gateway.MockMux{}
+		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
@@ -198,7 +197,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 func Test_deviceController_updateDevice(t *testing.T) {
 	t.Run("updates an individual ExportedDevice with name", func(t *testing.T) {
-		do := metadata.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser()
 		do.AddDevice("one")
 
 		controller := deviceController{deviceOrganiser: &do}
@@ -224,7 +223,7 @@ func Test_deviceController_updateDevice(t *testing.T) {
 
 func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	t.Run("returns a 404 if device is not present", func(t *testing.T) {
-		mgm := gateway.MockMux{}
+		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
@@ -246,7 +245,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 404 if device does not support capability", func(t *testing.T) {
-		mgm := gateway.MockMux{}
+		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -281,7 +280,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 404 if action is not recognised on capability", func(t *testing.T) {
-		mgm := gateway.MockMux{}
+		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -321,7 +320,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 500 if action causes an error", func(t *testing.T) {
-		mgm := gateway.MockMux{}
+		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -361,7 +360,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 400 if user provides invalid data", func(t *testing.T) {
-		mgm := gateway.MockMux{}
+		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -401,7 +400,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 200 with the body of the action", func(t *testing.T) {
-		mgm := gateway.MockMux{}
+		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -443,7 +442,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 200 with the body of the action, with custom layer and retention set", func(t *testing.T) {
-		mgm := &gateway.MockMux{}
+		mgm := &state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := &mocks.Gateway{}

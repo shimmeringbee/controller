@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/zigbee"
 	"github.com/stretchr/testify/assert"
@@ -11,7 +11,7 @@ import (
 
 func Test_updateDeviceOrganiserFromMux(t *testing.T) {
 	t.Run("adds a device when a DeviceAdded event is received", func(t *testing.T) {
-		do := metadata.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser()
 
 		addr := zigbee.GenerateLocalAdministeredIEEEAddress()
 
@@ -33,7 +33,7 @@ func Test_updateDeviceOrganiserFromMux(t *testing.T) {
 	})
 
 	t.Run("removes a device when a DeviceRemoved event is received", func(t *testing.T) {
-		do := metadata.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser()
 		addr := zigbee.GenerateLocalAdministeredIEEEAddress()
 
 		do.AddDevice(addr.String())

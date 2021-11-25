@@ -3,12 +3,11 @@ package v1
 import (
 	"embed"
 	"github.com/gorilla/mux"
-	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/device/exporter"
-	"github.com/shimmeringbee/controller/interface/device/invoker"
+	"github.com/shimmeringbee/controller/interface/converters/exporter"
+	"github.com/shimmeringbee/controller/interface/converters/invoker"
 	"github.com/shimmeringbee/controller/interface/http/auth"
 	"github.com/shimmeringbee/controller/layers"
-	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/logwrap"
 	"net/http"
 )
@@ -16,7 +15,7 @@ import (
 //go:embed openapi.json
 var openapi embed.FS
 
-func ConstructRouter(mapper gateway.Mapper, deviceOrganiser *metadata.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger, ap auth.AuthenticationProvider) http.Handler {
+func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger, ap auth.AuthenticationProvider) http.Handler {
 	protected := mux.NewRouter()
 
 	deviceConverter := exporter.DeviceExporter{

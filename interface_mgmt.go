@@ -11,14 +11,13 @@ import (
 	pahomqtt "github.com/eclipse/paho.mqtt.golang"
 	gorillamux "github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/config"
-	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/device/invoker"
+	"github.com/shimmeringbee/controller/interface/converters/invoker"
 	"github.com/shimmeringbee/controller/interface/http/auth/null"
 	"github.com/shimmeringbee/controller/interface/http/swagger"
 	"github.com/shimmeringbee/controller/interface/http/v1"
 	"github.com/shimmeringbee/controller/interface/mqtt"
 	"github.com/shimmeringbee/controller/layers"
-	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/logwrap"
 	"github.com/shimmeringbee/logwrap/impl/nest"
 	"io/ioutil"
@@ -75,7 +74,7 @@ func loadInterfaceConfigurations(dir string) ([]config.InterfaceConfig, error) {
 	return retCfgs, nil
 }
 
-func startInterfaces(cfgs []config.InterfaceConfig, g *gateway.Mux, e gateway.EventSubscriber, o *metadata.DeviceOrganiser, directories Directories, stack layers.OutputStack, l logwrap.Logger) ([]StartedInterface, error) {
+func startInterfaces(cfgs []config.InterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, directories Directories, stack layers.OutputStack, l logwrap.Logger) ([]StartedInterface, error) {
 	var retGws []StartedInterface
 
 	for _, cfg := range cfgs {
@@ -98,7 +97,7 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *gateway.Mux, e gateway.Ev
 	return retGws, nil
 }
 
-func startInterface(cfg config.InterfaceConfig, g *gateway.Mux, e gateway.EventSubscriber, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+func startInterface(cfg config.InterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, cfgDig string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	wl := logwrap.New(nest.Wrap(l))
 	wl.AddOptionsToLogger(logwrap.Datum("interface", cfg.Name))
 
@@ -124,7 +123,7 @@ func containsString(haystack []string, needle string) bool {
 	return false
 }
 
-func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *gateway.Mux, e gateway.EventSubscriber, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	r := gorillamux.NewRouter()
 
 	if containsString(cfg.EnabledAPIs, "swagger") {
@@ -175,7 +174,7 @@ type errorReply struct {
 	Error error `json:"error"`
 }
 
-func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, e gateway.EventSubscriber, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	clientId, err := randomClientID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random client id: %w", err)

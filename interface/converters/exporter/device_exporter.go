@@ -4,8 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"github.com/shimmeringbee/da/capabilities/color"
@@ -13,7 +12,7 @@ import (
 )
 
 type ExportedDevice struct {
-	Metadata     metadata.DeviceMetadata
+	Metadata     state.DeviceMetadata
 	Identifier   string
 	Capabilities map[string]interface{}
 	Gateway      string
@@ -28,8 +27,8 @@ type ExportedGateway struct {
 const DefaultCapabilityTimeout = 1 * time.Second
 
 type DeviceExporter struct {
-	DeviceOrganiser *metadata.DeviceOrganiser
-	GatewayMapper   gateway.Mapper
+	DeviceOrganiser *state.DeviceOrganiser
+	GatewayMapper   state.GatewayMapper
 }
 
 func (de *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) ExportedDevice {

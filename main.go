@@ -3,9 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/shimmeringbee/controller/gateway"
 	"github.com/shimmeringbee/controller/layers"
-	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	lw "github.com/shimmeringbee/logwrap"
 	"github.com/shimmeringbee/logwrap/impl/golog"
@@ -48,15 +47,15 @@ func main() {
 	l.LogInfo(ctx, "Loaded interface configurations.", lw.Datum("configCount", len(interfaceCfgs)))
 
 	l.LogInfo(ctx, "Initialising device organiser.")
-	deviceOrganiser := metadata.NewDeviceOrganiser()
+	deviceOrganiser := state.NewDeviceOrganiser()
 
 	shutdownDeviceOrganiser, err := initialiseDeviceOrganiser(l, directories.Data, &deviceOrganiser)
 	if err != nil {
 		l.LogFatal(ctx, "Failed to initialise device organiser.", lw.Err(err))
 	}
 
-	eventbus := gateway.NewEventBus()
-	gwMux := gateway.NewMux(eventbus)
+	eventbus := state.NewEventBus()
+	gwMux := state.NewGatewayMux(eventbus)
 
 	l.LogInfo(ctx, "Linking device organiser to mux.")
 	deviceOrganiserMuxCh := updateDeviceOrganiserFromMux(&deviceOrganiser)
@@ -114,23 +113,23 @@ func main() {
 	l.LogInfo(ctx, "Shut down complete.")
 }
 
-func initialiseDeviceOrganiser(l lw.Logger, dir string, d *metadata.DeviceOrganiser) (func(), error) {
+func initialiseDeviceOrganiser(l lw.Logger, dir string, d *state.DeviceOrganiser) (func(), error) {
 	zoneFile := filepath.Join(dir, "zones.json")
 	deviceFile := filepath.Join(dir, "devices.json")
 
-	if err := metadata.LoadZones(zoneFile, d); err != nil {
+	if err := state.LoadZones(zoneFile, d); err != nil {
 		return func() {}, fmt.Errorf("failed to load zones: %w", err)
 	}
 
-	if err := metadata.LoadDevices(deviceFile, d); err != nil {
+	if err := state.LoadDevices(deviceFile, d); err != nil {
 		return func() {}, fmt.Errorf("failed to load devices: %w", err)
 	}
 
-	if err := metadata.SaveZones(zoneFile, d); err != nil {
+	if err := state.SaveZones(zoneFile, d); err != nil {
 		return func() {}, fmt.Errorf("failed initial save of zones: %w", err)
 	}
 
-	if err := metadata.SaveDevices(deviceFile, d); err != nil {
+	if err := state.SaveDevices(deviceFile, d); err != nil {
 		return func() {}, fmt.Errorf("failed initial save of devices: %w", err)
 	}
 
@@ -142,20 +141,20 @@ func initialiseDeviceOrganiser(l lw.Logger, dir string, d *metadata.DeviceOrgani
 		for {
 			select {
 			case <-t.C:
-				if err := metadata.SaveZones(zoneFile, d); err != nil {
+				if err := state.SaveZones(zoneFile, d); err != nil {
 					l.LogError(context.Background(), "Failed to periodically save zones for device organiser.", lw.Err(err))
 				}
 
-				if err := metadata.SaveDevices(deviceFile, d); err != nil {
+				if err := state.SaveDevices(deviceFile, d); err != nil {
 					l.LogError(context.Background(), "Failed to periodically save devices for device organiser.", lw.Err(err))
 				}
 
 			case <-shutCh:
-				if err := metadata.SaveZones(zoneFile, d); err != nil {
+				if err := state.SaveZones(zoneFile, d); err != nil {
 					l.LogError(context.Background(), "Failed to periodically save zones for device organiser.", lw.Err(err))
 				}
 
-				if err := metadata.SaveDevices(deviceFile, d); err != nil {
+				if err := state.SaveDevices(deviceFile, d); err != nil {
 					l.LogError(context.Background(), "Failed to periodically save devices for device organiser.", lw.Err(err))
 				}
 				return
@@ -168,7 +167,7 @@ func initialiseDeviceOrganiser(l lw.Logger, dir string, d *metadata.DeviceOrgani
 	}, nil
 }
 
-func updateDeviceOrganiserFromMux(do *metadata.DeviceOrganiser) chan interface{} {
+func updateDeviceOrganiserFromMux(do *state.DeviceOrganiser) chan interface{} {
 	ch := make(chan interface{}, 100)
 
 	go func() {

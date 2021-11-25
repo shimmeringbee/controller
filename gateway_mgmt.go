@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shimmeringbee/controller/config"
-	"github.com/shimmeringbee/controller/gateway"
+	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/logwrap"
 	"github.com/shimmeringbee/logwrap/impl/nest"
@@ -37,7 +37,7 @@ type StartedGateway struct {
 	Shutdown func()
 }
 
-func startGateways(cfgs []config.GatewayConfig, mux *gateway.Mux, directories Directories, l logwrap.Logger) ([]StartedGateway, error) {
+func startGateways(cfgs []config.GatewayConfig, mux *state.GatewayMux, directories Directories, l logwrap.Logger) ([]StartedGateway, error) {
 	var retGws []StartedGateway
 
 	for _, cfg := range cfgs {

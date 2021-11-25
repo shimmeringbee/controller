@@ -4,11 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/shimmeringbee/controller/gateway"
-	"github.com/shimmeringbee/controller/interface/device/exporter"
-	"github.com/shimmeringbee/controller/interface/device/invoker"
+	"github.com/shimmeringbee/controller/interface/converters/exporter"
+	"github.com/shimmeringbee/controller/interface/converters/invoker"
 	"github.com/shimmeringbee/controller/layers"
-	"github.com/shimmeringbee/controller/metadata"
+	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 	"github.com/shimmeringbee/logwrap"
@@ -34,9 +33,9 @@ type Interface struct {
 	Publisher Publisher
 	stop      chan bool
 
-	DeviceOrganiser *metadata.DeviceOrganiser
-	GatewayMux      gateway.Mapper
-	EventSubscriber gateway.EventSubscriber
+	DeviceOrganiser *state.DeviceOrganiser
+	GatewayMux      state.GatewayMapper
+	EventSubscriber state.EventSubscriber
 	OutputStack     layers.OutputStack
 	DeviceInvoker   invoker.Invoker
 

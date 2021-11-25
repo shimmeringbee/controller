@@ -1,11 +1,11 @@
-package gateway
+package state
 
 import (
 	"github.com/shimmeringbee/da"
 	"github.com/stretchr/testify/mock"
 )
 
-var _ Mapper = (*MockMux)(nil)
+var _ GatewayMapper = (*MockMux)(nil)
 
 type MockMux struct {
 	mock.Mock
