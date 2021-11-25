@@ -34,11 +34,11 @@ type Interface struct {
 	Publisher Publisher
 	stop      chan bool
 
-	DeviceOrganiser   *metadata.DeviceOrganiser
-	GatewayMux        gateway.Mapper
-	GatewaySubscriber gateway.Subscriber
-	OutputStack       layers.OutputStack
-	DeviceInvoker     invoker.Invoker
+	DeviceOrganiser *metadata.DeviceOrganiser
+	GatewayMux      gateway.Mapper
+	EventSubscriber gateway.EventSubscriber
+	OutputStack     layers.OutputStack
+	DeviceInvoker   invoker.Invoker
 
 	deviceExporter exporter.DeviceExporter
 	Logger         logwrap.Logger
@@ -177,7 +177,7 @@ func (i *Interface) Start() {
 	i.stop = make(chan bool, 1)
 
 	ch := make(chan interface{}, 100)
-	i.GatewaySubscriber.Listen(ch)
+	i.EventSubscriber.Subscribe(ch)
 
 	go i.handleEvents(ch)
 }

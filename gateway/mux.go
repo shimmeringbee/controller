@@ -15,12 +15,7 @@ type Mapper interface {
 	GatewayName(da.Gateway) (string, bool)
 }
 
-type Subscriber interface {
-	Listen(chan interface{})
-}
-
 var _ Mapper = (*Mux)(nil)
-var _ Subscriber = (*Mux)(nil)
 
 type Mux struct {
 	lock sync.RWMutex
@@ -29,13 +24,14 @@ type Mux struct {
 	gatewayByName      map[string]da.Gateway
 	shutdownCh         []chan struct{}
 
-	listeners []chan interface{}
+	eventPublisher EventPublisher
 }
 
-func New() *Mux {
+func NewMux(publisher EventPublisher) *Mux {
 	return &Mux{
 		deviceByIdentifier: map[string]da.Device{},
 		gatewayByName:      map[string]da.Gateway{},
+		eventPublisher:     publisher,
 	}
 }
 
@@ -81,7 +77,7 @@ func (m *Mux) monitorGateway(g da.Gateway, shutCh chan struct{}) {
 				m.lock.Unlock()
 			}
 
-			m.sendToListeners(event)
+			m.eventPublisher.Publish(event)
 		}
 
 		cancel()
@@ -131,25 +127,6 @@ func (m *Mux) Device(id string) (da.Device, bool) {
 
 	d, found := m.deviceByIdentifier[id]
 	return d, found
-}
-
-func (m *Mux) sendToListeners(e interface{}) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-
-	for _, ch := range m.listeners {
-		select {
-		case ch <- e:
-		default:
-		}
-	}
-}
-
-func (m *Mux) Listen(ch chan interface{}) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-
-	m.listeners = append(m.listeners, ch)
 }
 
 func (m *Mux) Stop() {

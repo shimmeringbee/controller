@@ -21,3 +21,7 @@ require (
 	golang.org/x/sys v0.0.0-20210525143221-35b2ab0089ea // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
+
+replace github.com/shimmeringbee/zda => ../zda
+replace github.com/shimmeringbee/zcl => ../zcl
+replace github.com/shimmeringbee/zstack => ../zstack

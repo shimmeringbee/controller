@@ -75,7 +75,7 @@ func loadInterfaceConfigurations(dir string) ([]config.InterfaceConfig, error) {
 	return retCfgs, nil
 }
 
-func startInterfaces(cfgs []config.InterfaceConfig, g *gateway.Mux, o *metadata.DeviceOrganiser, directories Directories, stack layers.OutputStack, l logwrap.Logger) ([]StartedInterface, error) {
+func startInterfaces(cfgs []config.InterfaceConfig, g *gateway.Mux, e gateway.EventSubscriber, o *metadata.DeviceOrganiser, directories Directories, stack layers.OutputStack, l logwrap.Logger) ([]StartedInterface, error) {
 	var retGws []StartedInterface
 
 	for _, cfg := range cfgs {
@@ -85,7 +85,7 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *gateway.Mux, o *metadata.
 			return nil, fmt.Errorf("failed to create interface data directory '%s': %w", dataDir, err)
 		}
 
-		if shutdown, err := startInterface(cfg, g, o, dataDir, stack, l); err != nil {
+		if shutdown, err := startInterface(cfg, g, e, o, dataDir, stack, l); err != nil {
 			return nil, fmt.Errorf("failed to start interface '%s': %w", cfg.Name, err)
 		} else {
 			retGws = append(retGws, StartedInterface{
@@ -98,17 +98,17 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *gateway.Mux, o *metadata.
 	return retGws, nil
 }
 
-func startInterface(cfg config.InterfaceConfig, g *gateway.Mux, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+func startInterface(cfg config.InterfaceConfig, g *gateway.Mux, e gateway.EventSubscriber, o *metadata.DeviceOrganiser, cfgDig string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	wl := logwrap.New(nest.Wrap(l))
 	wl.AddOptionsToLogger(logwrap.Datum("interface", cfg.Name))
 
 	switch gwCfg := cfg.Config.(type) {
 	case *config.HTTPInterfaceConfig:
 		wl.AddOptionsToLogger(logwrap.Source("http"))
-		return startHTTPInterface(*gwCfg, g, o, cfgDig, stack, wl)
+		return startHTTPInterface(*gwCfg, g, e, o, cfgDig, stack, wl)
 	case *config.MQTTInterfaceConfig:
 		wl.AddOptionsToLogger(logwrap.Source("mqtt"))
-		return startMQTTInterface(*gwCfg, g, o, cfgDig, stack, wl)
+		return startMQTTInterface(*gwCfg, g, e, o, cfgDig, stack, wl)
 	default:
 		return nil, fmt.Errorf("unknown gateway type loaded: %s", cfg.Type)
 	}
@@ -124,7 +124,7 @@ func containsString(haystack []string, needle string) bool {
 	return false
 }
 
-func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *gateway.Mux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *gateway.Mux, e gateway.EventSubscriber, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	r := gorillamux.NewRouter()
 
 	if containsString(cfg.EnabledAPIs, "swagger") {
@@ -175,7 +175,7 @@ type errorReply struct {
 	Error error `json:"error"`
 }
 
-func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, e gateway.EventSubscriber, o *metadata.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	clientId, err := randomClientID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random client id: %w", err)
@@ -193,7 +193,7 @@ func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *gateway.Mux, o *metad
 		clientOptions.Servers = []*url2.URL{url}
 	}
 
-	i := mqtt.Interface{GatewayMux: g, GatewaySubscriber: g, DeviceOrganiser: o, DeviceInvoker: invoker.InvokeDeviceAction, OutputStack: stack, Logger: l, Publisher: mqtt.EmptyPublisher, PublishStateOnConnect: cfg.PublishStateOnConnect, PublishIndividualState: cfg.PublishIndividualState, PublishAggregatedState: cfg.PublishAggregatedState}
+	i := mqtt.Interface{GatewayMux: g, EventSubscriber: e, DeviceOrganiser: o, DeviceInvoker: invoker.InvokeDeviceAction, OutputStack: stack, Logger: l, Publisher: mqtt.EmptyPublisher, PublishStateOnConnect: cfg.PublishStateOnConnect, PublishIndividualState: cfg.PublishIndividualState, PublishAggregatedState: cfg.PublishAggregatedState}
 
 	lastWillTopic := prefixTopic(cfg.TopicPrefix, "controller/online")
 

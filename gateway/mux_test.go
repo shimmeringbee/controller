@@ -11,24 +11,6 @@ import (
 	"time"
 )
 
-func TestGatewayMux_ListenAndSend(t *testing.T) {
-	t.Run("listener channels that are registered are sent events", func(t *testing.T) {
-		listenCh := make(chan interface{}, 1)
-		expectedEvent := struct{}{}
-
-		m := Mux{}
-		m.Listen(listenCh)
-		m.sendToListeners(expectedEvent)
-
-		select {
-		case actualEvent := <-listenCh:
-			assert.Equal(t, expectedEvent, actualEvent)
-		default:
-			assert.Fail(t, "no event received")
-		}
-	})
-}
-
 func TestGatewayMux_Add(t *testing.T) {
 	t.Run("added gateway is available via Gateways() list", func(t *testing.T) {
 		mg := mockGateway{}
@@ -69,12 +51,16 @@ func TestGatewayMux_Add(t *testing.T) {
 		mg.On("ReadEvent", mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
 		defer mg.AssertExpectations(t)
 
+		mep := mockEventPublisher{}
+		mep.On("Publish", mock.Anything)
+		defer mep.AssertExpectations(t)
+
 		selfD := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
 		mg.On("Self").Return(selfD)
 
 		name := "mock"
 
-		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}, eventPublisher: &mep}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()
@@ -111,12 +97,16 @@ func TestGatewayMux_Add(t *testing.T) {
 		mg.On("ReadEvent", mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
 		defer mg.AssertExpectations(t)
 
+		mep := mockEventPublisher{}
+		mep.On("Publish", mock.Anything)
+		defer mep.AssertExpectations(t)
+
 		selfD := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
 		mg.On("Self").Return(selfD)
 
 		name := "mock"
 
-		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}, eventPublisher: &mep}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()
@@ -151,12 +141,16 @@ func TestGatewayMux_Add(t *testing.T) {
 		mg.On("ReadEvent", mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
 		defer mg.AssertExpectations(t)
 
+		mep := mockEventPublisher{}
+		mep.On("Publish", mock.Anything)
+		defer mep.AssertExpectations(t)
+
 		selfD := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
 		mg.On("Self").Return(selfD)
 
 		name := "mock"
 
-		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}, eventPublisher: &mep}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()
@@ -181,12 +175,16 @@ func TestGatewayMux_Add(t *testing.T) {
 		mg.On("ReadEvent", mock.Anything).Return(nil, context.DeadlineExceeded).Maybe()
 		defer mg.AssertExpectations(t)
 
+		mep := mockEventPublisher{}
+		mep.On("Publish", mock.Anything)
+		defer mep.AssertExpectations(t)
+
 		selfD := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
 		mg.On("Self").Return(selfD)
 
 		name := "mock"
 
-		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}, eventPublisher: &mep}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()
@@ -214,12 +212,16 @@ func TestGatewayMux_Capability(t *testing.T) {
 		defer mg.AssertExpectations(t)
 		mg.On("Capability", capability).Return(expectedCapability)
 
+		mep := mockEventPublisher{}
+		mep.On("Publish", mock.Anything)
+		defer mep.AssertExpectations(t)
+
 		selfD := da.BaseDevice{DeviceIdentifier: zigbee.GenerateLocalAdministeredIEEEAddress()}
 		mg.On("Self").Return(selfD)
 
 		name := "mock"
 
-		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}}
+		m := Mux{gatewayByName: map[string]da.Gateway{}, deviceByIdentifier: map[string]da.Device{}, eventPublisher: &mep}
 		m.Add(name, &mg)
 		time.Sleep(50 * time.Millisecond)
 		m.Stop()
@@ -256,6 +258,14 @@ func TestGatewayMux_Capability(t *testing.T) {
 		actualCapability := m.Capability(d.Identifier().String(), capability)
 		assert.Nil(t, actualCapability)
 	})
+}
+
+type mockEventPublisher struct {
+	mock.Mock
+}
+
+func (m *mockEventPublisher) Publish(e interface{}) {
+	m.Called(e)
 }
 
 type mockGateway struct {

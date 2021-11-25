@@ -55,16 +55,17 @@ func main() {
 		l.LogFatal(ctx, "Failed to initialise device organiser.", lw.Err(err))
 	}
 
-	gwMux := gateway.New()
+	eventbus := gateway.NewEventBus()
+	gwMux := gateway.NewMux(eventbus)
 
 	l.LogInfo(ctx, "Linking device organiser to mux.")
 	deviceOrganiserMuxCh := updateDeviceOrganiserFromMux(&deviceOrganiser)
-	gwMux.Listen(deviceOrganiserMuxCh)
+	eventbus.Subscribe(deviceOrganiserMuxCh)
 
 	outputStack := layers.PassThruStack{}
 
 	l.LogInfo(ctx, "Starting interfaces.")
-	startedInterfaces, err := startInterfaces(interfaceCfgs, gwMux, &deviceOrganiser, directories, outputStack, l)
+	startedInterfaces, err := startInterfaces(interfaceCfgs, gwMux, eventbus, &deviceOrganiser, directories, outputStack, l)
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start interfaces.", lw.Err(err))
 	}
