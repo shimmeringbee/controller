@@ -71,6 +71,52 @@ func TestDeviceExporter_ExportDevice(t *testing.T) {
 	})
 }
 
+func TestDeviceExporter_ExportSimpleDevice(t *testing.T) {
+	t.Run("converts a da device with basic information and capability list", func(t *testing.T) {
+		mgwOne := mocks.Gateway{}
+		defer mgwOne.AssertExpectations(t)
+
+		capOne := da.Capability(1)
+
+		mockCapOne := mocks.BasicCapability{}
+		defer mockCapOne.AssertExpectations(t)
+		mockCapOne.On("Name").Return("capOne")
+		mgwOne.On("Capability", capOne).Return(&mockCapOne)
+
+		do := state.NewDeviceOrganiser()
+		do.NewZone("one")
+		do.AddDevice("one-one")
+		do.NameDevice("one-one", "fancyname")
+		do.AddDeviceToZone("one-one", 1)
+
+		input := da.BaseDevice{
+			DeviceGateway:      &mgwOne,
+			DeviceIdentifier:   SimpleIdentifier{id: "one-one"},
+			DeviceCapabilities: []da.Capability{capOne},
+		}
+
+		expected := ExportedSimpleDevice{
+			Identifier:   "one-one",
+			Capabilities: []string{"capOne"},
+			Metadata: state.DeviceMetadata{
+				Name:  "fancyname",
+				Zones: []int{1},
+			},
+			Gateway: "gw",
+		}
+
+		mgm := state.MockMux{}
+		defer mgm.AssertExpectations(t)
+
+		mgm.On("GatewayName", mock.Anything).Return("gw", true)
+
+		dc := DeviceExporter{DeviceOrganiser: &do, GatewayMapper: &mgm}
+		actual := dc.ExportSimpleDevice(context.Background(), input)
+
+		assert.Equal(t, expected, actual)
+	})
+}
+
 func Test_convertHasProductInformation(t *testing.T) {
 	t.Run("retrieves and returns all data from HasProductInformation", func(t *testing.T) {
 		mhpi := capabilitymocks.ProductInformation{}
