@@ -18,6 +18,13 @@ type ExportedDevice struct {
 	Gateway      string
 }
 
+type ExportedSimpleDevice struct {
+	Metadata     state.DeviceMetadata
+	Identifier   string
+	Capabilities []string
+	Gateway      string
+}
+
 type ExportedGateway struct {
 	Identifier   string
 	Capabilities []string
@@ -46,6 +53,28 @@ func (de *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) 
 	gwName, _ := de.GatewayMapper.GatewayName(daDevice.Gateway())
 
 	return ExportedDevice{
+		Identifier:   daDevice.Identifier().String(),
+		Capabilities: capabilityList,
+		Metadata:     md,
+		Gateway:      gwName,
+	}
+}
+
+func (de *DeviceExporter) ExportSimpleDevice(ctx context.Context, daDevice da.Device) ExportedSimpleDevice {
+	capabilityList := []string{}
+
+	for _, capFlag := range daDevice.Capabilities() {
+		uncastCapability := daDevice.Gateway().Capability(capFlag)
+
+		if basicCapability, ok := uncastCapability.(da.BasicCapability); ok {
+			capabilityList = append(capabilityList, basicCapability.Name())
+		}
+	}
+
+	md, _ := de.DeviceOrganiser.Device(daDevice.Identifier().String())
+	gwName, _ := de.GatewayMapper.GatewayName(daDevice.Gateway())
+
+	return ExportedSimpleDevice{
 		Identifier:   daDevice.Identifier().String(),
 		Capabilities: capabilityList,
 		Metadata:     md,
