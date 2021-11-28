@@ -21,4 +21,20 @@ func TestEventBus(t *testing.T) {
 			assert.Fail(t, "no event received")
 		}
 	})
+
+	t.Run("channels can be unsubscribed from eventbus", func(t *testing.T) {
+		listenCh := make(chan interface{}, 1)
+		expectedEvent := struct{}{}
+
+		eb := NewEventBus()
+		eb.Subscribe(listenCh)
+		eb.Unsubscribe(listenCh)
+		eb.Publish(expectedEvent)
+
+		select {
+		case <-listenCh:
+			assert.Fail(t, "event received")
+		default:
+		}
+	})
 }
