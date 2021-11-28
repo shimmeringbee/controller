@@ -10,6 +10,7 @@ type EventPublisher interface {
 
 type EventSubscriber interface {
 	Subscribe(chan interface{})
+	Unsubscribe(chan interface{})
 }
 
 var _ EventPublisher = (*EventBus)(nil)
@@ -31,6 +32,18 @@ func (b *EventBus) Subscribe(ch chan interface{}) {
 	defer b.channelsLock.Unlock()
 
 	b.channels = append(b.channels, ch)
+}
+
+func (b *EventBus) Unsubscribe(ch chan interface{}) {
+	b.channelsLock.Lock()
+	defer b.channelsLock.Unlock()
+
+	for i, c := range b.channels {
+		if c == ch {
+			b.channels = append(b.channels[:i], b.channels[i+1:]...)
+			return
+		}
+	}
 }
 
 func (b *EventBus) Publish(e interface{}) {
