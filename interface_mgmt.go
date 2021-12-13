@@ -12,7 +12,9 @@ import (
 	gorillamux "github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/config"
 	"github.com/shimmeringbee/controller/interface/converters/invoker"
+	"github.com/shimmeringbee/controller/interface/http/auth"
 	"github.com/shimmeringbee/controller/interface/http/auth/null"
+	"github.com/shimmeringbee/controller/interface/http/pprof"
 	"github.com/shimmeringbee/controller/interface/http/swagger"
 	"github.com/shimmeringbee/controller/interface/http/v1"
 	"github.com/shimmeringbee/controller/interface/mqtt"
@@ -126,8 +128,11 @@ func containsString(haystack []string, needle string) bool {
 func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	r := gorillamux.NewRouter()
 
+	authenticator := null.Authenticator{}
+	l.LogInfo(context.Background(), "HTTP Authentication Set Up", logwrap.Datum("type", authenticator.AuthenticationType().(auth.AuthenticatorType).Type))
+
 	if containsString(cfg.EnabledAPIs, "swagger") {
-		l.LogInfo(context.Background(), "Mounting swagger endpoint on /swagger.")
+		l.LogInfo(context.Background(), "Mounting swagger endpoint on: /swagger.")
 
 		swaggerRouter := swagger.ConstructRouter()
 		// This route is needed because the redirect provided by http.FileServer is incorrect due to the http.StripPrefix
@@ -138,13 +143,19 @@ func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *state.GatewayMux, e s
 	}
 
 	if containsString(cfg.EnabledAPIs, "v1") {
-		l.LogInfo(context.Background(), "Mounting v1 API endpoint on /api/v1.")
+		l.LogInfo(context.Background(), "Mounting v1 API endpoint on: /api/v1.")
 
-		v1Router := v1.ConstructRouter(g, o, stack, l, null.Authenticator{})
+		v1Router := v1.ConstructRouter(g, o, stack, l, authenticator)
 
 		// Use http.StripPrefix to obscure the real path from the v1 api code, though this will cause issues if we
 		// ever issue redirects from the API.
 		r.PathPrefix("/api/v1").Handler(http.StripPrefix("/api/v1", v1Router))
+	}
+
+	if containsString(cfg.EnabledAPIs, "pprof") {
+		l.LogInfo(context.Background(), "Mounting pprof API endpoint on: /api/pprof.")
+
+		r.PathPrefix("/api/pprof").Handler(http.StripPrefix("/api/pprof", pprof.ConstructRouter(authenticator)))
 	}
 
 	bindAddress := fmt.Sprintf(":%d", cfg.Port)
