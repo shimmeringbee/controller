@@ -29,7 +29,7 @@ func (s SimpleIdentifier) String() string {
 
 func Test_deviceController_listDevices(t *testing.T) {
 	t.Run("returns a list of devices across multiple gateways", func(t *testing.T) {
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -118,7 +118,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 func Test_deviceController_getDevice(t *testing.T) {
 	t.Run("returns a device if present", func(t *testing.T) {
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -173,7 +173,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 	})
 
 	t.Run("returns a 404 if device is not present", func(t *testing.T) {
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
@@ -223,7 +223,7 @@ func Test_deviceController_updateDevice(t *testing.T) {
 
 func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	t.Run("returns a 404 if device is not present", func(t *testing.T) {
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
@@ -245,7 +245,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 404 if device does not support capability", func(t *testing.T) {
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -280,7 +280,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 404 if action is not recognised on capability", func(t *testing.T) {
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -320,7 +320,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 500 if action causes an error", func(t *testing.T) {
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -360,7 +360,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 400 if user provides invalid data", func(t *testing.T) {
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -400,7 +400,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 200 with the body of the action", func(t *testing.T) {
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := mocks.Gateway{}
@@ -442,7 +442,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 	})
 
 	t.Run("returns a 200 with the body of the action, with custom layer and retention set", func(t *testing.T) {
-		mgm := &state.MockMux{}
+		mgm := &state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		mgwOne := &mocks.Gateway{}

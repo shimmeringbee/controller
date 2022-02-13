@@ -72,7 +72,7 @@ func Test_zoneController_listZones(t *testing.T) {
 		err := do.MoveZone(zoneTwo.Identifier, zoneOne.Identifier)
 		assert.NoError(t, err)
 
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		daDevOne := da.BaseDevice{DeviceIdentifier: SimpleIdentifier{id: "devOne"}}
@@ -240,7 +240,7 @@ func Test_zoneController_getZone(t *testing.T) {
 		err := do.MoveZone(zoneTwo.Identifier, zoneOne.Identifier)
 		assert.NoError(t, err)
 
-		mgm := state.MockMux{}
+		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
 		daDevTwo := da.BaseDevice{DeviceIdentifier: SimpleIdentifier{id: "devTwo"}}
