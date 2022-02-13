@@ -33,6 +33,8 @@ type DeviceOrganiser struct {
 
 	deviceLock *sync.Mutex
 	devices    map[string]*DeviceMetadata
+
+	eventPublisher EventPublisher
 }
 
 type ZoneError string
@@ -53,17 +55,18 @@ const (
 const RootZoneId int = 0
 const DefaultFilePermissions = 0600
 
-func NewDeviceOrganiser() DeviceOrganiser {
+func NewDeviceOrganiser(e EventPublisher) DeviceOrganiser {
 	initialZoneId := int64(0)
 	hiddenZone := &Zone{Identifier: RootZoneId, Name: "Hidden Root"}
 
 	return DeviceOrganiser{
-		nextZoneId: &initialZoneId,
-		zoneLock:   &sync.Mutex{},
-		zones:      map[int]*Zone{RootZoneId: hiddenZone},
-		hiddenRoot: hiddenZone,
-		deviceLock: &sync.Mutex{},
-		devices:    map[string]*DeviceMetadata{},
+		nextZoneId:     &initialZoneId,
+		zoneLock:       &sync.Mutex{},
+		zones:          map[int]*Zone{RootZoneId: hiddenZone},
+		hiddenRoot:     hiddenZone,
+		deviceLock:     &sync.Mutex{},
+		devices:        map[string]*DeviceMetadata{},
+		eventPublisher: e,
 	}
 }
 
@@ -106,6 +109,11 @@ func (d *DeviceOrganiser) NewZone(name string) Zone {
 
 	d.hiddenRoot.SubZones = append(d.hiddenRoot.SubZones, newId)
 	d.zones[newId] = newZone
+
+	d.eventPublisher.Publish(ZoneCreate{
+		Identifier: newZone.Identifier,
+		Name:       newZone.Name,
+	})
 
 	return *newZone
 }
@@ -158,6 +166,10 @@ func (d *DeviceOrganiser) DeleteZone(id int) error {
 		parent.SubZones = filterInt(parent.SubZones, id)
 	}
 
+	d.eventPublisher.Publish(ZoneDestroy{
+		Identifier: zone.Identifier,
+	})
+
 	return nil
 }
 
@@ -197,7 +209,30 @@ func (d *DeviceOrganiser) MoveZone(id int, newParentId int) error {
 
 	newParent.SubZones = append(newParent.SubZones, id)
 
+	d.publishZoneUpdate(zone)
+
 	return nil
+}
+
+func (d *DeviceOrganiser) publishZoneUpdate(z *Zone) {
+	pz := d.zones[z.ParentZone]
+
+	beforeId := 0
+
+	for _, id := range pz.SubZones {
+		if id == z.Identifier {
+			break
+		}
+
+		beforeId = id
+	}
+
+	d.eventPublisher.Publish(ZoneUpdate{
+		Identifier: z.Identifier,
+		Name:       z.Name,
+		ParentZone: z.ParentZone,
+		AfterZone:  beforeId,
+	})
 }
 
 func (d *DeviceOrganiser) ReorderZoneBefore(id int, beforeId int) error {
@@ -240,6 +275,7 @@ func (d *DeviceOrganiser) ReorderZoneBefore(id int, beforeId int) error {
 	}
 
 	parentZone.SubZones = newSubZoneOrder
+	d.publishZoneUpdate(zone)
 
 	return nil
 }
@@ -284,6 +320,7 @@ func (d *DeviceOrganiser) ReorderZoneAfter(id int, afterId int) error {
 	}
 
 	parentZone.SubZones = newSubZoneOrder
+	d.publishZoneUpdate(zone)
 
 	return nil
 }
@@ -294,6 +331,7 @@ func (d *DeviceOrganiser) NameZone(id int, name string) error {
 
 	if zone, found := d.zones[id]; found {
 		zone.Name = name
+		d.publishZoneUpdate(zone)
 		return nil
 	} else {
 		return ErrNotFound
@@ -328,6 +366,10 @@ func (d *DeviceOrganiser) NameDevice(id string, name string) error {
 
 	if dm, found := d.devices[id]; found {
 		dm.Name = name
+		d.eventPublisher.Publish(DeviceMetadataUpdate{
+			Identifier: id,
+			Name:       dm.Name,
+		})
 		return nil
 	} else {
 		return ErrNotFound
@@ -378,6 +420,11 @@ func (d *DeviceOrganiser) AddDeviceToZone(deviceId string, zoneId int) error {
 	device.Zones = append(device.Zones, zoneId)
 	zone.Devices = append(zone.Devices, deviceId)
 
+	d.eventPublisher.Publish(DeviceAddedToZone{
+		ZoneIdentifier:   zoneId,
+		DeviceIdentifier: deviceId,
+	})
+
 	return nil
 }
 
@@ -400,6 +447,11 @@ func (d *DeviceOrganiser) RemoveDeviceFromZone(deviceId string, zoneId int) erro
 
 	device.Zones = filterInt(device.Zones, zoneId)
 	zone.Devices = filterString(zone.Devices, deviceId)
+
+	d.eventPublisher.Publish(DeviceRemovedFromZone{
+		ZoneIdentifier:   zoneId,
+		DeviceIdentifier: deviceId,
+	})
 
 	return nil
 }
@@ -542,4 +594,35 @@ func SaveDevices(fileLocation string, do *DeviceOrganiser) error {
 	}
 
 	return config.SafeWriteFile(fileLocation, data, DefaultFilePermissions)
+}
+
+type ZoneCreate struct {
+	Identifier int
+	Name       string
+}
+
+type ZoneUpdate struct {
+	Identifier int
+	Name       string
+	ParentZone int
+	AfterZone  int
+}
+
+type ZoneDestroy struct {
+	Identifier int
+}
+
+type DeviceAddedToZone struct {
+	ZoneIdentifier   int
+	DeviceIdentifier string
+}
+
+type DeviceRemovedFromZone struct {
+	ZoneIdentifier   int
+	DeviceIdentifier string
+}
+
+type DeviceMetadataUpdate struct {
+	Identifier string
+	Name       string
 }

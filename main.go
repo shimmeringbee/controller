@@ -46,15 +46,16 @@ func main() {
 
 	l.LogInfo(ctx, "Loaded interface configurations.", lw.Datum("configCount", len(interfaceCfgs)))
 
+	eventbus := state.NewEventBus()
+
 	l.LogInfo(ctx, "Initialising device organiser.")
-	deviceOrganiser := state.NewDeviceOrganiser()
+	deviceOrganiser := state.NewDeviceOrganiser(eventbus)
 
 	shutdownDeviceOrganiser, err := initialiseDeviceOrganiser(l, directories.Data, &deviceOrganiser)
 	if err != nil {
 		l.LogFatal(ctx, "Failed to initialise device organiser.", lw.Err(err))
 	}
 
-	eventbus := state.NewEventBus()
 	gwMux := state.NewGatewayMux(eventbus)
 
 	l.LogInfo(ctx, "Linking device organiser to mux.")

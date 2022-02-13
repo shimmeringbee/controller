@@ -5,8 +5,6 @@ github.com/creack/goselect v0.1.2/go.mod h1:a/NhLweNvqIYMuxcMOuWY516Cimucms3DglD
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
-github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/eclipse/paho.mqtt.golang v1.3.4 h1:/sS2PA+PgomTO1bfJSDJncox+U7X5Boa3AfhEywYdgI=
 github.com/eclipse/paho.mqtt.golang v1.3.4/go.mod h1:eTzb4gxwwyWpqBUHGQZ4ABAV7+Jgm1PklsYT/eo8Hcc=
 github.com/golang-jwt/jwt v3.2.2+incompatible h1:IfV12K8xAKAnZqdXVzCZ+TOjboZ2keLg81eXfW3O+oY=
@@ -36,6 +34,8 @@ github.com/shimmeringbee/callbacks v0.0.0-20210228205504-eae70ee401f3/go.mod h1:
 github.com/shimmeringbee/da v0.0.0-20210427202447-2f443617466f/go.mod h1:6Oji+jlg9NfJrlAcsGduhcQVffH7v57IRHguPF1JmgA=
 github.com/shimmeringbee/da v0.0.0-20210427204356-92e3341015ba h1:qdU6oV7E3JlDnzC/4b1p/InuwVhGxE8306QhaMsTfJ8=
 github.com/shimmeringbee/da v0.0.0-20210427204356-92e3341015ba/go.mod h1:6Oji+jlg9NfJrlAcsGduhcQVffH7v57IRHguPF1JmgA=
+github.com/shimmeringbee/da v0.0.0-20210808204559-d4924ec57c5b h1:XZg1+OBXoAr6LAyRIrCACGhFt//seGgZXe5v/meOYJ4=
+github.com/shimmeringbee/da v0.0.0-20210808204559-d4924ec57c5b/go.mod h1:6Oji+jlg9NfJrlAcsGduhcQVffH7v57IRHguPF1JmgA=
 github.com/shimmeringbee/logwrap v0.0.0-20210228205504-ec4498cd3a41 h1:ZyQT0LgUA8s7UyMRvi444yROU4TXFxvz3XIqpIvlgbs=
 github.com/shimmeringbee/logwrap v0.0.0-20210228205504-ec4498cd3a41/go.mod h1:NBAcZCUl6aFOGnWTs8m67EUAmWFZXRhoRQf5nknY8W0=
 github.com/shimmeringbee/retry v0.0.0-20210228205505-2704f9c1c8a2 h1:BAAlZ6gR1/mUbbTIVLz2fXQnfkERO1PJYu+r3L+EqxM=
@@ -47,6 +47,8 @@ github.com/shimmeringbee/zcl v0.0.0-20210228205506-7c69558adab2 h1:bplEkwoYwCwj8
 github.com/shimmeringbee/zcl v0.0.0-20210228205506-7c69558adab2/go.mod h1:oy+15b56Rms5RnwY/Ik4NlXSYusoAObOIVjfieLRfjQ=
 github.com/shimmeringbee/zda v0.0.0-20210428211833-a313157d62bc h1:2e5Z0Anb3U6WSkLjym9wgZijqmbvbmDHdphFebyIwWU=
 github.com/shimmeringbee/zda v0.0.0-20210428211833-a313157d62bc/go.mod h1:N/gA9PkyLlzYYuUubJoSCjlhZEZPWykHfvurBHCe1hA=
+github.com/shimmeringbee/zda v0.0.0-20211123204650-ef20e0108bb4 h1:tpkFTXgqN00aHuXrA073CiFt/mFhI4c5f24ciVMJUyA=
+github.com/shimmeringbee/zda v0.0.0-20211123204650-ef20e0108bb4/go.mod h1:N/gA9PkyLlzYYuUubJoSCjlhZEZPWykHfvurBHCe1hA=
 github.com/shimmeringbee/zigbee v0.0.0-20201027194100-4e53cafc0f7a/go.mod h1:GMA6rVpzvUK16cZwi8uW11JUTx8xUGOk5DbkXYWvm/8=
 github.com/shimmeringbee/zigbee v0.0.0-20210427191220-76676a734066 h1:3ClT9MdUGZToPHXmLM+pC5csq5XptJ6thQTQbhjV6Dw=
 github.com/shimmeringbee/zigbee v0.0.0-20210427191220-76676a734066/go.mod h1:GMA6rVpzvUK16cZwi8uW11JUTx8xUGOk5DbkXYWvm/8=
@@ -63,16 +65,10 @@ github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/tidwall/gjson v1.8.0 h1:Qt+orfosKn0rbNTZqHYDqBrmm3UDA4KRkv70fDzG+PQ=
-github.com/tidwall/gjson v1.8.0/go.mod h1:5/xDoumyyDNerp2U36lyolv46b3uF/9Bu6OfyQ9GImk=
 github.com/tidwall/gjson v1.11.0 h1:C16pk7tQNiH6VlCrtIXL1w8GaOsi1X3W8KDkE1BuYd4=
 github.com/tidwall/gjson v1.11.0/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
-github.com/tidwall/match v1.0.3 h1:FQUVvBImDutD8wJLN6c5eMzWtjgONK9MwIBCOrUJKeE=
-github.com/tidwall/match v1.0.3/go.mod h1:eRSPERbgtNPcGhD8UCthc6PmLEQXEWd3PRB5JTxsfmM=
 github.com/tidwall/match v1.1.1 h1:+Ho715JplO36QYgwN9PGYNhgZvoUSc9X2c80KVTi+GA=
 github.com/tidwall/match v1.1.1/go.mod h1:eRSPERbgtNPcGhD8UCthc6PmLEQXEWd3PRB5JTxsfmM=
-github.com/tidwall/pretty v1.1.0 h1:K3hMW5epkdAVwibsQEfR/7Zj0Qgt4DxtNumTq/VloO8=
-github.com/tidwall/pretty v1.1.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/tidwall/pretty v1.2.0 h1:RWIZEg2iJ8/g6fDDYzMpobmaoGh5OLl4AXtGUGPcqCs=
 github.com/tidwall/pretty v1.2.0/go.mod h1:ITEVvHYasfjBbM0u2Pg8T2nJnzm8xPwvNhhsoaGGjNU=
 go.bug.st/serial.v1 v0.0.0-20191202182710-24a6610f0541 h1:eQfoPfT+gNSh63t/oKanQlZyKgblRa/LMZRPIT+MHzA=

@@ -11,7 +11,7 @@ import (
 
 func Test_updateDeviceOrganiserFromMux(t *testing.T) {
 	t.Run("adds a device when a DeviceAdded event is received", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(state.NullEventPublisher)
 
 		addr := zigbee.GenerateLocalAdministeredIEEEAddress()
 
@@ -33,7 +33,7 @@ func Test_updateDeviceOrganiserFromMux(t *testing.T) {
 	})
 
 	t.Run("removes a device when a DeviceRemoved event is received", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(state.NullEventPublisher)
 		addr := zigbee.GenerateLocalAdministeredIEEEAddress()
 
 		do.AddDevice(addr.String())

@@ -3,14 +3,35 @@ package state
 import (
 	"errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"os"
 	"testing"
 )
 
+type MockEventPublisher struct {
+	mock.Mock
+}
+
+func (m *MockEventPublisher) Publish(v interface{}) {
+	m.Called(v)
+}
+
 func TestDeviceOrganiser_Zones(t *testing.T) {
 	t.Run("NewZone generates a new zone creates it at the root with an incrementing id", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "one",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 2,
+			Name:       "two",
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -23,7 +44,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("RootZones returns the constructed root", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		zoneOne := do.NewZone("one")
 
@@ -33,7 +54,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("GetZone returns a zone by id", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		zoneOne := do.NewZone("one")
 
@@ -43,25 +64,38 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("GetZone returns false if it can't find the zone by id", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		_, found := do.Zone(1)
 		assert.False(t, found)
 	})
 
 	t.Run("NameZone returns an error if the zone does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		err := do.NameZone(1, "NewDeviceOrganiser Name")
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("NameZone updates a zones name", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		newName := "NewDeviceOrganiser Name"
+
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "one",
+		})
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 1,
+			Name:       newName,
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		zoneOne := do.NewZone("one")
 
-		newName := "NewDeviceOrganiser Name"
 		err := do.NameZone(zoneOne.Identifier, newName)
 		assert.NoError(t, err)
 
@@ -70,14 +104,14 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone errors if the zone being moved does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		err := do.MoveZone(1, -1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("MoveZone errors if the parent zone does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		zoneOne := do.NewZone("one")
 
@@ -86,7 +120,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone errors if the moved zone and parent are equal", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		zoneOne := do.NewZone("one")
 
@@ -95,7 +129,25 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone succeeds in moving one root entry under another, removing the old root entry", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "one",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 2,
+			Name:       "two",
+		})
+
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 2,
+			Name:       "two",
+			ParentZone: 1,
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -115,7 +167,39 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone succeeds in moving a sub zone under another sub zone", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "one",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 2,
+			Name:       "two",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 3,
+			Name:       "three",
+		})
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 2,
+			Name:       "two",
+			ParentZone: 1,
+		})
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 3,
+			Name:       "three",
+			ParentZone: 2,
+		})
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 3,
+			Name:       "three",
+			ParentZone: 1,
+			AfterZone:  2,
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -140,7 +224,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone errors if moving a zone to be under one of its sub zones", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -156,7 +240,30 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone succeeds in moving a sub zone back to root", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "one",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 2,
+			Name:       "two",
+		})
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 2,
+			Name:       "two",
+			ParentZone: 1,
+		})
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 2,
+			Name:       "two",
+			ParentZone: 0,
+			AfterZone:  1,
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -178,7 +285,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore errors if zone being reordered does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		beforeZone := do.NewZone("before")
 
 		err := do.ReorderZoneBefore(999, beforeZone.Identifier)
@@ -186,7 +293,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore errors if before zone does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		beforeZone := do.NewZone("before")
 
 		err := do.ReorderZoneBefore(beforeZone.Identifier, 999)
@@ -194,7 +301,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore errors if zones do not have same parent", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		a := do.NewZone("a")
 		b := do.NewZone("b")
 
@@ -209,7 +316,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore errors if zones are the same zone", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		moveZone := do.NewZone("before")
 
 		err := do.ReorderZoneBefore(moveZone.Identifier, moveZone.Identifier)
@@ -217,7 +324,29 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore succeeds reordering a zone, mid list", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "a",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 2,
+			Name:       "b",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 3,
+			Name:       "c",
+		})
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 3,
+			Name:       "c",
+			ParentZone: 0,
+			AfterZone:  1,
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		_ = do.NewZone("a")
 		b := do.NewZone("b")
@@ -231,7 +360,29 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore succeeds reordering a zone, to list head", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "a",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 2,
+			Name:       "b",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 3,
+			Name:       "c",
+		})
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 3,
+			Name:       "c",
+			ParentZone: 0,
+			AfterZone:  0,
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		a := do.NewZone("a")
 		_ = do.NewZone("b")
@@ -245,7 +396,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter errors if zone being reordered does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		afterZone := do.NewZone("After")
 
 		err := do.ReorderZoneAfter(999, afterZone.Identifier)
@@ -253,7 +404,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter errors if After zone does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		afterZone := do.NewZone("After")
 
 		err := do.ReorderZoneAfter(afterZone.Identifier, 999)
@@ -261,10 +412,9 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter errors if zones do not have same parent", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		a := do.NewZone("a")
 		b := do.NewZone("b")
-
 		c := do.NewZone("c")
 		d := do.NewZone("d")
 
@@ -276,7 +426,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter errors if zones are the same zone", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		moveZone := do.NewZone("After")
 
 		err := do.ReorderZoneAfter(moveZone.Identifier, moveZone.Identifier)
@@ -284,7 +434,29 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter succeeds reordering a zone, mid list", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "a",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 2,
+			Name:       "b",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 3,
+			Name:       "c",
+		})
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 2,
+			Name:       "b",
+			ParentZone: 0,
+			AfterZone:  3,
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		_ = do.NewZone("a")
 		b := do.NewZone("b")
@@ -298,7 +470,29 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter succeeds reordering a zone, to list tail", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "a",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 2,
+			Name:       "b",
+		})
+		mep.On("Publish", ZoneCreate{
+			Identifier: 3,
+			Name:       "c",
+		})
+		mep.On("Publish", ZoneUpdate{
+			Identifier: 1,
+			Name:       "a",
+			ParentZone: 0,
+			AfterZone:  3,
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		a := do.NewZone("a")
 		_ = do.NewZone("b")
@@ -312,14 +506,14 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone errors if zone can not be found", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		err := do.DeleteZone(1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("DeleteZone errors if zone has subzone found", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -332,7 +526,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone errors if zone has device", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		zoneOne := do.NewZone("one")
 		do.zones[zoneOne.Identifier].Devices = []string{"device"}
@@ -342,7 +536,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone succeeds deleting a subzone", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -360,7 +554,18 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone succeeds deleting a root zone", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "one",
+		})
+		mep.On("Publish", ZoneDestroy{
+			Identifier: 1,
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		zoneOne := do.NewZone("one")
 
@@ -373,7 +578,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 
 func TestDeviceOrganiser_Devices(t *testing.T) {
 	t.Run("AddDevice adds a device", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		do.AddDevice("id")
 
 		_, found := do.Device("id")
@@ -381,20 +586,20 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("Device returns false if device is not present", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		_, found := do.Device("id")
 		assert.False(t, found)
 	})
 
 	t.Run("Device returns true if device is present", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		do.AddDevice("id")
 		_, found := do.Device("id")
 		assert.True(t, found)
 	})
 
 	t.Run("NameDevice errors if device doesn't exist", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		err := do.NameDevice("id", "name")
 		assert.Error(t, err)
@@ -402,7 +607,15 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("NameDevice sets a name on a device", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", DeviceMetadataUpdate{
+			Identifier: "id",
+			Name:       "name",
+		})
+
+		do := NewDeviceOrganiser(mep)
 		do.AddDevice("id")
 
 		err := do.NameDevice("id", "name")
@@ -414,14 +627,14 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("NameDevice errors if the device does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		err := do.NameDevice("id", "name")
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("AddDevice does not overwrite an existing device", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		do.AddDevice("id")
 
 		err := do.NameDevice("id", "name")
@@ -435,7 +648,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDevice removes an added device", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		do.AddDevice("id")
 
 		do.RemoveDevice("id")
@@ -444,14 +657,14 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("AddDeviceToZone errors if the device can not be found", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		err := do.AddDeviceToZone("id", 1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("AddDeviceToZone errors if the zone can not be found", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		do.AddDevice("id")
 
@@ -460,7 +673,19 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("AddDeviceToZone adds the zone to the device and device to zone", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "name",
+		})
+		mep.On("Publish", DeviceAddedToZone{
+			ZoneIdentifier:   1,
+			DeviceIdentifier: "id",
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		do.AddDevice("id")
 		zone := do.NewZone("name")
@@ -476,14 +701,14 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDeviceFromZone errors if the device can not be found", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		err := do.RemoveDeviceFromZone("id", 1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("RemoveDeviceFromZone errors if the zone can not be found", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		do.AddDevice("id")
 
@@ -492,7 +717,23 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDeviceFromZone removes the devices from the zone and zone from device", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		mep := new(MockEventPublisher)
+		defer mep.AssertExpectations(t)
+
+		mep.On("Publish", ZoneCreate{
+			Identifier: 1,
+			Name:       "name",
+		})
+		mep.On("Publish", DeviceAddedToZone{
+			ZoneIdentifier:   1,
+			DeviceIdentifier: "id",
+		})
+		mep.On("Publish", DeviceRemovedFromZone{
+			ZoneIdentifier:   1,
+			DeviceIdentifier: "id",
+		})
+
+		do := NewDeviceOrganiser(mep)
 
 		do.AddDevice("id")
 		zone := do.NewZone("name")
@@ -511,7 +752,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDevice removes the device from any zones that its in", func(t *testing.T) {
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		do.AddDevice("id")
 		zone := do.NewZone("name")
@@ -536,7 +777,7 @@ func TestDeviceOrganiser_persistZones(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.Remove(file.Name())
 
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 
 		one := do.NewZone("one")
 		two := do.NewZone("two")
@@ -554,7 +795,7 @@ func TestDeviceOrganiser_persistZones(t *testing.T) {
 		err = SaveZones(file.Name(), &do)
 		assert.NoError(t, err)
 
-		newDo := NewDeviceOrganiser()
+		newDo := NewDeviceOrganiser(NullEventPublisher)
 		err = LoadZones(file.Name(), &newDo)
 		assert.Equal(t, do.nextZoneId, newDo.nextZoneId)
 		assert.Equal(t, do.zones, newDo.zones)
@@ -569,7 +810,7 @@ func TestDeviceOrganiser_persistDevices(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.Remove(file.Name())
 
-		do := NewDeviceOrganiser()
+		do := NewDeviceOrganiser(NullEventPublisher)
 		zone := do.NewZone("one")
 
 		do.AddDevice("id")
@@ -579,7 +820,7 @@ func TestDeviceOrganiser_persistDevices(t *testing.T) {
 		err = SaveDevices(file.Name(), &do)
 		assert.NoError(t, err)
 
-		newDo := NewDeviceOrganiser()
+		newDo := NewDeviceOrganiser(NullEventPublisher)
 		newDo.NewZone("one")
 
 		err = LoadDevices(file.Name(), &newDo)

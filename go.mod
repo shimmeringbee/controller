@@ -5,13 +5,14 @@ go 1.16
 require (
 	github.com/creack/goselect v0.1.2 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.3.4
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.2.0
 	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/websocket v1.4.2
 	github.com/peterbourgon/ff/v3 v3.0.0
-	github.com/shimmeringbee/da v0.0.0-20210427204356-92e3341015ba
+	github.com/shimmeringbee/da v0.0.0-20210808204559-d4924ec57c5b
 	github.com/shimmeringbee/logwrap v0.0.0-20210228205504-ec4498cd3a41
-	github.com/shimmeringbee/zda v0.0.0-20210428211833-a313157d62bc
+	github.com/shimmeringbee/zda v0.0.0-20211123204650-ef20e0108bb4
 	github.com/shimmeringbee/zigbee v0.0.0-20210427191220-76676a734066
 	github.com/shimmeringbee/zstack v0.0.0-20210807171913-f73efc814fd2
 	github.com/stretchr/testify v1.7.0

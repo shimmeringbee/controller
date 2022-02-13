@@ -16,6 +16,12 @@ type EventSubscriber interface {
 var _ EventPublisher = (*EventBus)(nil)
 var _ EventSubscriber = (*EventBus)(nil)
 
+type nullEventPublisher struct{}
+
+func (_ nullEventPublisher) Publish(interface{}) {}
+
+var NullEventPublisher = nullEventPublisher{}
+
 type EventBus struct {
 	channels     []chan interface{}
 	channelsLock *sync.RWMutex
