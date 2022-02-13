@@ -139,7 +139,7 @@ func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *state.GatewayMux, e s
 	if containsString(cfg.EnabledAPIs, "v1") {
 		l.LogInfo(context.Background(), "Mounting v1 API endpoint on: /api/v1.")
 
-		v1Router := v1.ConstructRouter(g, o, stack, l, authenticator)
+		v1Router := v1.ConstructRouter(g, o, stack, l, authenticator, e)
 
 		// Use http.StripPrefix to obscure the real path from the v1 api code, though this will cause issues if we
 		// ever issue redirects from the API.

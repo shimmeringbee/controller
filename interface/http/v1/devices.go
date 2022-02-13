@@ -8,7 +8,7 @@ import (
 	"github.com/shimmeringbee/controller/interface/converters/exporter"
 	"github.com/shimmeringbee/controller/interface/converters/invoker"
 	"github.com/shimmeringbee/controller/layers"
-	gw "github.com/shimmeringbee/controller/state"
+	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"io/ioutil"
 	"net/http"
@@ -18,13 +18,14 @@ const DefaultHttpOutputLayer string = "http"
 
 type deviceExporter interface {
 	ExportDevice(context.Context, da.Device) exporter.ExportedDevice
+	ExportSimpleDevice(context.Context, da.Device) exporter.ExportedSimpleDevice
 }
 
 type deviceController struct {
-	gatewayMapper   gw.GatewayMapper
+	gatewayMapper   state.GatewayMapper
 	deviceExporter  deviceExporter
 	deviceInvoker   invoker.Invoker
-	deviceOrganiser *gw.DeviceOrganiser
+	deviceOrganiser *state.DeviceOrganiser
 	stack           layers.OutputStack
 }
 
@@ -103,7 +104,7 @@ func (d *deviceController) updateDevice(w http.ResponseWriter, r *http.Request) 
 
 	if request.Name != nil {
 		if err := d.deviceOrganiser.NameDevice(id, *request.Name); err != nil {
-			if errors.Is(err, gw.ErrNotFound) {
+			if errors.Is(err, state.ErrNotFound) {
 				http.NotFound(w, r)
 			} else {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

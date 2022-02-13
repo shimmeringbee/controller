@@ -34,7 +34,7 @@ func TestInterface_Connected(t *testing.T) {
 	})
 
 	t.Run("publishes capabilities if set to publish on connect", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		gw := &mocks.Gateway{}
@@ -93,7 +93,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 	})
 
 	t.Run("returns an error if the device is not present", func(t *testing.T) {
-		mgw := state.MockMux{}
+		mgw := state.MockGatewayMapper{}
 		defer mgw.AssertExpectations(t)
 
 		mgw.On("Device", "devId").Return(mocks.SimpleDevice{}, false)
@@ -106,7 +106,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 	})
 
 	t.Run("returns an error if the capability tree is called without a capability and action", func(t *testing.T) {
-		mgw := state.MockMux{}
+		mgw := state.MockGatewayMapper{}
 		defer mgw.AssertExpectations(t)
 
 		mgw.On("Device", "devId").Return(mocks.SimpleDevice{}, true)
@@ -119,7 +119,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 	})
 
 	t.Run("returns an error if the capability tree is called without invoke", func(t *testing.T) {
-		mgw := state.MockMux{}
+		mgw := state.MockGatewayMapper{}
 		defer mgw.AssertExpectations(t)
 
 		mgw.On("Device", "devId").Return(mocks.SimpleDevice{}, true)
@@ -132,7 +132,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 	})
 
 	t.Run("returns an error if the device invocation errors", func(t *testing.T) {
-		mgw := state.MockMux{}
+		mgw := state.MockGatewayMapper{}
 		defer mgw.AssertExpectations(t)
 
 		d := mocks.SimpleDevice{}
@@ -156,7 +156,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 	})
 
 	t.Run("returns the capabilities action response if successful", func(t *testing.T) {
-		mgw := state.MockMux{}
+		mgw := state.MockGatewayMapper{}
 		defer mgw.AssertExpectations(t)
 
 		d := mocks.SimpleDevice{}
@@ -180,7 +180,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 
 func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	t.Run("AlarmSensorUpdate publishes a Aggregated update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -215,7 +215,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("AlarmSensorUpdate publishes a Individual update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -250,7 +250,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("AlarmWarningDevice publishes a Aggregated update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -291,7 +291,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("AlarmWarningDevice publishes a Individual update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -335,7 +335,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("DeviceDiscovery publishes a Aggregated on Enable if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -375,7 +375,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("DeviceDiscovery publishes a Individual update on Enable if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -415,7 +415,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("DeviceDiscovery publishes a Aggregated on Disable if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -454,7 +454,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("DeviceDiscovery publishes a Aggregated on Disable if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -493,7 +493,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("EnumerateDevice publishes a Aggregated on Start if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -530,7 +530,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("EnumerateDevice publishes a Individual update on Start if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -566,7 +566,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("EnumerateDevice publishes a Aggregated on Stopped if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -604,7 +604,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("EnumerateDevice publishes a Individual update on Stopped if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -645,7 +645,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("OnOff publishes a Aggregated on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -680,7 +680,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("OnOff publishes a segment on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -714,7 +714,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("PowerSupply publishes a Aggregated on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -768,7 +768,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("PowerSupply publishes a Individual updates on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -829,7 +829,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("PressureSensor publishes a Aggregated on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -868,7 +868,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("PressureSensor publishes a Individual update on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -906,7 +906,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("RelativeHumidity publishes a Aggregated on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -945,7 +945,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("RelativeHumidity publishes a Individual update on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -983,7 +983,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("TemperatureSensor publishes a Aggregated on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -1022,7 +1022,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("TemperatureSensor publishes a Aggregated on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -1060,7 +1060,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("DeviceAdded publishes device", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}
@@ -1099,7 +1099,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 	})
 
 	t.Run("EnumerateDeviceStopped publishes whole device", func(t *testing.T) {
-		mapper := &state.MockMux{}
+		mapper := &state.MockGatewayMapper{}
 		defer mapper.AssertExpectations(t)
 
 		m := &MockPublisher{}

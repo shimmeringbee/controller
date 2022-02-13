@@ -15,7 +15,7 @@ import (
 //go:embed openapi.json
 var openapi embed.FS
 
-func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger, ap auth.AuthenticationProvider) http.Handler {
+func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger, ap auth.AuthenticationProvider, eventbus state.EventSubscriber) http.Handler {
 	protected := mux.NewRouter()
 
 	deviceConverter := exporter.DeviceExporter{
@@ -43,6 +43,15 @@ func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOr
 		deviceOrganiser: deviceOrganiser,
 	}
 
+	wc := websocketController{
+		eventbus: eventbus,
+		eventMapper: websocketEventMapper{
+			gatewayMapper:   mapper,
+			deviceOrganiser: deviceOrganiser,
+			deviceExporter:  &deviceConverter,
+		},
+	}
+
 	protected.HandleFunc("/devices", dc.listDevices).Methods("GET")
 	protected.HandleFunc("/devices/{identifier}", dc.getDevice).Methods("GET")
 	protected.HandleFunc("/devices/{identifier}", dc.updateDevice).Methods("PATCH")
@@ -61,6 +70,8 @@ func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOr
 	protected.HandleFunc("/zones/{identifier}/devices/{deviceIdentifier}", zc.removeDeviceToZone).Methods("DELETE")
 	protected.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.addSubzoneToZone).Methods("PUT")
 	protected.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.removeSubzoneToZone).Methods("DELETE")
+
+	protected.HandleFunc("/websocket", wc.serveWebsocket).Methods("GET")
 
 	apiRoot := mux.NewRouter()
 	apiRoot.Handle("/openapi.json", http.FileServer(http.FS(openapi))).Methods("GET")
