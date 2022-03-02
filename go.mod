@@ -10,7 +10,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/peterbourgon/ff/v3 v3.0.0
-	github.com/shimmeringbee/da v0.0.0-20210808204559-d4924ec57c5b
+	github.com/shimmeringbee/da v0.0.0-20220213213025-45f11a527832
 	github.com/shimmeringbee/logwrap v0.0.0-20210228205504-ec4498cd3a41
 	github.com/shimmeringbee/zda v0.0.0-20211123204650-ef20e0108bb4
 	github.com/shimmeringbee/zigbee v0.0.0-20210427191220-76676a734066

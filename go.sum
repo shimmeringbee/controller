@@ -36,6 +36,8 @@ github.com/shimmeringbee/da v0.0.0-20210427204356-92e3341015ba h1:qdU6oV7E3JlDnz
 github.com/shimmeringbee/da v0.0.0-20210427204356-92e3341015ba/go.mod h1:6Oji+jlg9NfJrlAcsGduhcQVffH7v57IRHguPF1JmgA=
 github.com/shimmeringbee/da v0.0.0-20210808204559-d4924ec57c5b h1:XZg1+OBXoAr6LAyRIrCACGhFt//seGgZXe5v/meOYJ4=
 github.com/shimmeringbee/da v0.0.0-20210808204559-d4924ec57c5b/go.mod h1:6Oji+jlg9NfJrlAcsGduhcQVffH7v57IRHguPF1JmgA=
+github.com/shimmeringbee/da v0.0.0-20220213213025-45f11a527832 h1:LH1bIX6N85DCQsFuIhLRWNIgWdTBpKyxCnv7rYTP6Mc=
+github.com/shimmeringbee/da v0.0.0-20220213213025-45f11a527832/go.mod h1:6Oji+jlg9NfJrlAcsGduhcQVffH7v57IRHguPF1JmgA=
 github.com/shimmeringbee/logwrap v0.0.0-20210228205504-ec4498cd3a41 h1:ZyQT0LgUA8s7UyMRvi444yROU4TXFxvz3XIqpIvlgbs=
 github.com/shimmeringbee/logwrap v0.0.0-20210228205504-ec4498cd3a41/go.mod h1:NBAcZCUl6aFOGnWTs8m67EUAmWFZXRhoRQf5nknY8W0=
 github.com/shimmeringbee/retry v0.0.0-20210228205505-2704f9c1c8a2 h1:BAAlZ6gR1/mUbbTIVLz2fXQnfkERO1PJYu+r3L+EqxM=

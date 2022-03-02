@@ -50,6 +50,7 @@ func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOr
 			deviceOrganiser: deviceOrganiser,
 			deviceExporter:  &deviceConverter,
 		},
+		logger: l,
 	}
 
 	protected.HandleFunc("/devices", dc.listDevices).Methods("GET")

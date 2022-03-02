@@ -110,9 +110,17 @@ func (d *DeviceOrganiser) NewZone(name string) Zone {
 	d.hiddenRoot.SubZones = append(d.hiddenRoot.SubZones, newId)
 	d.zones[newId] = newZone
 
+	afterZone := 0
+
+	subZoneLen := len(d.hiddenRoot.SubZones)
+	if subZoneLen > 1 {
+		afterZone = d.hiddenRoot.SubZones[subZoneLen-2]
+	}
+
 	d.eventPublisher.Publish(ZoneCreate{
 		Identifier: newZone.Identifier,
 		Name:       newZone.Name,
+		AfterZone:  afterZone,
 	})
 
 	return *newZone
@@ -166,7 +174,7 @@ func (d *DeviceOrganiser) DeleteZone(id int) error {
 		parent.SubZones = filterInt(parent.SubZones, id)
 	}
 
-	d.eventPublisher.Publish(ZoneDestroy{
+	d.eventPublisher.Publish(ZoneRemove{
 		Identifier: zone.Identifier,
 	})
 
@@ -599,6 +607,7 @@ func SaveDevices(fileLocation string, do *DeviceOrganiser) error {
 type ZoneCreate struct {
 	Identifier int
 	Name       string
+	AfterZone  int
 }
 
 type ZoneUpdate struct {
@@ -608,7 +617,7 @@ type ZoneUpdate struct {
 	AfterZone  int
 }
 
-type ZoneDestroy struct {
+type ZoneRemove struct {
 	Identifier int
 }
 

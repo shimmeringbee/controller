@@ -25,10 +25,12 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		mep.On("Publish", ZoneCreate{
 			Identifier: 1,
 			Name:       "one",
+			AfterZone:  0,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 2,
 			Name:       "two",
+			AfterZone:  1,
 		})
 
 		do := NewDeviceOrganiser(mep)
@@ -135,10 +137,12 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		mep.On("Publish", ZoneCreate{
 			Identifier: 1,
 			Name:       "one",
+			AfterZone:  0,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 2,
 			Name:       "two",
+			AfterZone:  1,
 		})
 
 		mep.On("Publish", ZoneUpdate{
@@ -173,14 +177,17 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		mep.On("Publish", ZoneCreate{
 			Identifier: 1,
 			Name:       "one",
+			AfterZone:  0,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 2,
 			Name:       "two",
+			AfterZone:  1,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 3,
 			Name:       "three",
+			AfterZone:  2,
 		})
 		mep.On("Publish", ZoneUpdate{
 			Identifier: 2,
@@ -246,10 +253,12 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		mep.On("Publish", ZoneCreate{
 			Identifier: 1,
 			Name:       "one",
+			AfterZone:  0,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 2,
 			Name:       "two",
+			AfterZone:  1,
 		})
 		mep.On("Publish", ZoneUpdate{
 			Identifier: 2,
@@ -330,14 +339,17 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		mep.On("Publish", ZoneCreate{
 			Identifier: 1,
 			Name:       "a",
+			AfterZone:  0,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 2,
 			Name:       "b",
+			AfterZone:  1,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 3,
 			Name:       "c",
+			AfterZone:  2,
 		})
 		mep.On("Publish", ZoneUpdate{
 			Identifier: 3,
@@ -366,14 +378,17 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		mep.On("Publish", ZoneCreate{
 			Identifier: 1,
 			Name:       "a",
+			AfterZone:  0,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 2,
 			Name:       "b",
+			AfterZone:  1,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 3,
 			Name:       "c",
+			AfterZone:  2,
 		})
 		mep.On("Publish", ZoneUpdate{
 			Identifier: 3,
@@ -440,14 +455,17 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		mep.On("Publish", ZoneCreate{
 			Identifier: 1,
 			Name:       "a",
+			AfterZone:  0,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 2,
 			Name:       "b",
+			AfterZone:  1,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 3,
 			Name:       "c",
+			AfterZone:  2,
 		})
 		mep.On("Publish", ZoneUpdate{
 			Identifier: 2,
@@ -476,14 +494,17 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 		mep.On("Publish", ZoneCreate{
 			Identifier: 1,
 			Name:       "a",
+			AfterZone:  0,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 2,
 			Name:       "b",
+			AfterZone:  1,
 		})
 		mep.On("Publish", ZoneCreate{
 			Identifier: 3,
 			Name:       "c",
+			AfterZone:  2,
 		})
 		mep.On("Publish", ZoneUpdate{
 			Identifier: 1,
@@ -561,7 +582,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 			Identifier: 1,
 			Name:       "one",
 		})
-		mep.On("Publish", ZoneDestroy{
+		mep.On("Publish", ZoneRemove{
 			Identifier: 1,
 		})
 
