@@ -20,6 +20,11 @@ func (m *MockDeviceExporter) ExportSimpleDevice(ctx context.Context, daDevice da
 	return args.Get(0).(ExportedSimpleDevice)
 }
 
+func (m *MockDeviceExporter) ExportCapability(ctx context.Context, daDevice da.Device, e interface{}) interface{} {
+	args := m.Called(ctx, daDevice, e)
+	return args.Get(0)
+}
+
 type MockGatewayExporter struct {
 	mock.Mock
 }

@@ -9,6 +9,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
+	github.com/gorilla/websocket v1.5.3
 	github.com/peterbourgon/ff/v3 v3.4.0
 	github.com/shimmeringbee/da v0.0.0-20240623195712-c921021ae9f9
 	github.com/shimmeringbee/logwrap v0.1.3
@@ -26,7 +27,6 @@ require (
 	github.com/creack/goselect v0.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/expr-lang/expr v1.16.9 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/shimmeringbee/bytecodec v0.0.0-20240614104652-9d31c74dcd13 // indirect

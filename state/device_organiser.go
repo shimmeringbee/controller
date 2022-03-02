@@ -134,9 +134,17 @@ func (d *DeviceOrganiser) newZoneWithId(name string, newId int) Zone {
 		s.Set("ParentZone", RootZoneId)
 	}
 
+	afterZone := 0
+
+	subZoneLen := len(d.hiddenRoot.SubZones)
+	if subZoneLen > 1 {
+		afterZone = d.hiddenRoot.SubZones[subZoneLen-2]
+	}
+
 	d.eventPublisher.Publish(ZoneCreate{
 		Identifier: newZone.Identifier,
 		Name:       newZone.Name,
+		AfterZone:  afterZone,
 	})
 
 	return *newZone
@@ -194,7 +202,7 @@ func (d *DeviceOrganiser) DeleteZone(id int) error {
 		d.zoneConfig.SectionDelete(strconv.Itoa(id))
 	}
 
-	d.eventPublisher.Publish(ZoneDestroy{
+	d.eventPublisher.Publish(ZoneRemove{
 		Identifier: zone.Identifier,
 	})
 
@@ -620,6 +628,7 @@ func (d *DeviceOrganiser) loadDevices() {
 type ZoneCreate struct {
 	Identifier int
 	Name       string
+	AfterZone  int
 }
 
 type ZoneUpdate struct {
@@ -629,7 +638,7 @@ type ZoneUpdate struct {
 	AfterZone  int
 }
 
-type ZoneDestroy struct {
+type ZoneRemove struct {
 	Identifier int
 }
 

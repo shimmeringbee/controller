@@ -35,7 +35,7 @@ func TestDeviceExporter_ExportDevice(t *testing.T) {
 		defer mockCapOne.AssertExpectations(t)
 		mockCapOne.On("Name").Return("capOne")
 
-		do := state.NewDeviceOrganiser(memory.New())
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 		do.NewZone("one")
 		do.AddDevice("one-one")
 		do.NameDevice("one-one", "fancyname")
@@ -83,7 +83,7 @@ func TestDeviceExporter_ExportSimpleDevice(t *testing.T) {
 		mockCapOne.On("Name").Return("capOne")
 		mgwOne.On("Capability", capOne).Return(&mockCapOne)
 
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(state.NullEventPublisher)
 		do.NewZone("one")
 		do.AddDevice("one-one")
 		do.NameDevice("one-one", "fancyname")
