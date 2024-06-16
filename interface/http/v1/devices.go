@@ -177,7 +177,7 @@ func (d *deviceController) useDeviceCapabilityAction(w http.ResponseWriter, r *h
 		} else if errors.Is(err, invoker.CapabilityNotSupported) {
 			http.NotFound(w, r)
 		} else if errors.Is(err, context.DeadlineExceeded) {
-			http.Error(w, "Capability action exceeded permitted time.", http.StatusInternalServerError)
+			http.Error(w, "Device action exceeded permitted time.", http.StatusInternalServerError)
 		} else {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shimmeringbee/controller/config"
+	"github.com/shimmeringbee/persistence"
 	"io/ioutil"
 	"os"
 	"sync"
@@ -53,7 +54,7 @@ const (
 const RootZoneId int = 0
 const DefaultFilePermissions = 0600
 
-func NewDeviceOrganiser() DeviceOrganiser {
+func NewDeviceOrganiser(persistence.Section) DeviceOrganiser {
 	initialZoneId := int64(0)
 	hiddenZone := &Zone{Identifier: RootZoneId, Name: "Hidden Root"}
 

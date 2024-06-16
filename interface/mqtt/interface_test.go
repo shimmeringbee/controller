@@ -42,40 +42,39 @@ func TestInterface_Connected(t *testing.T) {
 
 		mapper.On("Gateways").Return(map[string]da.Gateway{"one": gw})
 
-		capFlagOne := capabilities.HasProductInformationFlag
+		capFlagOne := capabilities.ProductInformationFlag
 		capFlagTwo := capabilities.OnOffFlag
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capFlagOne, capFlagTwo},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		gw.On("Devices").Return([]da.Device{d})
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
+		mdev.On("Capabilities").Return([]da.Capability{capFlagOne, capFlagTwo})
 
-		hpi := &capmocks.HasProductInformation{}
+		gw.On("Devices").Return([]da.Device{mdev})
+
+		hpi := &capmocks.ProductInformation{}
 		hpi.On("Name").Return("HasProductInformation")
-		hpi.On("ProductInformation", mock.Anything, d).Return(capabilities.ProductInformation{
-			Present: capabilities.Name,
-			Name:    "Mock",
+		hpi.On("Get", mock.Anything).Return(capabilities.ProductInfo{
+			Name: "Mock",
 		}, nil)
 		defer hpi.AssertExpectations(t)
 
 		oo := &capmocks.OnOff{}
 		oo.Mock.On("Name").Return("OnOff")
-		oo.Mock.On("Status", mock.Anything, d).Return(true, nil)
+		oo.Mock.On("Status", mock.Anything).Return(true, nil)
 		defer oo.AssertExpectations(t)
 
-		gw.On("Capability", capFlagOne).Return(hpi)
-		gw.On("Capability", capFlagTwo).Return(oo)
+		mdev.On("Capability", capFlagOne).Return(hpi)
+		mdev.On("Capability", capFlagTwo).Return(oo)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishStateOnConnect: true, PublishAggregatedState: true}
 
 		m := &MockPublisher{}
 		defer m.AssertExpectations(t)
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/HasProductInformation", d.DeviceIdentifier.String()), []byte{0x7b, 0x22, 0x4e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x22, 0x4d, 0x6f, 0x63, 0x6b, 0x22, 0x7d}).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/OnOff", d.DeviceIdentifier.String()), []byte{0x7b, 0x22, 0x53, 0x74, 0x61, 0x74, 0x65, 0x22, 0x3a, 0x74, 0x72, 0x75, 0x65, 0x7d}).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/HasProductInformation", mdev.Identifier().String()), []byte{0x7b, 0x22, 0x4e, 0x61, 0x6d, 0x65, 0x22, 0x3a, 0x22, 0x4d, 0x6f, 0x63, 0x6b, 0x22, 0x7d}).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/OnOff", mdev.Identifier().String()), []byte{0x7b, 0x22, 0x53, 0x74, 0x61, 0x74, 0x65, 0x22, 0x3a, 0x74, 0x72, 0x75, 0x65, 0x7d}).Return(nil)
 
 		err := i.Connected(context.Background(), m.Publish)
 		assert.NoError(t, err)
@@ -97,7 +96,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 		mgw := state.MockMux{}
 		defer mgw.AssertExpectations(t)
 
-		mgw.On("Device", "devId").Return(da.BaseDevice{}, false)
+		mgw.On("Device", "devId").Return(mocks.SimpleDevice{}, false)
 
 		i := Interface{Logger: logwrap.New(discard.Discard()), GatewayMux: &mgw}
 
@@ -110,7 +109,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 		mgw := state.MockMux{}
 		defer mgw.AssertExpectations(t)
 
-		mgw.On("Device", "devId").Return(da.BaseDevice{}, true)
+		mgw.On("Device", "devId").Return(mocks.SimpleDevice{}, true)
 
 		i := Interface{Logger: logwrap.New(discard.Discard()), GatewayMux: &mgw}
 
@@ -123,7 +122,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 		mgw := state.MockMux{}
 		defer mgw.AssertExpectations(t)
 
-		mgw.On("Device", "devId").Return(da.BaseDevice{}, true)
+		mgw.On("Device", "devId").Return(mocks.SimpleDevice{}, true)
 
 		i := Interface{Logger: logwrap.New(discard.Discard()), GatewayMux: &mgw}
 
@@ -136,7 +135,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 		mgw := state.MockMux{}
 		defer mgw.AssertExpectations(t)
 
-		d := da.BaseDevice{}
+		d := mocks.SimpleDevice{}
 		mgw.On("Device", "devId").Return(d, true)
 
 		mdi := invoker.MockDeviceInvoker{}
@@ -160,7 +159,7 @@ func TestInterface_IncomingMessage(t *testing.T) {
 		mgw := state.MockMux{}
 		defer mgw.AssertExpectations(t)
 
-		d := da.BaseDevice{}
+		d := mocks.SimpleDevice{}
 		mgw.On("Device", "devId").Return(d, true)
 
 		mdi := invoker.MockDeviceInvoker{}
@@ -190,27 +189,26 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.AlarmSensorFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "AlarmSensor"
 		mc := &capmocks.AlarmSensor{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(map[capabilities.SensorType]bool{capabilities.General: true}, nil)
+		mc.On("Status", mock.Anything).Return(map[capabilities.SensorType]bool{capabilities.General: true}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.AlarmSensorFlag).Return(mc)
+		mdev.On("Capability", capabilities.AlarmSensorFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Alarms":{"General":true}}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.AlarmSensorUpdate{
-			Device: d,
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -226,27 +224,26 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.AlarmSensorFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "AlarmSensor"
 		mc := &capmocks.AlarmSensor{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(map[capabilities.SensorType]bool{capabilities.General: true}, nil)
+		mc.On("Status", mock.Anything).Return(map[capabilities.SensorType]bool{capabilities.General: true}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.AlarmSensorFlag).Return(mc)
+		mdev.On("Capability", capabilities.AlarmSensorFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
 		expectedPayload := `true`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Alarms/General", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Alarms/General", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.AlarmSensorUpdate{
-			Device: d,
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -262,16 +259,15 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.AlarmWarningDeviceFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "AlarmWarningDevice"
 		mc := &capmocks.AlarmWarningDevice{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.WarningDeviceState{
+		mc.On("Status", mock.Anything).Return(capabilities.WarningDeviceState{
 			Warning:           true,
 			AlarmType:         capabilities.FireAlarm,
 			Volume:            .5,
@@ -280,15 +276,15 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.AlarmWarningDeviceFlag).Return(mc)
+		mdev.On("Capability", capabilities.AlarmWarningDeviceFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Warning":true,"AlarmType":"Fire","Volume":0.5,"Visual":true,"Duration":60000}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.AlarmWarningDeviceUpdate{
-			Device: d,
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -304,16 +300,15 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.AlarmWarningDeviceFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "AlarmWarningDevice"
 		mc := &capmocks.AlarmWarningDevice{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.WarningDeviceState{
+		mc.On("Status", mock.Anything).Return(capabilities.WarningDeviceState{
 			Warning:           true,
 			AlarmType:         capabilities.FireAlarm,
 			Volume:            .5,
@@ -322,109 +317,18 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.AlarmWarningDeviceFlag).Return(mc)
+		mdev.On("Capability", capabilities.AlarmWarningDeviceFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Warning", d.DeviceIdentifier.String(), name), []byte(`true`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/AlarmType", d.DeviceIdentifier.String(), name), []byte(`Fire`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Volume", d.DeviceIdentifier.String(), name), []byte(`0.500000`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Visual", d.DeviceIdentifier.String(), name), []byte(`true`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Duration", d.DeviceIdentifier.String(), name), []byte(`60000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Warning", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/AlarmType", mdev.Identifier().String(), name), []byte(`Fire`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Volume", mdev.Identifier().String(), name), []byte(`0.500000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Visual", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Duration", mdev.Identifier().String(), name), []byte(`60000`)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.AlarmWarningDeviceUpdate{
-			Device: d,
-		})
-
-		time.Sleep(50 * time.Millisecond)
-	})
-
-	t.Run("Color publishes a Aggregated update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
-		defer mapper.AssertExpectations(t)
-
-		m := &MockPublisher{}
-		defer m.AssertExpectations(t)
-
-		gw := &mocks.Gateway{}
-		defer gw.AssertExpectations(t)
-
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.ColorFlag},
-		}
-
-		name := "Color"
-		mc := &capmocks.Color{}
-		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.ColorStatus{
-			Mode: capabilities.TemperatureMode,
-			Temperature: capabilities.TemperatureSettings{
-				Current: 6500,
-			},
-			DurationRemaining: time.Minute,
-		}, nil)
-		mc.On("SupportsColor", mock.Anything, d).Return(false, nil)
-		mc.On("SupportsTemperature", mock.Anything, d).Return(true, nil)
-		defer mc.AssertExpectations(t)
-
-		gw.On("Capability", capabilities.ColorFlag).Return(mc)
-
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
-
-		expectedPayload := `{"Current":{"Temperature":6500},"DurationRemaining":60000,"Supports":{"Color":false,"Temperature":true}}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
-
-		i.serviceUpdateOnEvent(capabilities.ColorStatusUpdate{
-			Device: d,
-		})
-
-		time.Sleep(50 * time.Millisecond)
-	})
-
-	t.Run("Color publishes a Individual update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
-		defer mapper.AssertExpectations(t)
-
-		m := &MockPublisher{}
-		defer m.AssertExpectations(t)
-
-		gw := &mocks.Gateway{}
-		defer gw.AssertExpectations(t)
-
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.ColorFlag},
-		}
-
-		name := "Color"
-		mc := &capmocks.Color{}
-		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.ColorStatus{
-			Mode: capabilities.TemperatureMode,
-			Temperature: capabilities.TemperatureSettings{
-				Current: 6500,
-			},
-			DurationRemaining: time.Minute,
-		}, nil)
-		mc.On("SupportsColor", mock.Anything, d).Return(false, nil)
-		mc.On("SupportsTemperature", mock.Anything, d).Return(true, nil)
-		defer mc.AssertExpectations(t)
-
-		gw.On("Capability", capabilities.ColorFlag).Return(mc)
-
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
-
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Current", d.DeviceIdentifier.String(), name), []byte(`{"Temperature":6500}`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Target", d.DeviceIdentifier.String(), name), []byte(`null`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Duration", d.DeviceIdentifier.String(), name), []byte("60000")).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Supports/Color", d.DeviceIdentifier.String(), name), []byte("false")).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Supports/Temperature", d.DeviceIdentifier.String(), name), []byte("true")).Return(nil)
-
-		i.serviceUpdateOnEvent(capabilities.ColorStatusUpdate{
-			Device: d,
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -440,29 +344,28 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.DeviceDiscoveryFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		gw.On("Self").Return(d)
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
+
+		gw.On("Self").Return(mdev)
 
 		name := "DeviceDiscovery"
 		mc := &capmocks.DeviceDiscovery{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.DeviceDiscoveryStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.DeviceDiscoveryStatus{
 			Discovering:       true,
 			RemainingDuration: time.Minute,
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
+		mdev.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Discovering":true,"Duration":60000}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.DeviceDiscoveryEnabled{
 			Gateway: gw,
@@ -481,29 +384,28 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.DeviceDiscoveryFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		gw.On("Self").Return(d)
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
+
+		gw.On("Self").Return(mdev)
 
 		name := "DeviceDiscovery"
 		mc := &capmocks.DeviceDiscovery{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.DeviceDiscoveryStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.DeviceDiscoveryStatus{
 			Discovering:       true,
 			RemainingDuration: time.Minute,
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
+		mdev.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Discovering", d.DeviceIdentifier.String(), name), []byte(`true`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Duration", d.DeviceIdentifier.String(), name), []byte(`60000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Discovering", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Duration", mdev.Identifier().String(), name), []byte(`60000`)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.DeviceDiscoveryEnabled{
 			Gateway: gw,
@@ -522,28 +424,27 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.DeviceDiscoveryFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		gw.On("Self").Return(d)
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
+
+		gw.On("Self").Return(mdev)
 
 		name := "DeviceDiscovery"
 		mc := &capmocks.DeviceDiscovery{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.DeviceDiscoveryStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.DeviceDiscoveryStatus{
 			Discovering: false,
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
+		mdev.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Discovering":false}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.DeviceDiscoveryDisabled{
 			Gateway: gw,
@@ -562,28 +463,27 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.DeviceDiscoveryFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		gw.On("Self").Return(d)
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
+
+		gw.On("Self").Return(mdev)
 
 		name := "DeviceDiscovery"
 		mc := &capmocks.DeviceDiscovery{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.DeviceDiscoveryStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.DeviceDiscoveryStatus{
 			Discovering: false,
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
+		mdev.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Discovering", d.DeviceIdentifier.String(), name), []byte(`false`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Duration", d.DeviceIdentifier.String(), name), []byte(`0`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Discovering", mdev.Identifier().String(), name), []byte(`false`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Duration", mdev.Identifier().String(), name), []byte(`0`)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.DeviceDiscoveryDisabled{
 			Gateway: gw,
@@ -602,29 +502,28 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.EnumerateDeviceFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "EnumerateDevice"
 		mc := &capmocks.EnumerateDevice{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.EnumerationStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.EnumerationStatus{
 			Enumerating: true,
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
+		mdev.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Enumerating":true}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceStart{
-			Device: d,
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -640,34 +539,33 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.EnumerateDeviceFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "EnumerateDevice"
 		mc := &capmocks.EnumerateDevice{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.EnumerationStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.EnumerationStatus{
 			Enumerating: true,
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
+		mdev.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Enumerating", d.DeviceIdentifier.String(), name), []byte(`true`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Enumerating", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceStart{
-			Device: d,
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
 	})
 
-	t.Run("EnumerateDevice publishes a Aggregated on Success if enabled", func(t *testing.T) {
+	t.Run("EnumerateDevice publishes a Aggregated on Stopped if enabled", func(t *testing.T) {
 		mapper := &state.MockMux{}
 		defer mapper.AssertExpectations(t)
 
@@ -677,35 +575,35 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.EnumerateDeviceFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
+		mdev.On("Capabilities").Return([]da.Capability{capabilities.EnumerateDeviceFlag})
 
 		name := "EnumerateDevice"
 		mc := &capmocks.EnumerateDevice{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.EnumerationStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.EnumerationStatus{
 			Enumerating: false,
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
+		mdev.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Enumerating":false}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceSuccess{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceStopped{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
 	})
 
-	t.Run("EnumerateDevice publishes a Individual update on Success if enabled", func(t *testing.T) {
+	t.Run("EnumerateDevice publishes a Individual update on Stopped if enabled", func(t *testing.T) {
 		mapper := &state.MockMux{}
 		defer mapper.AssertExpectations(t)
 
@@ -715,179 +613,28 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.EnumerateDeviceFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
+		mdev.On("Capabilities").Return([]da.Capability{capabilities.EnumerateDeviceFlag})
 
 		name := "EnumerateDevice"
 		mc := &capmocks.EnumerateDevice{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.EnumerationStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.EnumerationStatus{
 			Enumerating: false,
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
+		mdev.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Enumerating", d.DeviceIdentifier.String(), name), []byte(`false`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Enumerating", mdev.Identifier().String(), name), []byte(`false`)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceSuccess{
-			Device: d,
-		})
-
-		time.Sleep(50 * time.Millisecond)
-	})
-
-	t.Run("EnumerateDevice publishes a Aggregated on Failure if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
-		defer mapper.AssertExpectations(t)
-
-		m := &MockPublisher{}
-		defer m.AssertExpectations(t)
-
-		gw := &mocks.Gateway{}
-		defer gw.AssertExpectations(t)
-
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.EnumerateDeviceFlag},
-		}
-
-		name := "EnumerateDevice"
-		mc := &capmocks.EnumerateDevice{}
-		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.EnumerationStatus{
-			Enumerating: false,
-		}, nil)
-		defer mc.AssertExpectations(t)
-
-		gw.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
-
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
-
-		expectedPayload := `{"Enumerating":false}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
-
-		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceFailure{
-			Device: d,
-		})
-
-		time.Sleep(50 * time.Millisecond)
-	})
-
-	t.Run("EnumerateDevice publishes a Individual update on Failure if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
-		defer mapper.AssertExpectations(t)
-
-		m := &MockPublisher{}
-		defer m.AssertExpectations(t)
-
-		gw := &mocks.Gateway{}
-		defer gw.AssertExpectations(t)
-
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.EnumerateDeviceFlag},
-		}
-
-		name := "EnumerateDevice"
-		mc := &capmocks.EnumerateDevice{}
-		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.EnumerationStatus{
-			Enumerating: false,
-		}, nil)
-		defer mc.AssertExpectations(t)
-
-		gw.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
-
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
-
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Enumerating", d.DeviceIdentifier.String(), name), []byte(`false`)).Return(nil)
-
-		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceFailure{
-			Device: d,
-		})
-
-		time.Sleep(50 * time.Millisecond)
-	})
-
-	t.Run("Level publishes a Aggregated on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
-		defer mapper.AssertExpectations(t)
-
-		m := &MockPublisher{}
-		defer m.AssertExpectations(t)
-
-		gw := &mocks.Gateway{}
-		defer gw.AssertExpectations(t)
-
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.LevelFlag},
-		}
-
-		name := "Level"
-		mc := &capmocks.Level{}
-		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.LevelStatus{
-			CurrentLevel: 0.5,
-		}, nil)
-		defer mc.AssertExpectations(t)
-
-		gw.On("Capability", capabilities.LevelFlag).Return(mc)
-
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
-
-		expectedPayload := `{"Current":0.5}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
-
-		i.serviceUpdateOnEvent(capabilities.LevelStatusUpdate{
-			Device: d,
-		})
-
-		time.Sleep(50 * time.Millisecond)
-	})
-
-	t.Run("Level publishes a Individual update on Update if enabled", func(t *testing.T) {
-		mapper := &state.MockMux{}
-		defer mapper.AssertExpectations(t)
-
-		m := &MockPublisher{}
-		defer m.AssertExpectations(t)
-
-		gw := &mocks.Gateway{}
-		defer gw.AssertExpectations(t)
-
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.LevelFlag},
-		}
-
-		name := "Level"
-		mc := &capmocks.Level{}
-		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.LevelStatus{
-			CurrentLevel: 0.5,
-		}, nil)
-		defer mc.AssertExpectations(t)
-
-		gw.On("Capability", capabilities.LevelFlag).Return(mc)
-
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
-
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Current", d.DeviceIdentifier.String(), name), []byte(`0.500000`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Target", d.DeviceIdentifier.String(), name), []byte(`null`)).Return(nil)
-
-		i.serviceUpdateOnEvent(capabilities.LevelStatusUpdate{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceStopped{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -903,27 +650,26 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.OnOffFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "OnOff"
 		mc := &capmocks.OnOff{}
 		mc.Mock.On("Name").Return(name)
-		mc.Mock.On("Status", mock.Anything, d).Return(true, nil)
+		mc.Mock.On("Status", mock.Anything).Return(true, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.OnOffFlag).Return(mc)
+		mdev.On("Capability", capabilities.OnOffFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"State":true}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.OnOffState{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.OnOffUpdate{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -939,26 +685,25 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.OnOffFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "OnOff"
 		mc := &capmocks.OnOff{}
 		mc.Mock.On("Name").Return(name)
-		mc.Mock.On("Status", mock.Anything, d).Return(true, nil)
+		mc.Mock.On("Status", mock.Anything).Return(true, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.OnOffFlag).Return(mc)
+		mdev.On("Capability", capabilities.OnOffFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Current", d.DeviceIdentifier.String(), name), []byte(`true`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Current", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.OnOffState{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.OnOffUpdate{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -974,17 +719,16 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.PowerSupplyFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "PowerSupply"
 		mc := &capmocks.PowerSupply{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.PowerStatus{
-			Mains: []capabilities.PowerMainsStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.PowerState{
+			Mains: []capabilities.PowerMainsState{
 				{
 					Voltage:   220,
 					Frequency: 50,
@@ -992,7 +736,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 					Present:   capabilities.Voltage | capabilities.Frequency | capabilities.Available,
 				},
 			},
-			Battery: []capabilities.PowerBatteryStatus{
+			Battery: []capabilities.PowerBatteryState{
 				{
 					Voltage:        3.8,
 					MaximumVoltage: 4.2,
@@ -1005,15 +749,15 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.PowerSupplyFlag).Return(mc)
+		mdev.On("Capability", capabilities.PowerSupplyFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Mains":[{"Voltage":220,"Frequency":50,"Available":true}],"Battery":[{"Voltage":3.8,"MaximumVoltage":4.2,"MinimumVoltage":3.7,"Remaining":0.8,"Available":true}]}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.PowerStatusUpdate{
-			Device: d,
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -1029,17 +773,16 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.PowerSupplyFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "PowerSupply"
 		mc := &capmocks.PowerSupply{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.PowerStatus{
-			Mains: []capabilities.PowerMainsStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.PowerState{
+			Mains: []capabilities.PowerMainsState{
 				{
 					Voltage:   220,
 					Frequency: 50,
@@ -1047,7 +790,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 					Present:   capabilities.Voltage | capabilities.Frequency | capabilities.Available,
 				},
 			},
-			Battery: []capabilities.PowerBatteryStatus{
+			Battery: []capabilities.PowerBatteryState{
 				{
 					Voltage:        3.8,
 					MaximumVoltage: 4.2,
@@ -1060,22 +803,22 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.PowerSupplyFlag).Return(mc)
+		mdev.On("Capability", capabilities.PowerSupplyFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Mains/0/Voltage", d.DeviceIdentifier.String(), name), []byte(`220.000000`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Mains/0/Frequency", d.DeviceIdentifier.String(), name), []byte(`50.000000`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Mains/0/Available", d.DeviceIdentifier.String(), name), []byte(`true`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Mains/0/Voltage", mdev.Identifier().String(), name), []byte(`220.000000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Mains/0/Frequency", mdev.Identifier().String(), name), []byte(`50.000000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Mains/0/Available", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Battery/0/Voltage", d.DeviceIdentifier.String(), name), []byte(`3.800000`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Battery/0/MaximumVoltage", d.DeviceIdentifier.String(), name), []byte(`4.200000`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Battery/0/MinimumVoltage", d.DeviceIdentifier.String(), name), []byte(`3.700000`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Battery/0/Remaining", d.DeviceIdentifier.String(), name), []byte(`0.800000`)).Return(nil)
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Battery/0/Available", d.DeviceIdentifier.String(), name), []byte(`true`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Battery/0/Voltage", mdev.Identifier().String(), name), []byte(`3.800000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Battery/0/MaximumVoltage", mdev.Identifier().String(), name), []byte(`4.200000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Battery/0/MinimumVoltage", mdev.Identifier().String(), name), []byte(`3.700000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Battery/0/Remaining", mdev.Identifier().String(), name), []byte(`0.800000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Battery/0/Available", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.PowerStatusUpdate{
-			Device: d,
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -1091,31 +834,30 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.PressureSensorFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "PressureSensor"
 		mc := &capmocks.PressureSensor{}
 		mc.On("Name").Return(name)
-		mc.On("Reading", mock.Anything, d).Return([]capabilities.PressureReading{
+		mc.On("Reading", mock.Anything).Return([]capabilities.PressureReading{
 			{
 				Value: 1024000,
 			},
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.PressureSensorFlag).Return(mc)
+		mdev.On("Capability", capabilities.PressureSensorFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Readings":[{"Value":1024000}]}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.PressureSensorState{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.PressureSensorUpdate{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -1131,30 +873,29 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.PressureSensorFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "PressureSensor"
 		mc := &capmocks.PressureSensor{}
 		mc.On("Name").Return(name)
-		mc.On("Reading", mock.Anything, d).Return([]capabilities.PressureReading{
+		mc.On("Reading", mock.Anything).Return([]capabilities.PressureReading{
 			{
 				Value: 1024000,
 			},
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.PressureSensorFlag).Return(mc)
+		mdev.On("Capability", capabilities.PressureSensorFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", d.DeviceIdentifier.String(), name), []byte(`1024000.000000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", mdev.Identifier().String(), name), []byte(`1024000.000000`)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.PressureSensorState{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.PressureSensorUpdate{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -1170,31 +911,30 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.RelativeHumiditySensorFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "RelativeHumidity"
 		mc := &capmocks.RelativeHumiditySensor{}
 		mc.On("Name").Return(name)
-		mc.On("Reading", mock.Anything, d).Return([]capabilities.RelativeHumidityReading{
+		mc.On("Reading", mock.Anything).Return([]capabilities.RelativeHumidityReading{
 			{
 				Value: 0.8,
 			},
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.RelativeHumiditySensorFlag).Return(mc)
+		mdev.On("Capability", capabilities.RelativeHumiditySensorFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Readings":[{"Value":0.8}]}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.RelativeHumiditySensorState{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.RelativeHumiditySensorUpdate{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -1210,30 +950,29 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.RelativeHumiditySensorFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "RelativeHumidity"
 		mc := &capmocks.RelativeHumiditySensor{}
 		mc.On("Name").Return(name)
-		mc.On("Reading", mock.Anything, d).Return([]capabilities.RelativeHumidityReading{
+		mc.On("Reading", mock.Anything).Return([]capabilities.RelativeHumidityReading{
 			{
 				Value: 0.8,
 			},
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.RelativeHumiditySensorFlag).Return(mc)
+		mdev.On("Capability", capabilities.RelativeHumiditySensorFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", d.DeviceIdentifier.String(), name), []byte(`0.800000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", mdev.Identifier().String(), name), []byte(`0.800000`)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.RelativeHumiditySensorState{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.RelativeHumiditySensorUpdate{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -1249,31 +988,30 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.TemperatureSensorFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "TemperatureSensor"
 		mc := &capmocks.TemperatureSensor{}
 		mc.On("Name").Return(name)
-		mc.On("Reading", mock.Anything, d).Return([]capabilities.TemperatureReading{
+		mc.On("Reading", mock.Anything).Return([]capabilities.TemperatureReading{
 			{
 				Value: 290,
 			},
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.TemperatureSensorFlag).Return(mc)
+		mdev.On("Capability", capabilities.TemperatureSensorFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Readings":[{"Value":290}]}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.TemperatureSensorState{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.TemperatureSensorUpdate{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -1289,30 +1027,29 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.TemperatureSensorFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
 
 		name := "TemperatureSensor"
 		mc := &capmocks.TemperatureSensor{}
 		mc.On("Name").Return(name)
-		mc.On("Reading", mock.Anything, d).Return([]capabilities.TemperatureReading{
+		mc.On("Reading", mock.Anything).Return([]capabilities.TemperatureReading{
 			{
 				Value: 290,
 			},
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.TemperatureSensorFlag).Return(mc)
+		mdev.On("Capability", capabilities.TemperatureSensorFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", d.DeviceIdentifier.String(), name), []byte(`290.000000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", mdev.Identifier().String(), name), []byte(`290.000000`)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.TemperatureSensorState{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.TemperatureSensorUpdate{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
@@ -1328,36 +1065,36 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.TemperatureSensorFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
+		mdev.On("Capabilities").Return([]da.Capability{capabilities.TemperatureSensorFlag})
 
 		name := "TemperatureSensor"
 		mc := &capmocks.TemperatureSensor{}
 		mc.On("Name").Return(name)
-		mc.On("Reading", mock.Anything, d).Return([]capabilities.TemperatureReading{
+		mc.On("Reading", mock.Anything).Return([]capabilities.TemperatureReading{
 			{
 				Value: 290,
 			},
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.TemperatureSensorFlag).Return(mc)
+		mdev.On("Capability", capabilities.TemperatureSensorFlag).Return(mc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", d.DeviceIdentifier.String(), name), []byte(`290.000000`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", mdev.Identifier().String(), name), []byte(`290.000000`)).Return(nil)
 
 		i.serviceUpdateOnEvent(da.DeviceAdded{
-			Device: d,
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)
 	})
 
-	t.Run("DeviceLoaded publishes device", func(t *testing.T) {
+	t.Run("EnumerateDeviceStopped publishes whole device", func(t *testing.T) {
 		mapper := &state.MockMux{}
 		defer mapper.AssertExpectations(t)
 
@@ -1367,82 +1104,43 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		gw := &mocks.Gateway{}
 		defer gw.AssertExpectations(t)
 
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.TemperatureSensorFlag},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		name := "TemperatureSensor"
-		mc := &capmocks.TemperatureSensor{}
-		mc.On("Name").Return(name)
-		mc.On("Reading", mock.Anything, d).Return([]capabilities.TemperatureReading{
-			{
-				Value: 290,
-			},
-		}, nil)
-		defer mc.AssertExpectations(t)
-
-		gw.On("Capability", capabilities.TemperatureSensorFlag).Return(mc)
-
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
-
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", d.DeviceIdentifier.String(), name), []byte(`290.000000`)).Return(nil)
-
-		i.serviceUpdateOnEvent(da.DeviceLoaded{
-			Device: d,
-		})
-
-		time.Sleep(50 * time.Millisecond)
-	})
-
-	t.Run("EnumerateDeviceSuccess publishes whole device", func(t *testing.T) {
-		mapper := &state.MockMux{}
-		defer mapper.AssertExpectations(t)
-
-		m := &MockPublisher{}
-		defer m.AssertExpectations(t)
-
-		gw := &mocks.Gateway{}
-		defer gw.AssertExpectations(t)
-
-		d := da.BaseDevice{
-			DeviceGateway:      gw,
-			DeviceIdentifier:   zigbee.GenerateLocalAdministeredIEEEAddress(),
-			DeviceCapabilities: []da.Capability{capabilities.EnumerateDeviceFlag, capabilities.TemperatureSensorFlag},
-		}
+		mdev.On("Identifier").Return(zigbee.GenerateLocalAdministeredIEEEAddress())
+		mdev.On("Capabilities").Return([]da.Capability{capabilities.EnumerateDeviceFlag, capabilities.TemperatureSensorFlag})
 
 		name := "EnumerateDevice"
 		mc := &capmocks.EnumerateDevice{}
 		mc.On("Name").Return(name)
-		mc.On("Status", mock.Anything, d).Return(capabilities.EnumerationStatus{
+		mc.On("Status", mock.Anything).Return(capabilities.EnumerationStatus{
 			Enumerating: false,
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
+		mdev.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
 
 		tname := "TemperatureSensor"
 		tmc := &capmocks.TemperatureSensor{}
 		tmc.On("Name").Return(tname)
-		tmc.On("Reading", mock.Anything, d).Return([]capabilities.TemperatureReading{
+		tmc.On("Reading", mock.Anything).Return([]capabilities.TemperatureReading{
 			{
 				Value: 290,
 			},
 		}, nil)
 		defer mc.AssertExpectations(t)
 
-		gw.On("Capability", capabilities.TemperatureSensorFlag).Return(tmc)
+		mdev.On("Capability", capabilities.TemperatureSensorFlag).Return(tmc)
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
 		expectedPayload := `{"Enumerating":false}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), name), []byte(expectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 		texpectedPayload := `{"Readings":[{"Value":290}]}`
-		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", d.DeviceIdentifier.String(), tname), []byte(texpectedPayload)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), tname), []byte(texpectedPayload)).Return(nil)
 
-		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceSuccess{
-			Device: d,
+		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceStopped{
+			Device: mdev,
 		})
 
 		time.Sleep(50 * time.Millisecond)

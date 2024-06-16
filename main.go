@@ -2,17 +2,17 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	lw "github.com/shimmeringbee/logwrap"
 	"github.com/shimmeringbee/logwrap/impl/golog"
+	"github.com/shimmeringbee/persistence"
+	"github.com/shimmeringbee/persistence/impl/file"
 	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
-	"time"
 )
 
 func main() {
@@ -24,6 +24,9 @@ func main() {
 	directories := enumerateDirectories(ctx, l)
 
 	l.LogInfo(ctx, "Directory enumeration complete.", lw.Datum("directories", directories))
+
+	l.LogInfo(ctx, "Persisted data initialising.")
+	section := file.New(directories.Data)
 
 	newLogger, err := configureLogging(filepath.Join(directories.Config, "logging"), directories.Log, l)
 	if err != nil {
@@ -47,12 +50,7 @@ func main() {
 	l.LogInfo(ctx, "Loaded interface configurations.", lw.Datum("configCount", len(interfaceCfgs)))
 
 	l.LogInfo(ctx, "Initialising device organiser.")
-	deviceOrganiser := state.NewDeviceOrganiser()
-
-	shutdownDeviceOrganiser, err := initialiseDeviceOrganiser(l, directories.Data, &deviceOrganiser)
-	if err != nil {
-		l.LogFatal(ctx, "Failed to initialise device organiser.", lw.Err(err))
-	}
+	deviceOrganiser := state.NewDeviceOrganiser(section.Section("Organiser"))
 
 	eventbus := state.NewEventBus()
 	gwMux := state.NewGatewayMux(eventbus)
@@ -70,7 +68,7 @@ func main() {
 	}
 
 	l.LogInfo(ctx, "Starting gateways.")
-	startedGateways, err := startGateways(gatewayCfgs, gwMux, directories, l)
+	startedGateways, err := startGateways(gatewayCfgs, gwMux, directories, l, section.Section("Gateway"))
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start gateways.", lw.Err(err))
 	}
@@ -94,7 +92,7 @@ func main() {
 	for _, gw := range startedGateways {
 		l.LogInfo(ctx, "Shutting down gateway.", lw.Datum("gateway", gw.Name))
 
-		if err := gw.Gateway.Stop(); err != nil {
+		if err := gw.Gateway.Stop(ctx); err != nil {
 			l.LogError(ctx, "Failed to shutdown gateway.", lw.Err(err), lw.Datum("gateway", gw.Name))
 		}
 
@@ -107,64 +105,12 @@ func main() {
 	l.LogInfo(ctx, "Shutting device organiser mux link.")
 	deviceOrganiserMuxCh <- nil
 
-	l.LogInfo(ctx, "Shutting down device organiser.")
-	shutdownDeviceOrganiser()
+	if syncer, ok := section.(persistence.Syncer); ok {
+		l.LogInfo(ctx, "Syncing persistence.")
+		syncer.Sync()
+	}
 
 	l.LogInfo(ctx, "Shut down complete.")
-}
-
-func initialiseDeviceOrganiser(l lw.Logger, dir string, d *state.DeviceOrganiser) (func(), error) {
-	zoneFile := filepath.Join(dir, "zones.json")
-	deviceFile := filepath.Join(dir, "devices.json")
-
-	if err := state.LoadZones(zoneFile, d); err != nil {
-		return func() {}, fmt.Errorf("failed to load zones: %w", err)
-	}
-
-	if err := state.LoadDevices(deviceFile, d); err != nil {
-		return func() {}, fmt.Errorf("failed to load devices: %w", err)
-	}
-
-	if err := state.SaveZones(zoneFile, d); err != nil {
-		return func() {}, fmt.Errorf("failed initial save of zones: %w", err)
-	}
-
-	if err := state.SaveDevices(deviceFile, d); err != nil {
-		return func() {}, fmt.Errorf("failed initial save of devices: %w", err)
-	}
-
-	shutCh := make(chan struct{}, 1)
-
-	go func() {
-		t := time.NewTicker(1 * time.Minute)
-
-		for {
-			select {
-			case <-t.C:
-				if err := state.SaveZones(zoneFile, d); err != nil {
-					l.LogError(context.Background(), "Failed to periodically save zones for device organiser.", lw.Err(err))
-				}
-
-				if err := state.SaveDevices(deviceFile, d); err != nil {
-					l.LogError(context.Background(), "Failed to periodically save devices for device organiser.", lw.Err(err))
-				}
-
-			case <-shutCh:
-				if err := state.SaveZones(zoneFile, d); err != nil {
-					l.LogError(context.Background(), "Failed to periodically save zones for device organiser.", lw.Err(err))
-				}
-
-				if err := state.SaveDevices(deviceFile, d); err != nil {
-					l.LogError(context.Background(), "Failed to periodically save devices for device organiser.", lw.Err(err))
-				}
-				return
-			}
-		}
-	}()
-
-	return func() {
-		shutCh <- struct{}{}
-	}, nil
 }
 
 func updateDeviceOrganiserFromMux(do *state.DeviceOrganiser) chan interface{} {

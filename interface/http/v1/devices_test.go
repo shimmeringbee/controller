@@ -43,10 +43,10 @@ func Test_deviceController_listDevices(t *testing.T) {
 			"two": &mgwTwo,
 		})
 
-		daDeviceOne := da.BaseDevice{
-			DeviceGateway:      &mgwOne,
-			DeviceIdentifier:   SimpleIdentifier{id: "one-one"},
-			DeviceCapabilities: []da.Capability{},
+		daDeviceOne := mocks.SimpleDevice{
+			SGateway:      &mgwOne,
+			SIdentifier:   SimpleIdentifier{id: "one-one"},
+			SCapabilities: []da.Capability{},
 		}
 
 		expectedDeviceOne := exporter.ExportedDevice{
@@ -57,10 +57,10 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 		mgwOne.On("Devices").Return([]da.Device{daDeviceOne})
 
-		daDeviceTwo := da.BaseDevice{
-			DeviceGateway:      &mgwTwo,
-			DeviceIdentifier:   SimpleIdentifier{id: "two-two"},
-			DeviceCapabilities: []da.Capability{},
+		daDeviceTwo := mocks.SimpleDevice{
+			SGateway:      &mgwTwo,
+			SIdentifier:   SimpleIdentifier{id: "two-two"},
+			SCapabilities: []da.Capability{},
 		}
 
 		expectedDeviceTwo := exporter.ExportedDevice{
@@ -76,7 +76,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 		mdc.On("ExportDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
 		mdc.On("ExportDevice", mock.Anything, daDeviceTwo).Return(expectedDeviceTwo)
 
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 
 		controller := deviceController{gatewayMapper: &mgm, deviceExporter: &mdc, deviceOrganiser: &do}
 
@@ -124,10 +124,10 @@ func Test_deviceController_getDevice(t *testing.T) {
 		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		daDeviceOne := da.BaseDevice{
-			DeviceGateway:      &mgwOne,
-			DeviceIdentifier:   SimpleIdentifier{id: "one-one"},
-			DeviceCapabilities: []da.Capability{},
+		daDeviceOne := mocks.SimpleDevice{
+			SGateway:      &mgwOne,
+			SIdentifier:   SimpleIdentifier{id: "one-one"},
+			SCapabilities: []da.Capability{},
 		}
 
 		mgm.On("Device", "one").Return(daDeviceOne, true)
@@ -176,7 +176,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
-		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
+		mgm.On("Device", "one").Return(mocks.SimpleDevice{}, false)
 
 		controller := deviceController{gatewayMapper: &mgm}
 
@@ -197,7 +197,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 func Test_deviceController_updateDevice(t *testing.T) {
 	t.Run("updates an individual ExportedDevice with name", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		do.AddDevice("one")
 
 		controller := deviceController{deviceOrganiser: &do}
@@ -226,7 +226,7 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
-		mgm.On("Device", "one").Return(da.BaseDevice{}, false)
+		mgm.On("Device", "one").Return(mocks.SimpleDevice{}, false)
 
 		controller := deviceController{gatewayMapper: &mgm}
 
@@ -251,9 +251,9 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 		mgwOne := mocks.Gateway{}
 		defer mgwOne.AssertExpectations(t)
 
-		device := da.BaseDevice{
-			DeviceCapabilities: []da.Capability{},
-			DeviceGateway:      &mgwOne,
+		device := mocks.SimpleDevice{
+			SCapabilities: []da.Capability{},
+			SGateway:      &mgwOne,
 		}
 
 		mgm.On("Device", "one").Return(device, true)
@@ -288,9 +288,9 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		capOne := da.Capability(1)
 
-		device := da.BaseDevice{
-			DeviceCapabilities: []da.Capability{capOne},
-			DeviceGateway:      &mgwOne,
+		device := mocks.SimpleDevice{
+			SCapabilities: []da.Capability{capOne},
+			SGateway:      &mgwOne,
 		}
 		mgm.On("Device", "one").Return(device, true)
 
@@ -328,9 +328,9 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		capOne := da.Capability(1)
 
-		device := da.BaseDevice{
-			DeviceCapabilities: []da.Capability{capOne},
-			DeviceGateway:      &mgwOne,
+		device := mocks.SimpleDevice{
+			SCapabilities: []da.Capability{capOne},
+			SGateway:      &mgwOne,
 		}
 		mgm.On("Device", "one").Return(device, true)
 
@@ -368,9 +368,9 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		capOne := da.Capability(1)
 
-		device := da.BaseDevice{
-			DeviceCapabilities: []da.Capability{capOne},
-			DeviceGateway:      &mgwOne,
+		device := mocks.SimpleDevice{
+			SCapabilities: []da.Capability{capOne},
+			SGateway:      &mgwOne,
 		}
 		mgm.On("Device", "one").Return(device, true)
 
@@ -408,9 +408,9 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		capOne := da.Capability(1)
 
-		device := da.BaseDevice{
-			DeviceCapabilities: []da.Capability{capOne},
-			DeviceGateway:      &mgwOne,
+		device := mocks.SimpleDevice{
+			SCapabilities: []da.Capability{capOne},
+			SGateway:      &mgwOne,
 		}
 		mgm.On("Device", "one").Return(device, true)
 
@@ -450,9 +450,9 @@ func Test_deviceController_useDeviceCapabilityAction(t *testing.T) {
 
 		capOne := da.Capability(1)
 
-		device := da.BaseDevice{
-			DeviceCapabilities: []da.Capability{capOne},
-			DeviceGateway:      mgwOne,
+		device := mocks.SimpleDevice{
+			SCapabilities: []da.Capability{capOne},
+			SGateway:      mgwOne,
 		}
 		mgm.On("Device", "one").Return(device, true)
 

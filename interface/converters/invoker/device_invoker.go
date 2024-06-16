@@ -7,7 +7,6 @@ import (
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
-	color2 "github.com/shimmeringbee/da/capabilities/color"
 	"time"
 )
 
@@ -34,13 +33,15 @@ func InvokeDeviceAction(ctx context.Context, s layers.OutputStack, l string, r l
 
 	o := s.Lookup(l)
 
-	for _, capFlag := range dad.Capabilities() {
-		uncastCap := o.Capability(r, capFlag, dad)
+	d := o.Device(r, dad)
+
+	for _, capFlag := range d.Capabilities() {
+		uncastCap := d.Capability(capFlag)
 
 		if uncastCap != nil {
 			if castCap, ok := uncastCap.(da.BasicCapability); ok {
 				if castCap.Name() == capabilityName {
-					return doDeviceCapabilityAction(invokeCtx, dad, uncastCap, actionName, payload)
+					return doDeviceCapabilityAction(invokeCtx, uncastCap, actionName, payload)
 				}
 			}
 		}
@@ -86,22 +87,18 @@ func resolveOutputLayerAndRetention(l string, r layers.RetentionLevel, payload [
 	return l, r, nil
 }
 
-func doDeviceCapabilityAction(ctx context.Context, d da.Device, c interface{}, a string, b []byte) (interface{}, error) {
+func doDeviceCapabilityAction(ctx context.Context, c interface{}, a string, b []byte) (interface{}, error) {
 	switch cast := c.(type) {
 	case capabilities.DeviceDiscovery:
-		return doDeviceDiscovery(ctx, d, cast, a, b)
+		return doDeviceDiscovery(ctx, cast, a, b)
 	case capabilities.EnumerateDevice:
-		return doEnumerateDevice(ctx, d, cast, a, b)
+		return doEnumerateDevice(ctx, cast, a)
 	case capabilities.OnOff:
-		return doOnOff(ctx, d, cast, a, b)
+		return doOnOff(ctx, cast, a)
 	case capabilities.AlarmWarningDevice:
-		return doAlarmWarningDevice(ctx, d, cast, a, b)
-	case capabilities.Level:
-		return doLevel(ctx, d, cast, a, b)
-	case capabilities.Color:
-		return doColor(ctx, d, cast, a, b)
+		return doAlarmWarningDevice(ctx, cast, a, b)
 	case capabilities.DeviceRemoval:
-		return doDeviceRemoval(ctx, d, cast, a, b)
+		return doDeviceRemoval(ctx, cast, a, b)
 	}
 
 	return nil, ActionNotSupported
@@ -111,7 +108,7 @@ type DeviceDiscoveryEnable struct {
 	Duration int
 }
 
-func doDeviceDiscovery(ctx context.Context, d da.Device, c capabilities.DeviceDiscovery, a string, b []byte) (interface{}, error) {
+func doDeviceDiscovery(ctx context.Context, c capabilities.DeviceDiscovery, a string, b []byte) (interface{}, error) {
 	switch a {
 	case "Enable":
 		input := DeviceDiscoveryEnable{}
@@ -120,29 +117,29 @@ func doDeviceDiscovery(ctx context.Context, d da.Device, c capabilities.DeviceDi
 		}
 
 		duration := time.Duration(input.Duration) * time.Millisecond
-		return struct{}{}, c.Enable(ctx, d, duration)
+		return struct{}{}, c.Enable(ctx, duration)
 	case "Disable":
-		return struct{}{}, c.Disable(ctx, d)
+		return struct{}{}, c.Disable(ctx)
 	}
 
 	return nil, ActionNotSupported
 }
 
-func doEnumerateDevice(ctx context.Context, d da.Device, c capabilities.EnumerateDevice, a string, b []byte) (interface{}, error) {
+func doEnumerateDevice(ctx context.Context, c capabilities.EnumerateDevice, a string) (interface{}, error) {
 	switch a {
 	case "Enumerate":
-		return struct{}{}, c.Enumerate(ctx, d)
+		return struct{}{}, c.Enumerate(ctx)
 	}
 
 	return nil, ActionNotSupported
 }
 
-func doOnOff(ctx context.Context, d da.Device, c capabilities.OnOff, a string, b []byte) (interface{}, error) {
+func doOnOff(ctx context.Context, c capabilities.OnOff, a string) (interface{}, error) {
 	switch a {
 	case "On":
-		return struct{}{}, c.On(ctx, d)
+		return struct{}{}, c.On(ctx)
 	case "Off":
-		return struct{}{}, c.Off(ctx, d)
+		return struct{}{}, c.Off(ctx)
 	}
 
 	return nil, ActionNotSupported
@@ -182,7 +179,7 @@ func stringToAlertType(alertType string) (capabilities.AlertType, bool) {
 	return 0, false
 }
 
-func doAlarmWarningDevice(ctx context.Context, d da.Device, c capabilities.AlarmWarningDevice, a string, b []byte) (interface{}, error) {
+func doAlarmWarningDevice(ctx context.Context, c capabilities.AlarmWarningDevice, a string, b []byte) (interface{}, error) {
 	switch a {
 	case "Alarm":
 		input := AlarmWarningDeviceAlarm{}
@@ -197,9 +194,9 @@ func doAlarmWarningDevice(ctx context.Context, d da.Device, c capabilities.Alarm
 			return nil, fmt.Errorf("%w: unable to parse user data: invalid alarm type", ActionUserError)
 		}
 
-		return struct{}{}, c.Alarm(ctx, d, alarmType, input.Volume, input.Visual, duration)
+		return struct{}{}, c.Alarm(ctx, alarmType, input.Volume, input.Visual, duration)
 	case "Clear":
-		return struct{}{}, c.Clear(ctx, d)
+		return struct{}{}, c.Clear(ctx)
 	case "Alert":
 		input := AlarmWarningDeviceAlert{}
 		if err := json.Unmarshal(b, &input); err != nil {
@@ -216,104 +213,7 @@ func doAlarmWarningDevice(ctx context.Context, d da.Device, c capabilities.Alarm
 			return nil, fmt.Errorf("%w: unable to parse user data: invalid alert type", ActionUserError)
 		}
 
-		return struct{}{}, c.Alert(ctx, d, alarmType, alertType, input.Volume, input.Visual)
-	}
-
-	return nil, ActionNotSupported
-}
-
-type LevelChange struct {
-	Level    float64
-	Duration int
-}
-
-func doLevel(ctx context.Context, d da.Device, c capabilities.Level, a string, b []byte) (interface{}, error) {
-	switch a {
-	case "Change":
-		input := LevelChange{}
-		if err := json.Unmarshal(b, &input); err != nil {
-			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, err.Error())
-		}
-
-		duration := time.Duration(input.Duration) * time.Millisecond
-		return struct{}{}, c.Change(ctx, d, input.Level, duration)
-	}
-
-	return nil, ActionNotSupported
-}
-
-type ColorChangeTemperature struct {
-	Temperature float64
-	Duration    int
-}
-
-type ColorChangeColorXYY struct {
-	X  float64
-	Y  float64
-	Y2 float64
-}
-
-type ColorChangeColorHSV struct {
-	Hue        float64
-	Saturation float64
-	Value      float64
-}
-
-type ColorChangeColorRGB struct {
-	R uint8
-	G uint8
-	B uint8
-}
-
-type ColorChangeColor struct {
-	XYY      *ColorChangeColorXYY
-	HSV      *ColorChangeColorHSV
-	RGB      *ColorChangeColorRGB
-	Duration int
-}
-
-func doColor(ctx context.Context, d da.Device, c capabilities.Color, a string, b []byte) (interface{}, error) {
-	switch a {
-	case "ChangeColor":
-		input := ColorChangeColor{}
-		if err := json.Unmarshal(b, &input); err != nil {
-			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, err.Error())
-		}
-
-		var color color2.ConvertibleColor
-
-		if input.XYY != nil {
-			color = color2.XYColor{
-				X:  input.XYY.X,
-				Y:  input.XYY.Y,
-				Y2: input.XYY.Y2,
-			}
-		} else if input.HSV != nil {
-			color = color2.HSVColor{
-				Hue:   input.HSV.Hue,
-				Sat:   input.HSV.Saturation,
-				Value: input.HSV.Value,
-			}
-		} else if input.RGB != nil {
-			color = color2.SRGBColor{
-				R: input.RGB.R,
-				G: input.RGB.G,
-				B: input.RGB.B,
-			}
-		} else {
-			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, fmt.Errorf("no recognised color"))
-		}
-
-		duration := time.Duration(input.Duration) * time.Millisecond
-		return struct{}{}, c.ChangeColor(ctx, d, color, duration)
-	case "ChangeTemperature":
-		input := ColorChangeTemperature{}
-		if err := json.Unmarshal(b, &input); err != nil {
-			return nil, fmt.Errorf("%w: unable to parse user data: %s", ActionUserError, err.Error())
-		}
-
-		duration := time.Duration(input.Duration) * time.Millisecond
-		return struct{}{}, c.ChangeTemperature(ctx, d, input.Temperature, duration)
+		return struct{}{}, c.Alert(ctx, alarmType, alertType, input.Volume, input.Visual)
 	}
 
 	return nil, ActionNotSupported
@@ -323,7 +223,7 @@ type RemoveDevice struct {
 	Force bool
 }
 
-func doDeviceRemoval(ctx context.Context, d da.Device, c capabilities.DeviceRemoval, a string, b []byte) (interface{}, error) {
+func doDeviceRemoval(ctx context.Context, c capabilities.DeviceRemoval, a string, b []byte) (interface{}, error) {
 	switch a {
 	case "Remove":
 		input := RemoveDevice{}
@@ -336,7 +236,7 @@ func doDeviceRemoval(ctx context.Context, d da.Device, c capabilities.DeviceRemo
 			rt = capabilities.Force
 		}
 
-		return struct{}{}, c.Remove(ctx, d, rt)
+		return struct{}{}, c.Remove(ctx, rt)
 	}
 
 	return nil, ActionNotSupported

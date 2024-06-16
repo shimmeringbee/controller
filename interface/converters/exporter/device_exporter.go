@@ -3,11 +3,9 @@ package exporter
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
-	"github.com/shimmeringbee/da/capabilities/color"
 	"time"
 )
 
@@ -35,10 +33,10 @@ func (de *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) 
 	capabilityList := map[string]interface{}{}
 
 	for _, capFlag := range daDevice.Capabilities() {
-		uncastCapability := daDevice.Gateway().Capability(capFlag)
+		uncastCapability := daDevice.Capability(capFlag)
 
 		if basicCapability, ok := uncastCapability.(da.BasicCapability); ok {
-			capabilityList[basicCapability.Name()] = de.ExportCapability(ctx, daDevice, uncastCapability)
+			capabilityList[basicCapability.Name()] = de.ExportCapability(ctx, uncastCapability)
 		}
 	}
 
@@ -53,44 +51,40 @@ func (de *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) 
 	}
 }
 
-func (de *DeviceExporter) ExportCapability(pctx context.Context, device da.Device, uncastCapability interface{}) interface{} {
+func (de *DeviceExporter) ExportCapability(pctx context.Context, uncastCapability interface{}) interface{} {
 	ctx, cancel := context.WithTimeout(pctx, DefaultCapabilityTimeout)
 	defer cancel()
 
 	var retVal interface{}
 
 	switch capability := uncastCapability.(type) {
-	case capabilities.HasProductInformation:
-		retVal = de.convertHasProductInformation(ctx, device, capability)
+	case capabilities.ProductInformation:
+		retVal = de.convertHasProductInformation(ctx, capability)
 	case capabilities.TemperatureSensor:
-		retVal = de.convertTemperatureSensor(ctx, device, capability)
+		retVal = de.convertTemperatureSensor(ctx, capability)
 	case capabilities.RelativeHumiditySensor:
-		retVal = de.convertRelativeHumiditySensor(ctx, device, capability)
+		retVal = de.convertRelativeHumiditySensor(ctx, capability)
 	case capabilities.PressureSensor:
-		retVal = de.convertPressureSensor(ctx, device, capability)
+		retVal = de.convertPressureSensor(ctx, capability)
 	case capabilities.DeviceDiscovery:
-		retVal = de.convertDeviceDiscovery(ctx, device, capability)
+		retVal = de.convertDeviceDiscovery(ctx, capability)
 	case capabilities.EnumerateDevice:
-		retVal = de.convertEnumerateDevice(ctx, device, capability)
+		retVal = de.convertEnumerateDevice(ctx, capability)
 	case capabilities.AlarmSensor:
-		retVal = de.convertAlarmSensor(ctx, device, capability)
+		retVal = de.convertAlarmSensor(ctx, capability)
 	case capabilities.OnOff:
-		retVal = de.convertOnOff(ctx, device, capability)
+		retVal = de.convertOnOff(ctx, capability)
 	case capabilities.PowerSupply:
-		retVal = de.convertPowerSupply(ctx, device, capability)
+		retVal = de.convertPowerSupply(ctx, capability)
 	case capabilities.AlarmWarningDevice:
-		retVal = de.convertAlarmWarningDevice(ctx, device, capability)
-	case capabilities.Level:
-		retVal = de.convertLevel(ctx, device, capability)
-	case capabilities.Color:
-		retVal = de.convertColor(ctx, device, capability)
+		retVal = de.convertAlarmWarningDevice(ctx, capability)
 	default:
 		return struct{}{}
 	}
 
 	if capWithLUT, ok := uncastCapability.(capabilities.WithLastUpdateTime); ok {
 		if retWithSUT, ok := retVal.(SettableUpdateTime); ok {
-			if lut, err := capWithLUT.LastUpdateTime(ctx, device); err == nil {
+			if lut, err := capWithLUT.LastUpdateTime(ctx); err == nil {
 				retWithSUT.SetUpdateTime(lut)
 			}
 		}
@@ -98,7 +92,7 @@ func (de *DeviceExporter) ExportCapability(pctx context.Context, device da.Devic
 
 	if capWithLCT, ok := uncastCapability.(capabilities.WithLastChangeTime); ok {
 		if retWithSCT, ok := retVal.(SettableChangeTime); ok {
-			if lut, err := capWithLCT.LastChangeTime(ctx, device); err == nil {
+			if lut, err := capWithLCT.LastChangeTime(ctx); err == nil {
 				retWithSCT.SetChangeTime(lut)
 			}
 		}
@@ -149,10 +143,11 @@ type HasProductInformation struct {
 	Name         string `json:",omitempty"`
 	Manufacturer string `json:",omitempty"`
 	Serial       string `json:",omitempty"`
+	Version      string `json:",omitempty"`
 }
 
-func (de *DeviceExporter) convertHasProductInformation(ctx context.Context, device da.Device, hpi capabilities.HasProductInformation) interface{} {
-	pi, err := hpi.ProductInformation(ctx, device)
+func (de *DeviceExporter) convertHasProductInformation(ctx context.Context, hpi capabilities.ProductInformation) interface{} {
+	pi, err := hpi.Get(ctx)
 	if err != nil {
 		return nil
 	}
@@ -161,6 +156,7 @@ func (de *DeviceExporter) convertHasProductInformation(ctx context.Context, devi
 		Name:         pi.Name,
 		Manufacturer: pi.Manufacturer,
 		Serial:       pi.Serial,
+		Version:      pi.Version,
 	}
 }
 
@@ -170,8 +166,8 @@ type TemperatureSensor struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertTemperatureSensor(ctx context.Context, device da.Device, ts capabilities.TemperatureSensor) interface{} {
-	tsReadings, err := ts.Reading(ctx, device)
+func (de *DeviceExporter) convertTemperatureSensor(ctx context.Context, ts capabilities.TemperatureSensor) interface{} {
+	tsReadings, err := ts.Reading(ctx)
 	if err != nil {
 		return nil
 	}
@@ -187,8 +183,8 @@ type RelativeHumiditySensor struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertRelativeHumiditySensor(ctx context.Context, device da.Device, rhs capabilities.RelativeHumiditySensor) interface{} {
-	rhReadings, err := rhs.Reading(ctx, device)
+func (de *DeviceExporter) convertRelativeHumiditySensor(ctx context.Context, rhs capabilities.RelativeHumiditySensor) interface{} {
+	rhReadings, err := rhs.Reading(ctx)
 	if err != nil {
 		return nil
 	}
@@ -204,8 +200,8 @@ type PressureSensor struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertPressureSensor(ctx context.Context, device da.Device, ps capabilities.PressureSensor) interface{} {
-	psReadings, err := ps.Reading(ctx, device)
+func (de *DeviceExporter) convertPressureSensor(ctx context.Context, ps capabilities.PressureSensor) interface{} {
+	psReadings, err := ps.Reading(ctx)
 	if err != nil {
 		return nil
 	}
@@ -222,8 +218,8 @@ type DeviceDiscovery struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertDeviceDiscovery(ctx context.Context, device da.Device, dd capabilities.DeviceDiscovery) interface{} {
-	discoveryState, err := dd.Status(ctx, device)
+func (de *DeviceExporter) convertDeviceDiscovery(ctx context.Context, dd capabilities.DeviceDiscovery) interface{} {
+	discoveryState, err := dd.Status(ctx)
 	if err != nil {
 		return nil
 	}
@@ -242,8 +238,8 @@ type EnumerateDevice struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertEnumerateDevice(ctx context.Context, device da.Device, ed capabilities.EnumerateDevice) interface{} {
-	enumerateDeviceState, err := ed.Status(ctx, device)
+func (de *DeviceExporter) convertEnumerateDevice(ctx context.Context, ed capabilities.EnumerateDevice) interface{} {
+	enumerateDeviceState, err := ed.Status(ctx)
 	if err != nil {
 		return nil
 	}
@@ -259,8 +255,8 @@ type AlarmSensor struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertAlarmSensor(ctx context.Context, device da.Device, as capabilities.AlarmSensor) interface{} {
-	alarmSensorState, err := as.Status(ctx, device)
+func (de *DeviceExporter) convertAlarmSensor(ctx context.Context, as capabilities.AlarmSensor) interface{} {
+	alarmSensorState, err := as.Status(ctx)
 	if err != nil {
 		return nil
 	}
@@ -282,8 +278,8 @@ type OnOff struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertOnOff(ctx context.Context, device da.Device, oo capabilities.OnOff) interface{} {
-	state, err := oo.Status(ctx, device)
+func (de *DeviceExporter) convertOnOff(ctx context.Context, oo capabilities.OnOff) interface{} {
+	state, err := oo.Status(ctx)
 	if err != nil {
 		return nil
 	}
@@ -314,8 +310,8 @@ type PowerBatteryStatus struct {
 	Available      *bool    `json:",omitempty"`
 }
 
-func (de *DeviceExporter) convertPowerSupply(ctx context.Context, d da.Device, capability capabilities.PowerSupply) interface{} {
-	state, err := capability.Status(ctx, d)
+func (de *DeviceExporter) convertPowerSupply(ctx context.Context, capability capabilities.PowerSupply) interface{} {
+	state, err := capability.Status(ctx)
 	if err != nil {
 		return nil
 	}
@@ -383,8 +379,8 @@ type AlarmWarningDeviceStatus struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertAlarmWarningDevice(ctx context.Context, d da.Device, capability capabilities.AlarmWarningDevice) interface{} {
-	state, err := capability.Status(ctx, d)
+func (de *DeviceExporter) convertAlarmWarningDevice(ctx context.Context, capability capabilities.AlarmWarningDevice) interface{} {
+	state, err := capability.Status(ctx)
 	if err != nil {
 		return nil
 	}
@@ -404,145 +400,4 @@ func (de *DeviceExporter) convertAlarmWarningDevice(ctx context.Context, d da.De
 	}
 
 	return status
-}
-
-type Level struct {
-	Current           float64
-	Target            float64 `json:",omitempty"`
-	DurationRemaining int     `json:",omitempty"`
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertLevel(ctx context.Context, device da.Device, l capabilities.Level) interface{} {
-	state, err := l.Status(ctx, device)
-	if err != nil {
-		return nil
-	}
-
-	durationInMilliseconds := int(state.DurationRemaining / time.Millisecond)
-
-	return &Level{
-		Current:           state.CurrentLevel,
-		Target:            state.TargetLevel,
-		DurationRemaining: durationInMilliseconds,
-	}
-}
-
-type ColorOutputXYY struct {
-	X  float64
-	Y  float64
-	Y2 float64
-}
-
-type ColorOutputHSV struct {
-	Hue        float64
-	Saturation float64
-	Value      float64
-}
-
-type ColorOutputRGB struct {
-	R uint8
-	G uint8
-	B uint8
-}
-
-type ColorOutput struct {
-	XYY ColorOutputXYY
-	HSV ColorOutputHSV
-	RGB ColorOutputRGB
-	Hex string
-}
-
-type ColorState struct {
-	Temperature float64      `json:",omitempty"`
-	Color       *ColorOutput `json:",omitempty"`
-}
-
-type ColorSupports struct {
-	Color       bool
-	Temperature bool
-}
-
-type Color struct {
-	Current           *ColorState
-	Target            *ColorState `json:",omitempty"`
-	DurationRemaining int         `json:",omitempty"`
-	Supports          ColorSupports
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertColor(ctx context.Context, device da.Device, c capabilities.Color) interface{} {
-	state, err := c.Status(ctx, device)
-	if err != nil {
-		return nil
-	}
-
-	supportsColor, err := c.SupportsColor(ctx, device)
-	if err != nil {
-		return nil
-	}
-
-	supportsTemperature, err := c.SupportsTemperature(ctx, device)
-	if err != nil {
-		return nil
-	}
-
-	durationInMilliseconds := int(state.DurationRemaining / time.Millisecond)
-
-	currentColor := ColorState{}
-	var targetColor *ColorState
-
-	if state.Mode == capabilities.TemperatureMode {
-		currentColor.Temperature = state.Temperature.Current
-
-		if state.Temperature.Target > 0 {
-			targetColor = &ColorState{}
-			targetColor.Temperature = state.Temperature.Target
-		}
-	} else {
-		currentColor.Color = convertConvertibleColorToColorOutput(state.Color.Current)
-
-		if state.Color.Target != nil {
-			targetColor = &ColorState{}
-			targetColor.Color = convertConvertibleColorToColorOutput(state.Color.Current)
-		}
-	}
-
-	return &Color{
-		Current:           &currentColor,
-		Target:            targetColor,
-		DurationRemaining: durationInMilliseconds,
-		Supports: ColorSupports{
-			Color:       supportsColor,
-			Temperature: supportsTemperature,
-		},
-	}
-}
-
-func convertConvertibleColorToColorOutput(current color.ConvertibleColor) *ColorOutput {
-	x, y, y2 := current.XYY()
-	h, s, v := current.HSV()
-	r, g, b := current.RGB()
-	hex := fmt.Sprintf("%02x%02x%02x", r, g, b)
-
-	return &ColorOutput{
-		XYY: ColorOutputXYY{
-			X:  x,
-			Y:  y,
-			Y2: y2,
-		},
-		HSV: ColorOutputHSV{
-			Hue:        h,
-			Saturation: s,
-			Value:      v,
-		},
-		RGB: ColorOutputRGB{
-			R: r,
-			G: g,
-			B: b,
-		},
-		Hex: hex,
-	}
 }

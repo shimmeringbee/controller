@@ -16,6 +16,5 @@ type OutputStack interface {
 
 type OutputLayer interface {
 	Name() string
-	Capability(rl RetentionLevel, c da.Capability, d da.Device) interface{}
-	MaintainedStatus(c da.Capability, d da.Device) interface{}
+	Device(rl RetentionLevel, d da.Device) da.Device
 }

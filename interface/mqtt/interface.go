@@ -130,7 +130,7 @@ func (i *Interface) publishDevice(ctx context.Context, device da.Device) {
 }
 
 func (i *Interface) publishDeviceCapability(ctx context.Context, daDevice da.Device, capFlag da.Capability) {
-	capability := daDevice.Gateway().Capability(capFlag)
+	capability := daDevice.Capability(capFlag)
 
 	basicCapability, ok := capability.(da.BasicCapability)
 	if !ok {
@@ -138,7 +138,7 @@ func (i *Interface) publishDeviceCapability(ctx context.Context, daDevice da.Dev
 	}
 
 	capName := basicCapability.Name()
-	result := i.deviceExporter.ExportCapability(ctx, daDevice, capability)
+	result := i.deviceExporter.ExportCapability(ctx, capability)
 
 	topic := fmt.Sprintf("devices/%s/capabilities/%s", daDevice.Identifier().String(), capName)
 
@@ -207,35 +207,27 @@ func (i *Interface) serviceUpdateOnEvent(e interface{}) {
 	switch event := e.(type) {
 	case da.DeviceAdded:
 		i.publishDevice(ctx, event.Device)
-	case da.DeviceLoaded:
-		i.publishDevice(ctx, event.Device)
 	case capabilities.AlarmSensorUpdate:
 		i.publishDeviceCapability(ctx, event.Device, capabilities.AlarmSensorFlag)
 	case capabilities.AlarmWarningDeviceUpdate:
 		i.publishDeviceCapability(ctx, event.Device, capabilities.AlarmWarningDeviceFlag)
-	case capabilities.ColorStatusUpdate:
-		i.publishDeviceCapability(ctx, event.Device, capabilities.ColorFlag)
 	case capabilities.DeviceDiscoveryEnabled:
 		i.publishDeviceCapability(ctx, event.Gateway.Self(), capabilities.DeviceDiscoveryFlag)
 	case capabilities.DeviceDiscoveryDisabled:
 		i.publishDeviceCapability(ctx, event.Gateway.Self(), capabilities.DeviceDiscoveryFlag)
 	case capabilities.EnumerateDeviceStart:
 		i.publishDeviceCapability(ctx, event.Device, capabilities.EnumerateDeviceFlag)
-	case capabilities.EnumerateDeviceFailure:
-		i.publishDeviceCapability(ctx, event.Device, capabilities.EnumerateDeviceFlag)
-	case capabilities.EnumerateDeviceSuccess:
+	case capabilities.EnumerateDeviceStopped:
 		i.publishDevice(ctx, event.Device)
-	case capabilities.LevelStatusUpdate:
-		i.publishDeviceCapability(ctx, event.Device, capabilities.LevelFlag)
-	case capabilities.OnOffState:
+	case capabilities.OnOffUpdate:
 		i.publishDeviceCapability(ctx, event.Device, capabilities.OnOffFlag)
 	case capabilities.PowerStatusUpdate:
 		i.publishDeviceCapability(ctx, event.Device, capabilities.PowerSupplyFlag)
-	case capabilities.PressureSensorState:
+	case capabilities.PressureSensorUpdate:
 		i.publishDeviceCapability(ctx, event.Device, capabilities.PressureSensorFlag)
-	case capabilities.RelativeHumiditySensorState:
+	case capabilities.RelativeHumiditySensorUpdate:
 		i.publishDeviceCapability(ctx, event.Device, capabilities.RelativeHumiditySensorFlag)
-	case capabilities.TemperatureSensorState:
+	case capabilities.TemperatureSensorUpdate:
 		i.publishDeviceCapability(ctx, event.Device, capabilities.TemperatureSensorFlag)
 	}
 }
@@ -246,14 +238,10 @@ func (i *Interface) publishDeviceCapabilityIndividual(ctx context.Context, topic
 		return i.publishDeviceCapabilityIndividualAlarmSensor(ctx, topic, c)
 	case *exporter.AlarmWarningDeviceStatus:
 		return i.publishDeviceCapabilityIndividualAlarmWarningDevice(ctx, topic, c)
-	case *exporter.Color:
-		return i.publishDeviceCapabilityIndividualColor(ctx, topic, c)
 	case *exporter.DeviceDiscovery:
 		return i.publishDeviceCapabilityIndividualDeviceDiscovery(ctx, topic, c)
 	case *exporter.EnumerateDevice:
 		return i.publishDeviceCapabilityIndividualEnumerateDevice(ctx, topic, c)
-	case *exporter.Level:
-		return i.publishDeviceCapabilityIndividualLevel(ctx, topic, c)
 	case *exporter.OnOff:
 		return i.publishDeviceCapabilityIndividualOnOff(ctx, topic, c)
 	case *exporter.PowerStatus:
@@ -305,30 +293,6 @@ func (i *Interface) publishDeviceCapabilityIndividualAlarmWarningDevice(ctx cont
 	return nil
 }
 
-func (i *Interface) publishDeviceCapabilityIndividualColor(ctx context.Context, topic string, c *exporter.Color) error {
-	if err := i.Publisher(ctx, fmt.Sprintf("%s/Current", topic), fmtPtrToJSON(c.Current)); err != nil {
-		return fmt.Errorf("failed to publish data to mqtt: %w", err)
-	}
-
-	if err := i.Publisher(ctx, fmt.Sprintf("%s/Target", topic), fmtPtrToJSON(c.Target)); err != nil {
-		return fmt.Errorf("failed to publish data to mqtt: %w", err)
-	}
-
-	if err := i.Publisher(ctx, fmt.Sprintf("%s/Duration", topic), []byte(fmt.Sprintf("%v", c.DurationRemaining))); err != nil {
-		return fmt.Errorf("failed to publish data to mqtt: %w", err)
-	}
-
-	if err := i.Publisher(ctx, fmt.Sprintf("%s/Supports/Color", topic), []byte(fmt.Sprintf("%v", c.Supports.Color))); err != nil {
-		return fmt.Errorf("failed to publish data to mqtt: %w", err)
-	}
-
-	if err := i.Publisher(ctx, fmt.Sprintf("%s/Supports/Temperature", topic), []byte(fmt.Sprintf("%v", c.Supports.Temperature))); err != nil {
-		return fmt.Errorf("failed to publish data to mqtt: %w", err)
-	}
-
-	return nil
-}
-
 func (i *Interface) publishDeviceCapabilityIndividualDeviceDiscovery(ctx context.Context, topic string, c *exporter.DeviceDiscovery) error {
 	if err := i.Publisher(ctx, fmt.Sprintf("%s/Discovering", topic), []byte(fmt.Sprintf("%v", c.Discovering))); err != nil {
 		return fmt.Errorf("failed to publish data to mqtt: %w", err)
@@ -344,24 +308,6 @@ func (i *Interface) publishDeviceCapabilityIndividualDeviceDiscovery(ctx context
 func (i *Interface) publishDeviceCapabilityIndividualEnumerateDevice(ctx context.Context, topic string, c *exporter.EnumerateDevice) error {
 	if err := i.Publisher(ctx, fmt.Sprintf("%s/Enumerating", topic), []byte(fmt.Sprintf("%v", c.Enumerating))); err != nil {
 		return fmt.Errorf("failed to publish data to mqtt: %w", err)
-	}
-
-	return nil
-}
-
-func (i *Interface) publishDeviceCapabilityIndividualLevel(ctx context.Context, topic string, c *exporter.Level) error {
-	if err := i.Publisher(ctx, fmt.Sprintf("%s/Current", topic), []byte(fmt.Sprintf("%f", c.Current))); err != nil {
-		return fmt.Errorf("failed to publish data to mqtt: %w", err)
-	}
-
-	if c.Target > 0 {
-		if err := i.Publisher(ctx, fmt.Sprintf("%s/Target", topic), []byte(fmt.Sprintf("%f", c.Target))); err != nil {
-			return fmt.Errorf("failed to publish data to mqtt: %w", err)
-		}
-	} else {
-		if err := i.Publisher(ctx, fmt.Sprintf("%s/Target", topic), []byte(`null`)); err != nil {
-			return fmt.Errorf("failed to publish data to mqtt: %w", err)
-		}
 	}
 
 	return nil

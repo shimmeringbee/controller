@@ -10,12 +10,8 @@ func (p PassThruLayer) Name() string {
 	return "PassThru"
 }
 
-func (p PassThruLayer) Capability(rl RetentionLevel, c da.Capability, d da.Device) interface{} {
-	return d.Gateway().Capability(c)
-}
-
-func (p PassThruLayer) MaintainedStatus(c da.Capability, d da.Device) interface{} {
-	return struct{}{}
+func (p PassThruLayer) Device(rl RetentionLevel, d da.Device) da.Device {
+	return d
 }
 
 var _ OutputStack = (*PassThruStack)(nil)

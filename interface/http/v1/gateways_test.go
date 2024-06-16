@@ -188,11 +188,8 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 			"one": &mgwOne,
 		})
 
-		daDeviceOne := da.BaseDevice{
-			DeviceGateway:      &mgwOne,
-			DeviceIdentifier:   SimpleIdentifier{id: "one-one"},
-			DeviceCapabilities: []da.Capability{},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
 		expectedDeviceOne := exporter.ExportedDevice{
 			Identifier:   "one-one",
@@ -200,11 +197,11 @@ func Test_gatewayController_listDevicesOnGateway(t *testing.T) {
 			Gateway:      "one",
 		}
 
-		mgwOne.On("Devices").Return([]da.Device{daDeviceOne})
+		mgwOne.On("Devices").Return([]da.Device{mdev})
 
 		mdc := exporter.MockDeviceExporter{}
 		defer mdc.AssertExpectations(t)
-		mdc.On("ExportDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
+		mdc.On("ExportDevice", mock.Anything, mdev).Return(expectedDeviceOne)
 
 		controller := gatewayController{gatewayMapper: &mgm, deviceConverter: &mdc}
 

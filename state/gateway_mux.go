@@ -10,7 +10,6 @@ import (
 
 type GatewayMapper interface {
 	Gateways() map[string]da.Gateway
-	Capability(string, da.Capability) interface{}
 	Device(string) (da.Device, bool)
 	GatewayName(da.Gateway) (string, bool)
 }
@@ -67,11 +66,7 @@ func (m *GatewayMux) monitorGateway(g da.Gateway, shutCh chan struct{}) {
 				m.lock.Lock()
 				delete(m.deviceByIdentifier, e.Device.Identifier().String())
 				m.lock.Unlock()
-			case da.DeviceLoaded:
-				m.lock.Lock()
-				m.deviceByIdentifier[e.Device.Identifier().String()] = e.Device
-				m.lock.Unlock()
-			case capabilities.EnumerateDeviceSuccess:
+			case capabilities.EnumerateDeviceStopped:
 				m.lock.Lock()
 				m.deviceByIdentifier[e.Device.Identifier().String()] = e.Device
 				m.lock.Unlock()
@@ -111,16 +106,6 @@ func (m *GatewayMux) GatewayName(gw da.Gateway) (string, bool) {
 	return "", false
 }
 
-func (m *GatewayMux) Capability(d string, c da.Capability) interface{} {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-
-	if daDevice, found := m.deviceByIdentifier[d]; found {
-		return daDevice.Gateway().Capability(c)
-	}
-
-	return nil
-}
 func (m *GatewayMux) Device(id string) (da.Device, bool) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()

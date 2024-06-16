@@ -2,21 +2,18 @@ package exporter
 
 import (
 	"github.com/shimmeringbee/da"
+	"github.com/shimmeringbee/da/capabilities"
 )
 
 func ExportGateway(gw da.Gateway) ExportedGateway {
-	capabilities := []string{}
+	caps := []string{}
 
-	for _, cap := range gw.Capabilities() {
-		uncastCapability := gw.Capability(cap)
-
-		if basicCapability, ok := uncastCapability.(da.BasicCapability); ok {
-			capabilities = append(capabilities, basicCapability.Name())
-		}
+	for _, c := range gw.Capabilities() {
+		caps = append(caps, capabilities.StandardNames[c])
 	}
 
 	return ExportedGateway{
-		Capabilities: capabilities,
+		Capabilities: caps,
 		SelfDevice:   gw.Self().Identifier().String(),
 	}
 }

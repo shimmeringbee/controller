@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/interface/converters/exporter"
 	"github.com/shimmeringbee/controller/state"
-	"github.com/shimmeringbee/da"
+	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"net/http"
@@ -16,7 +16,7 @@ import (
 
 func Test_zoneController_listZones(t *testing.T) {
 	t.Run("returns a list of root zones", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
 		_ = do.NewZone("three")
@@ -60,7 +60,7 @@ func Test_zoneController_listZones(t *testing.T) {
 	})
 
 	t.Run("returns a list of root zones, with devices", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		do.AddDevice("devOne")
 		do.AddDevice("devThree")
 		zoneOne := do.NewZone("one")
@@ -75,8 +75,8 @@ func Test_zoneController_listZones(t *testing.T) {
 		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
-		daDevOne := da.BaseDevice{DeviceIdentifier: SimpleIdentifier{id: "devOne"}}
-		daDevThree := da.BaseDevice{DeviceIdentifier: SimpleIdentifier{id: "devThree"}}
+		daDevOne := mocks.SimpleDevice{SIdentifier: SimpleIdentifier{id: "devOne"}}
+		daDevThree := mocks.SimpleDevice{SIdentifier: SimpleIdentifier{id: "devThree"}}
 
 		mgm.On("Device", "devOne").Return(daDevOne, true)
 		mgm.On("Device", "devThree").Return(daDevThree, true)
@@ -141,7 +141,7 @@ func Test_zoneController_listZones(t *testing.T) {
 	})
 
 	t.Run("returns a list of root zones, with sub zones", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
 		_ = do.NewZone("three")
@@ -193,7 +193,7 @@ func Test_zoneController_listZones(t *testing.T) {
 
 func Test_zoneController_getZone(t *testing.T) {
 	t.Run("returns an individual ExportedZone", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
 
@@ -231,7 +231,7 @@ func Test_zoneController_getZone(t *testing.T) {
 	})
 
 	t.Run("returns an individual zone, with devices", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
 		do.AddDevice("devTwo")
@@ -243,7 +243,7 @@ func Test_zoneController_getZone(t *testing.T) {
 		mgm := state.MockMux{}
 		defer mgm.AssertExpectations(t)
 
-		daDevTwo := da.BaseDevice{DeviceIdentifier: SimpleIdentifier{id: "devTwo"}}
+		daDevTwo := mocks.SimpleDevice{SIdentifier: SimpleIdentifier{id: "devTwo"}}
 
 		mgm.On("Device", "devTwo").Return(daDevTwo, true)
 
@@ -292,7 +292,7 @@ func Test_zoneController_getZone(t *testing.T) {
 	})
 
 	t.Run("returns an individual zone, with sub zones", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
 
@@ -337,7 +337,7 @@ func Test_zoneController_getZone(t *testing.T) {
 
 func Test_zoneController_createZone(t *testing.T) {
 	t.Run("creates an individual zone", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 
 		controller := zoneController{deviceOrganiser: &do}
 
@@ -376,7 +376,7 @@ func Test_zoneController_createZone(t *testing.T) {
 
 func Test_zoneController_deleteZone(t *testing.T) {
 	t.Run("deletes a zone", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		zoneOne := do.NewZone("one")
 
 		controller := zoneController{deviceOrganiser: &do}
@@ -401,7 +401,7 @@ func Test_zoneController_deleteZone(t *testing.T) {
 
 func Test_zoneController_updateZone(t *testing.T) {
 	t.Run("updates an individual zone", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		do.NewZone("old")
 
 		controller := zoneController{deviceOrganiser: &do}
@@ -439,7 +439,7 @@ func Test_zoneController_updateZone(t *testing.T) {
 	})
 
 	t.Run("updates an individual zone, moving before", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		do.NewZone("one")
 		do.NewZone("two")
 
@@ -468,7 +468,7 @@ func Test_zoneController_updateZone(t *testing.T) {
 	})
 
 	t.Run("updates an individual zone, moving after", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		do.NewZone("one")
 		do.NewZone("two")
 
@@ -499,7 +499,7 @@ func Test_zoneController_updateZone(t *testing.T) {
 
 func Test_zoneController_addDeviceToZone(t *testing.T) {
 	t.Run("add a device to a zone", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		do.NewZone("ExportedZone")
 		do.AddDevice("id")
 
@@ -525,7 +525,7 @@ func Test_zoneController_addDeviceToZone(t *testing.T) {
 
 func Test_zoneController_removeDeviceToZone(t *testing.T) {
 	t.Run("remove a device from a zone", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		do.NewZone("ExportedZone")
 		do.AddDevice("id")
 		err := do.AddDeviceToZone("id", 1)
@@ -553,7 +553,7 @@ func Test_zoneController_removeDeviceToZone(t *testing.T) {
 
 func Test_zoneController_addSubzoneToZone(t *testing.T) {
 	t.Run("add a device to a zone", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		do.NewZone("zone1")
 		zTwo := do.NewZone("zone2")
 
@@ -579,7 +579,7 @@ func Test_zoneController_addSubzoneToZone(t *testing.T) {
 
 func Test_zoneController_removeSubzoneToZone(t *testing.T) {
 	t.Run("remove a device from a zone", func(t *testing.T) {
-		do := state.NewDeviceOrganiser()
+		do := state.NewDeviceOrganiser(nil)
 		zOne := do.NewZone("zone1")
 		zTwo := do.NewZone("zone2")
 

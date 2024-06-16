@@ -39,9 +39,9 @@ func (m *MockOutputLayer) Name() string {
 	return called.String(0)
 }
 
-func (m *MockOutputLayer) Capability(rl RetentionLevel, c da.Capability, d da.Device) interface{} {
-	called := m.Called(rl, c, d)
-	return called.Get(0)
+func (m *MockOutputLayer) Device(rl RetentionLevel, d da.Device) da.Device {
+	called := m.Called(rl, d)
+	return called.Get(0).(da.Device)
 }
 
 func (m *MockOutputLayer) MaintainedStatus(c da.Capability, d da.Device) interface{} {
