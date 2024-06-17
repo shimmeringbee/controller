@@ -624,6 +624,9 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		mc.On("Name").Return(name)
 		mc.On("Status", mock.Anything).Return(capabilities.EnumerationStatus{
 			Enumerating: false,
+			CapabilityStatus: map[da.Capability]capabilities.EnumerationCapability{
+				capabilities.OnOffFlag: {Attached: true},
+			},
 		}, nil)
 		defer mc.AssertExpectations(t)
 
@@ -632,6 +635,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Enumerating", mdev.Identifier().String(), name), []byte(`false`)).Return(nil)
+		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Status/OnOff/Attached", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceStopped{
 			Device: mdev,

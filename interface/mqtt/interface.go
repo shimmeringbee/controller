@@ -310,6 +310,12 @@ func (i *Interface) publishDeviceCapabilityIndividualEnumerateDevice(ctx context
 		return fmt.Errorf("failed to publish data to mqtt: %w", err)
 	}
 
+	for capName, status := range c.Status {
+		if err := i.Publisher(ctx, fmt.Sprintf("%s/Status/%s/Attached", topic, capName), []byte(fmt.Sprintf("%v", status.Attached))); err != nil {
+			return fmt.Errorf("failed to publish data to mqtt: %w", err)
+		}
+	}
+
 	return nil
 }
 

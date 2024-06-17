@@ -232,8 +232,14 @@ func (de *DeviceExporter) convertDeviceDiscovery(ctx context.Context, dd capabil
 	}
 }
 
+type EnumerateDeviceCapability struct {
+	Attached bool
+	Errors   []string
+}
+
 type EnumerateDevice struct {
 	Enumerating bool
+	Status      map[string]EnumerateDeviceCapability
 	LastUpdate
 	LastChange
 }
@@ -244,8 +250,24 @@ func (de *DeviceExporter) convertEnumerateDevice(ctx context.Context, ed capabil
 		return nil
 	}
 
+	results := map[string]EnumerateDeviceCapability{}
+
+	for c, ec := range enumerateDeviceState.CapabilityStatus {
+		var errorText []string
+
+		for _, e := range ec.Errors {
+			errorText = append(errorText, e.Error())
+		}
+
+		results[capabilities.StandardNames[c]] = EnumerateDeviceCapability{
+			Attached: ec.Attached,
+			Errors:   errorText,
+		}
+	}
+
 	return &EnumerateDevice{
 		Enumerating: enumerateDeviceState.Enumerating,
+		Status:      results,
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/shimmeringbee/da/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"io"
 	"testing"
 	"time"
 )
@@ -200,10 +201,19 @@ func Test_convertEnumerateDevice(t *testing.T) {
 
 		med.On("Status", mock.Anything).Return(capabilities.EnumerationStatus{
 			Enumerating: true,
+			CapabilityStatus: map[da.Capability]capabilities.EnumerationCapability{
+				capabilities.OnOffFlag: {Attached: true, Errors: []error{io.EOF}},
+			},
 		}, nil)
 
 		expected := &EnumerateDevice{
 			Enumerating: true,
+			Status: map[string]EnumerateDeviceCapability{
+				"OnOff": {
+					Attached: true,
+					Errors:   []string{io.EOF.Error()},
+				},
+			},
 		}
 
 		dc := DeviceExporter{}
