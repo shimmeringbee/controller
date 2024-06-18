@@ -76,17 +76,11 @@ func loadInterfaceConfigurations(dir string) ([]config.InterfaceConfig, error) {
 	return retCfgs, nil
 }
 
-func startInterfaces(cfgs []config.InterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, directories Directories, stack layers.OutputStack, l logwrap.Logger) ([]StartedInterface, error) {
+func startInterfaces(cfgs []config.InterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger) ([]StartedInterface, error) {
 	var retGws []StartedInterface
 
 	for _, cfg := range cfgs {
-		dataDir := filepath.Join(directories.Data, "interfaces", cfg.Name)
-
-		if err := os.MkdirAll(dataDir, DefaultDirectoryPermissions); err != nil {
-			return nil, fmt.Errorf("failed to create interface data directory '%s': %w", dataDir, err)
-		}
-
-		if shutdown, err := startInterface(cfg, g, e, o, dataDir, stack, l); err != nil {
+		if shutdown, err := startInterface(cfg, g, e, o, stack, l); err != nil {
 			return nil, fmt.Errorf("failed to start interface '%s': %w", cfg.Name, err)
 		} else {
 			retGws = append(retGws, StartedInterface{
@@ -99,17 +93,17 @@ func startInterfaces(cfgs []config.InterfaceConfig, g *state.GatewayMux, e state
 	return retGws, nil
 }
 
-func startInterface(cfg config.InterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, cfgDig string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+func startInterface(cfg config.InterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	wl := logwrap.New(nest.Wrap(l))
 	wl.AddOptionsToLogger(logwrap.Datum("interface", cfg.Name))
 
 	switch gwCfg := cfg.Config.(type) {
 	case *config.HTTPInterfaceConfig:
 		wl.AddOptionsToLogger(logwrap.Source("http"))
-		return startHTTPInterface(*gwCfg, g, e, o, cfgDig, stack, wl)
+		return startHTTPInterface(*gwCfg, g, e, o, stack, wl)
 	case *config.MQTTInterfaceConfig:
 		wl.AddOptionsToLogger(logwrap.Source("mqtt"))
-		return startMQTTInterface(*gwCfg, g, e, o, cfgDig, stack, wl)
+		return startMQTTInterface(*gwCfg, g, e, o, stack, wl)
 	default:
 		return nil, fmt.Errorf("unknown gateway type loaded: %s", cfg.Type)
 	}
@@ -125,7 +119,7 @@ func containsString(haystack []string, needle string) bool {
 	return false
 }
 
-func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	r := gorillamux.NewRouter()
 
 	authenticator := null.Authenticator{}
@@ -185,7 +179,7 @@ type errorReply struct {
 	Error error `json:"error"`
 }
 
-func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, cfgDir string, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
+func startMQTTInterface(cfg config.MQTTInterfaceConfig, g *state.GatewayMux, e state.EventSubscriber, o *state.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger) (func() error, error) {
 	clientId, err := randomClientID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random client id: %w", err)

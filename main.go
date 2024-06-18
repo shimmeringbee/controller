@@ -62,7 +62,7 @@ func main() {
 	outputStack := layers.PassThruStack{}
 
 	l.LogInfo(ctx, "Starting interfaces.")
-	startedInterfaces, err := startInterfaces(interfaceCfgs, gwMux, eventbus, &deviceOrganiser, directories, outputStack, l)
+	startedInterfaces, err := startInterfaces(interfaceCfgs, gwMux, eventbus, &deviceOrganiser, outputStack, l)
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start interfaces.", lw.Err(err))
 	}
