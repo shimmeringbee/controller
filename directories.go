@@ -10,7 +10,6 @@ import (
 )
 
 const DefaultDirectoryPermissions = 0700
-const DefaultFilePermissions = 0600
 
 type Directories struct {
 	Config string
