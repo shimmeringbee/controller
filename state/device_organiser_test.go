@@ -2,6 +2,7 @@ package state
 
 import (
 	"errors"
+	"github.com/shimmeringbee/persistence/impl/memory"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
@@ -536,7 +537,8 @@ func TestDeviceOrganiser_persistZones(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.Remove(file.Name())
 
-		do := NewDeviceOrganiser(nil)
+		s := memory.New()
+		do := NewDeviceOrganiser(s)
 
 		one := do.NewZone("one")
 		two := do.NewZone("two")
@@ -551,11 +553,7 @@ func TestDeviceOrganiser_persistZones(t *testing.T) {
 		err = do.MoveZone(three.Identifier, two.Identifier)
 		assert.NoError(t, err)
 
-		err = SaveZones(file.Name(), &do)
-		assert.NoError(t, err)
-
-		newDo := NewDeviceOrganiser(nil)
-		err = LoadZones(file.Name(), &newDo)
+		newDo := NewDeviceOrganiser(s)
 		assert.Equal(t, do.nextZoneId, newDo.nextZoneId)
 		assert.Equal(t, do.zones, newDo.zones)
 	})
@@ -569,21 +567,16 @@ func TestDeviceOrganiser_persistDevices(t *testing.T) {
 		assert.NoError(t, err)
 		defer os.Remove(file.Name())
 
-		do := NewDeviceOrganiser(nil)
+		s := memory.New()
+		do := NewDeviceOrganiser(s)
 		zone := do.NewZone("one")
 
 		do.AddDevice("id")
 		do.NameDevice("id", "name")
 		do.AddDeviceToZone("id", zone.Identifier)
 
-		err = SaveDevices(file.Name(), &do)
-		assert.NoError(t, err)
-
-		newDo := NewDeviceOrganiser(nil)
+		newDo := NewDeviceOrganiser(s)
 		newDo.NewZone("one")
-
-		err = LoadDevices(file.Name(), &newDo)
-		assert.NoError(t, err)
 
 		device, found := newDo.Device("id")
 		assert.True(t, found)

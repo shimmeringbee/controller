@@ -1,12 +1,9 @@
 package state
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/shimmeringbee/controller/config"
 	"github.com/shimmeringbee/persistence"
-	"io/ioutil"
-	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 )
@@ -34,6 +31,11 @@ type DeviceOrganiser struct {
 
 	deviceLock *sync.Mutex
 	devices    map[string]*DeviceMetadata
+
+	zoneConfig   persistence.Section
+	deviceConfig persistence.Section
+
+	loading bool
 }
 
 type ZoneError string
@@ -52,20 +54,27 @@ const (
 )
 
 const RootZoneId int = 0
-const DefaultFilePermissions = 0600
 
-func NewDeviceOrganiser(persistence.Section) DeviceOrganiser {
+func NewDeviceOrganiser(config persistence.Section) DeviceOrganiser {
 	initialZoneId := int64(0)
 	hiddenZone := &Zone{Identifier: RootZoneId, Name: "Hidden Root"}
 
-	return DeviceOrganiser{
-		nextZoneId: &initialZoneId,
-		zoneLock:   &sync.Mutex{},
-		zones:      map[int]*Zone{RootZoneId: hiddenZone},
-		hiddenRoot: hiddenZone,
-		deviceLock: &sync.Mutex{},
-		devices:    map[string]*DeviceMetadata{},
+	do := DeviceOrganiser{
+		nextZoneId:   &initialZoneId,
+		zoneLock:     &sync.Mutex{},
+		zones:        map[int]*Zone{RootZoneId: hiddenZone},
+		hiddenRoot:   hiddenZone,
+		deviceLock:   &sync.Mutex{},
+		devices:      map[string]*DeviceMetadata{},
+		zoneConfig:   config.Section("Zones"),
+		deviceConfig: config.Section("Devices"),
 	}
+
+	do.loading = true
+	do.load()
+	do.loading = false
+
+	return do
 }
 
 func (d *DeviceOrganiser) Zone(id int) (Zone, bool) {
@@ -95,9 +104,18 @@ func (d *DeviceOrganiser) RootZones() []Zone {
 func (d *DeviceOrganiser) NewZone(name string) Zone {
 	newId := int(atomic.AddInt64(d.nextZoneId, 1))
 
+	if !d.loading {
+		d.zoneConfig.Set("NextZoneId", *d.nextZoneId)
+	}
+
+	return d.newZoneWithId(name, newId)
+}
+
+func (d *DeviceOrganiser) newZoneWithId(name string, newId int) Zone {
 	newZone := &Zone{
 		Identifier: newId,
 		Name:       name,
+		ParentZone: RootZoneId,
 		SubZones:   nil,
 		Devices:    nil,
 	}
@@ -107,6 +125,12 @@ func (d *DeviceOrganiser) NewZone(name string) Zone {
 
 	d.hiddenRoot.SubZones = append(d.hiddenRoot.SubZones, newId)
 	d.zones[newId] = newZone
+
+	if !d.loading {
+		s := d.zoneConfig.Section(strconv.Itoa(newId))
+		s.Set("Name", name)
+		s.Set("ParentZone", RootZoneId)
+	}
 
 	return *newZone
 }
@@ -159,6 +183,10 @@ func (d *DeviceOrganiser) DeleteZone(id int) error {
 		parent.SubZones = filterInt(parent.SubZones, id)
 	}
 
+	if !d.loading {
+		d.zoneConfig.SectionDelete(strconv.Itoa(id))
+	}
+
 	return nil
 }
 
@@ -195,8 +223,12 @@ func (d *DeviceOrganiser) MoveZone(id int, newParentId int) error {
 	}
 
 	zone.ParentZone = newParentId
-
 	newParent.SubZones = append(newParent.SubZones, id)
+
+	if !d.loading {
+		s := d.zoneConfig.Section(strconv.Itoa(id))
+		s.Set("ParentZone", newParentId)
+	}
 
 	return nil
 }
@@ -242,6 +274,15 @@ func (d *DeviceOrganiser) ReorderZoneBefore(id int, beforeId int) error {
 
 	parentZone.SubZones = newSubZoneOrder
 
+	if !d.loading {
+		lastId := 0
+		for _, i := range newSubZoneOrder {
+			s := d.zoneConfig.Section(strconv.Itoa(i))
+			s.Set("OrderAfter", lastId)
+			lastId = i
+		}
+	}
+
 	return nil
 }
 
@@ -286,6 +327,15 @@ func (d *DeviceOrganiser) ReorderZoneAfter(id int, afterId int) error {
 
 	parentZone.SubZones = newSubZoneOrder
 
+	if !d.loading {
+		lastId := 0
+		for _, i := range newSubZoneOrder {
+			s := d.zoneConfig.Section(strconv.Itoa(i))
+			s.Set("OrderAfter", lastId)
+			lastId = i
+		}
+	}
+
 	return nil
 }
 
@@ -295,6 +345,11 @@ func (d *DeviceOrganiser) NameZone(id int, name string) error {
 
 	if zone, found := d.zones[id]; found {
 		zone.Name = name
+
+		if !d.loading {
+			s := d.zoneConfig.Section(strconv.Itoa(id))
+			s.Set("Name", name)
+		}
 		return nil
 	} else {
 		return ErrNotFound
@@ -310,6 +365,10 @@ func (d *DeviceOrganiser) AddDevice(id string) {
 	}
 
 	d.devices[id] = &DeviceMetadata{}
+
+	if !d.loading {
+		d.deviceConfig.Section(id)
+	}
 }
 
 func (d *DeviceOrganiser) Device(id string) (DeviceMetadata, bool) {
@@ -329,6 +388,11 @@ func (d *DeviceOrganiser) NameDevice(id string, name string) error {
 
 	if dm, found := d.devices[id]; found {
 		dm.Name = name
+
+		if !d.loading {
+			s := d.deviceConfig.Section(id)
+			s.Set("Name", name)
+		}
 		return nil
 	} else {
 		return ErrNotFound
@@ -356,6 +420,10 @@ func (d *DeviceOrganiser) RemoveDevice(id string) {
 		}
 	}
 
+	if !d.loading {
+		d.deviceConfig.SectionDelete(id)
+	}
+
 	delete(d.devices, id)
 }
 
@@ -378,6 +446,10 @@ func (d *DeviceOrganiser) AddDeviceToZone(deviceId string, zoneId int) error {
 
 	device.Zones = append(device.Zones, zoneId)
 	zone.Devices = append(zone.Devices, deviceId)
+
+	if !d.loading {
+		d.deviceConfig.Section(deviceId, "Zones", strconv.Itoa(zoneId))
+	}
 
 	return nil
 }
@@ -402,6 +474,10 @@ func (d *DeviceOrganiser) RemoveDeviceFromZone(deviceId string, zoneId int) erro
 	device.Zones = filterInt(device.Zones, zoneId)
 	zone.Devices = filterString(zone.Devices, deviceId)
 
+	if !d.loading {
+		d.deviceConfig.Section(deviceId, "Zones").SectionDelete(strconv.Itoa(zoneId))
+	}
+
 	return nil
 }
 
@@ -420,127 +496,69 @@ func (d *DeviceOrganiser) enumerateZoneDescendents(id int) []int {
 	return subZones
 }
 
-type SavedZones struct {
-	NextZoneId int64
-	Zones      []Zone
+func (d *DeviceOrganiser) load() {
+	d.loadZones()
+	d.loadDevices()
 }
 
-func SaveZones(fileLocation string, do *DeviceOrganiser) error {
-	do.zoneLock.Lock()
-	defer do.zoneLock.Unlock()
+func (d *DeviceOrganiser) loadZones() {
+	nextZoneId, _ := d.zoneConfig.Int("NextZoneId")
+	d.nextZoneId = &nextZoneId
 
-	var saved SavedZones
+	parentMapping := make(map[int]int)
+	orderAfterMapping := make(map[int]int)
 
-	recurseSaveZones(do, RootZoneId, &saved)
-
-	saved.NextZoneId = *do.nextZoneId
-
-	data, err := json.Marshal(saved)
-	if err != nil {
-		return err
-	}
-
-	return config.SafeWriteFile(fileLocation, data, DefaultFilePermissions)
-}
-
-func recurseSaveZones(do *DeviceOrganiser, id int, saved *SavedZones) {
-	z := do.zones[id]
-
-	if id != RootZoneId {
-		saved.Zones = append(saved.Zones, *z)
-	}
-
-	for _, sid := range z.SubZones {
-		recurseSaveZones(do, sid, saved)
-	}
-}
-
-func LoadZones(fileLocation string, do *DeviceOrganiser) error {
-	if _, err := os.Stat(fileLocation); err != nil {
-		return nil
-	}
-
-	data, err := ioutil.ReadFile(fileLocation)
-	if err != nil {
-		return err
-	}
-
-	var loaded SavedZones
-
-	if err := json.Unmarshal(data, &loaded); err != nil {
-		return err
-	}
-
-	do.zoneLock.Lock()
-	do.nextZoneId = &loaded.NextZoneId
-
-	for _, zone := range loaded.Zones {
-		if zone.Identifier != RootZoneId {
-			copyZone := zone
-			copyZone.ParentZone = 0
-			do.zones[zone.Identifier] = &copyZone
-			do.hiddenRoot.SubZones = append(do.hiddenRoot.SubZones, zone.Identifier)
+	for _, sid := range d.zoneConfig.SectionKeys() {
+		id, err := strconv.Atoi(sid)
+		if err != nil {
+			continue
 		}
+
+		s := d.zoneConfig.Section(sid)
+		name, _ := s.String("Name")
+
+		parentId, _ := s.Int("ParentZone", int64(RootZoneId))
+		parentMapping[id] = int(parentId)
+
+		orderAfterId, _ := s.Int("OrderAfter")
+		orderAfterMapping[id] = int(orderAfterId)
+
+		d.newZoneWithId(name, id)
 	}
 
-	do.zoneLock.Unlock()
-
-	for _, zone := range loaded.Zones {
-		if zone.ParentZone != RootZoneId {
-			if err := do.MoveZone(zone.Identifier, zone.ParentZone); err != nil {
-				return err
+	for zone, zoneParent := range parentMapping {
+		if zoneParent != RootZoneId {
+			if err := d.MoveZone(zone, zoneParent); err != nil {
+				continue
 			}
 		}
 	}
 
-	return nil
-}
-
-func LoadDevices(fileLocation string, do *DeviceOrganiser) error {
-	if _, err := os.Stat(fileLocation); err != nil {
-		return nil
-	}
-
-	data, err := ioutil.ReadFile(fileLocation)
-	if err != nil {
-		return err
-	}
-
-	loaded := map[string]DeviceMetadata{}
-	if err := json.Unmarshal(data, &loaded); err != nil {
-		return err
-	}
-
-	for id, dm := range loaded {
-		do.AddDevice(id)
-		if err := do.NameDevice(id, dm.Name); err != nil {
-			return err
-		}
-
-		for _, zone := range dm.Zones {
-			if err := do.AddDeviceToZone(id, zone); err != nil {
-				return err
+	for zone, afterZone := range orderAfterMapping {
+		if afterZone != 0 {
+			if err := d.ReorderZoneAfter(zone, afterZone); err != nil {
+				continue
 			}
 		}
 	}
-
-	return nil
 }
 
-func SaveDevices(fileLocation string, do *DeviceOrganiser) error {
-	do.deviceLock.Lock()
-	defer do.deviceLock.Unlock()
+func (d *DeviceOrganiser) loadDevices() {
+	for _, id := range d.deviceConfig.SectionKeys() {
+		devConfig := d.deviceConfig.Section(id)
 
-	saved := map[string]DeviceMetadata{}
+		name, _ := devConfig.String("Name")
 
-	for id, device := range do.devices {
-		saved[id] = *device
+		d.AddDevice(id)
+		d.NameDevice(id, name)
+
+		for _, sid := range devConfig.Section("Zones").SectionKeys() {
+			zoneId, err := strconv.Atoi(sid)
+			if err != nil {
+				continue
+			}
+
+			d.AddDeviceToZone(id, zoneId)
+		}
 	}
-
-	data, err := json.Marshal(saved)
-	if err != nil {
-		return err
-	}
-
-	return config.SafeWriteFile(fileLocation, data, DefaultFilePermissions)
 }
