@@ -519,7 +519,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
-		expectedPayload := `{"Enumerating":true}`
+		expectedPayload := `{"Enumerating":true,"Status":{}}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceStart{
@@ -593,7 +593,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
-		expectedPayload := `{"Enumerating":false}`
+		expectedPayload := `{"Enumerating":false,"Status":{}}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 
 		i.serviceUpdateOnEvent(capabilities.EnumerateDeviceStopped{
@@ -1138,7 +1138,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
 
-		expectedPayload := `{"Enumerating":false}`
+		expectedPayload := `{"Enumerating":false,"Status":{}}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
 		texpectedPayload := `{"Readings":[{"Value":290}]}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), tname), []byte(texpectedPayload)).Return(nil)

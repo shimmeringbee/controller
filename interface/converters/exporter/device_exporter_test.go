@@ -8,6 +8,7 @@ import (
 	"github.com/shimmeringbee/da/capabilities"
 	capabilitymocks "github.com/shimmeringbee/da/capabilities/mocks"
 	"github.com/shimmeringbee/da/mocks"
+	"github.com/shimmeringbee/persistence/impl/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"io"
@@ -34,7 +35,7 @@ func TestDeviceExporter_ExportDevice(t *testing.T) {
 		defer mockCapOne.AssertExpectations(t)
 		mockCapOne.On("Name").Return("capOne")
 
-		do := state.NewDeviceOrganiser(nil)
+		do := state.NewDeviceOrganiser(memory.New())
 		do.NewZone("one")
 		do.AddDevice("one-one")
 		do.NameDevice("one-one", "fancyname")

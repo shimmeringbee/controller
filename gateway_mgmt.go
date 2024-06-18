@@ -28,19 +28,13 @@ type StartedGateway struct {
 	Shutdown func()
 }
 
-func startGateways(cfgs []config.GatewayConfig, mux *state.GatewayMux, directories Directories, l logwrap.Logger, s persistence.Section) ([]StartedGateway, error) {
+func startGateways(cfgs []config.GatewayConfig, mux *state.GatewayMux, l logwrap.Logger, s persistence.Section) ([]StartedGateway, error) {
 	var retGws []StartedGateway
 
 	for _, cfg := range cfgs {
-		dataDir := filepath.Join(directories.Data, "gateways", cfg.Name)
-
-		if err := os.MkdirAll(dataDir, DefaultDirectoryPermissions); err != nil {
-			return nil, fmt.Errorf("failed to create gateway data directory '%s': %w", dataDir, err)
-		}
-
 		gwSection := s.Section(cfg.Name)
 
-		if gw, shutdown, err := startGateway(cfg, dataDir, l, gwSection); err != nil {
+		if gw, shutdown, err := startGateway(cfg, l, gwSection); err != nil {
 			return nil, fmt.Errorf("failed to start gateway '%s': %w", cfg.Name, err)
 		} else {
 			mux.Add(cfg.Name, gw)
@@ -55,21 +49,21 @@ func startGateways(cfgs []config.GatewayConfig, mux *state.GatewayMux, directori
 	return retGws, nil
 }
 
-func startGateway(cfg config.GatewayConfig, cfgDig string, l logwrap.Logger, s persistence.Section) (da.Gateway, func(), error) {
+func startGateway(cfg config.GatewayConfig, l logwrap.Logger, s persistence.Section) (da.Gateway, func(), error) {
 	wl := logwrap.New(nest.Wrap(l))
 	wl.AddOptionsToLogger(logwrap.Datum("gateway", cfg.Name))
 
 	switch gwCfg := cfg.Config.(type) {
 	case *config.ZDAConfig:
 		wl.AddOptionsToLogger(logwrap.Source("zda"))
-		return startZDAGateway(*gwCfg, cfgDig, wl, s)
+		return startZDAGateway(*gwCfg, wl, s)
 	default:
 		return nil, nil, fmt.Errorf("unknown gateway type loaded: %s", cfg.Type)
 	}
 }
 
-func startZDAGateway(cfg config.ZDAConfig, cfgDig string, l logwrap.Logger, s persistence.Section) (da.Gateway, func(), error) {
-	provider, providerShut, err := startZigbeeProvider(cfg.Provider, *cfg.Network, cfgDig, l, s)
+func startZDAGateway(cfg config.ZDAConfig, l logwrap.Logger, s persistence.Section) (da.Gateway, func(), error) {
+	provider, providerShut, err := startZigbeeProvider(cfg.Provider, *cfg.Network, l, s)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to start zigbee provider: %w", err)
 	}
@@ -109,16 +103,16 @@ func startZDAGateway(cfg config.ZDAConfig, cfgDig string, l logwrap.Logger, s pe
 	}, nil
 }
 
-func startZigbeeProvider(providerCfg config.ZDAProvider, network zigbee.NetworkConfiguration, cfgDig string, l logwrap.Logger, s persistence.Section) (zigbee.Provider, func(), error) {
+func startZigbeeProvider(providerCfg config.ZDAProvider, network zigbee.NetworkConfiguration, l logwrap.Logger, s persistence.Section) (zigbee.Provider, func(), error) {
 	switch pvdCfg := providerCfg.Config.(type) {
 	case *config.ZStackProvider:
-		return startZStackProvider(*pvdCfg, network, cfgDig, l, s)
+		return startZStackProvider(*pvdCfg, network, l, s)
 	default:
 		return nil, nil, fmt.Errorf("unknown provider type loaded: %s", providerCfg.Type)
 	}
 }
 
-func startZStackProvider(cfg config.ZStackProvider, network zigbee.NetworkConfiguration, _ string, l logwrap.Logger, s persistence.Section) (zigbee.Provider, func(), error) {
+func startZStackProvider(cfg config.ZStackProvider, network zigbee.NetworkConfiguration, l logwrap.Logger, s persistence.Section) (zigbee.Provider, func(), error) {
 	port, err := serial.Open(cfg.Port.Name, &serial.Mode{BaudRate: cfg.Port.Baud})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open serial port for zstack '%s': %w", cfg.Port.Name, err)
@@ -162,7 +156,7 @@ func loadGatewayConfigurations(dir string) ([]config.GatewayConfig, error) {
 		}
 
 		fullPath := filepath.Join(dir, file.Name())
-		data, err := ioutil.ReadFile(fullPath)
+		data, err := os.ReadFile(fullPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read gateway configuration file '%s': %w", fullPath, err)
 		}

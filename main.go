@@ -68,7 +68,7 @@ func main() {
 	}
 
 	l.LogInfo(ctx, "Starting gateways.")
-	startedGateways, err := startGateways(gatewayCfgs, gwMux, directories, l, section.Section("Gateway"))
+	startedGateways, err := startGateways(gatewayCfgs, gwMux, l, section.Section("Gateway"))
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start gateways.", lw.Err(err))
 	}

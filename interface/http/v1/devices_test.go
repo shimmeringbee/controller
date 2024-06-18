@@ -10,6 +10,7 @@ import (
 	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/mocks"
+	"github.com/shimmeringbee/persistence/impl/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"io/ioutil"
@@ -76,7 +77,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 		mdc.On("ExportDevice", mock.Anything, daDeviceOne).Return(expectedDeviceOne)
 		mdc.On("ExportDevice", mock.Anything, daDeviceTwo).Return(expectedDeviceTwo)
 
-		do := state.NewDeviceOrganiser(nil)
+		do := state.NewDeviceOrganiser(memory.New())
 
 		controller := deviceController{gatewayMapper: &mgm, deviceExporter: &mdc, deviceOrganiser: &do}
 
@@ -197,7 +198,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 func Test_deviceController_updateDevice(t *testing.T) {
 	t.Run("updates an individual ExportedDevice with name", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(nil)
+		do := state.NewDeviceOrganiser(memory.New())
 		do.AddDevice("one")
 
 		controller := deviceController{deviceOrganiser: &do}

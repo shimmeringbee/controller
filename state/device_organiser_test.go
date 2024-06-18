@@ -11,7 +11,7 @@ import (
 
 func TestDeviceOrganiser_Zones(t *testing.T) {
 	t.Run("NewZone generates a new zone creates it at the root with an incrementing id", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -24,7 +24,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("RootZones returns the constructed root", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 
@@ -34,7 +34,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("GetZone returns a zone by id", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 
@@ -44,21 +44,21 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("GetZone returns false if it can't find the zone by id", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		_, found := do.Zone(1)
 		assert.False(t, found)
 	})
 
 	t.Run("NameZone returns an error if the zone does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		err := do.NameZone(1, "NewDeviceOrganiser Name")
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("NameZone updates a zones name", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 
@@ -71,14 +71,14 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone errors if the zone being moved does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		err := do.MoveZone(1, -1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("MoveZone errors if the parent zone does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 
@@ -87,7 +87,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone errors if the moved zone and parent are equal", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 
@@ -96,7 +96,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone succeeds in moving one root entry under another, removing the old root entry", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -116,7 +116,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone succeeds in moving a sub zone under another sub zone", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -141,7 +141,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone errors if moving a zone to be under one of its sub zones", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -157,7 +157,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("MoveZone succeeds in moving a sub zone back to root", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -179,7 +179,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore errors if zone being reordered does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		beforeZone := do.NewZone("before")
 
 		err := do.ReorderZoneBefore(999, beforeZone.Identifier)
@@ -187,7 +187,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore errors if before zone does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		beforeZone := do.NewZone("before")
 
 		err := do.ReorderZoneBefore(beforeZone.Identifier, 999)
@@ -195,7 +195,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore errors if zones do not have same parent", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		a := do.NewZone("a")
 		b := do.NewZone("b")
 
@@ -210,7 +210,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore errors if zones are the same zone", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		moveZone := do.NewZone("before")
 
 		err := do.ReorderZoneBefore(moveZone.Identifier, moveZone.Identifier)
@@ -218,7 +218,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore succeeds reordering a zone, mid list", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		_ = do.NewZone("a")
 		b := do.NewZone("b")
@@ -232,7 +232,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneBefore succeeds reordering a zone, to list head", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		a := do.NewZone("a")
 		_ = do.NewZone("b")
@@ -246,7 +246,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter errors if zone being reordered does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		afterZone := do.NewZone("After")
 
 		err := do.ReorderZoneAfter(999, afterZone.Identifier)
@@ -254,7 +254,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter errors if After zone does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		afterZone := do.NewZone("After")
 
 		err := do.ReorderZoneAfter(afterZone.Identifier, 999)
@@ -262,7 +262,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter errors if zones do not have same parent", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		a := do.NewZone("a")
 		b := do.NewZone("b")
 
@@ -277,7 +277,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter errors if zones are the same zone", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		moveZone := do.NewZone("After")
 
 		err := do.ReorderZoneAfter(moveZone.Identifier, moveZone.Identifier)
@@ -285,7 +285,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter succeeds reordering a zone, mid list", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		_ = do.NewZone("a")
 		b := do.NewZone("b")
@@ -299,7 +299,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("ReorderZoneAfter succeeds reordering a zone, to list tail", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		a := do.NewZone("a")
 		_ = do.NewZone("b")
@@ -313,14 +313,14 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone errors if zone can not be found", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		err := do.DeleteZone(1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("DeleteZone errors if zone has subzone found", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -333,7 +333,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone errors if zone has device", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 		do.zones[zoneOne.Identifier].Devices = []string{"device"}
@@ -343,7 +343,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone succeeds deleting a subzone", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 		zoneTwo := do.NewZone("two")
@@ -361,7 +361,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 	})
 
 	t.Run("DeleteZone succeeds deleting a root zone", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		zoneOne := do.NewZone("one")
 
@@ -374,7 +374,7 @@ func TestDeviceOrganiser_Zones(t *testing.T) {
 
 func TestDeviceOrganiser_Devices(t *testing.T) {
 	t.Run("AddDevice adds a device", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		do.AddDevice("id")
 
 		_, found := do.Device("id")
@@ -382,20 +382,20 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("Device returns false if device is not present", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		_, found := do.Device("id")
 		assert.False(t, found)
 	})
 
 	t.Run("Device returns true if device is present", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		do.AddDevice("id")
 		_, found := do.Device("id")
 		assert.True(t, found)
 	})
 
 	t.Run("NameDevice errors if device doesn't exist", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		err := do.NameDevice("id", "name")
 		assert.Error(t, err)
@@ -403,7 +403,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("NameDevice sets a name on a device", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		do.AddDevice("id")
 
 		err := do.NameDevice("id", "name")
@@ -415,14 +415,14 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("NameDevice errors if the device does not exist", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		err := do.NameDevice("id", "name")
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("AddDevice does not overwrite an existing device", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		do.AddDevice("id")
 
 		err := do.NameDevice("id", "name")
@@ -436,7 +436,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDevice removes an added device", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 		do.AddDevice("id")
 
 		do.RemoveDevice("id")
@@ -445,14 +445,14 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("AddDeviceToZone errors if the device can not be found", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		err := do.AddDeviceToZone("id", 1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("AddDeviceToZone errors if the zone can not be found", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		do.AddDevice("id")
 
@@ -461,7 +461,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("AddDeviceToZone adds the zone to the device and device to zone", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		do.AddDevice("id")
 		zone := do.NewZone("name")
@@ -477,14 +477,14 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDeviceFromZone errors if the device can not be found", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		err := do.RemoveDeviceFromZone("id", 1)
 		assert.True(t, errors.Is(err, ErrNotFound))
 	})
 
 	t.Run("RemoveDeviceFromZone errors if the zone can not be found", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		do.AddDevice("id")
 
@@ -493,7 +493,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDeviceFromZone removes the devices from the zone and zone from device", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		do.AddDevice("id")
 		zone := do.NewZone("name")
@@ -512,7 +512,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 	})
 
 	t.Run("RemoveDevice removes the device from any zones that its in", func(t *testing.T) {
-		do := NewDeviceOrganiser(nil)
+		do := NewDeviceOrganiser(memory.New())
 
 		do.AddDevice("id")
 		zone := do.NewZone("name")
