@@ -7,15 +7,15 @@ toolchain go1.22.2
 require (
 	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/golang-jwt/jwt v3.2.2+incompatible
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/peterbourgon/ff/v3 v3.4.0
-	github.com/shimmeringbee/da v0.0.0-20240615210808-95a0a3f8f08a
+	github.com/shimmeringbee/da v0.0.0-20240621202518-c4ba1b61593d
 	github.com/shimmeringbee/logwrap v0.1.3
 	github.com/shimmeringbee/persistence v0.0.0-20240615183316-1a60e6781413
-	github.com/shimmeringbee/zda v0.0.0-20240618200946-9e2582f9f071
+	github.com/shimmeringbee/zda v0.0.0-20240621202942-b98e015ff3ea
 	github.com/shimmeringbee/zigbee v0.0.0-20240614104723-f4c0c0231568
-	github.com/shimmeringbee/zstack v0.0.0-20240615174824-2ff56018304e
+	github.com/shimmeringbee/zstack v0.0.0-20240619203415-f90b5dc77243
 	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.17.1
 	go.bug.st/serial.v1 v0.0.0-20191202182710-24a6610f0541
