@@ -36,6 +36,10 @@ github.com/shimmeringbee/da v0.0.0-20240620203531-59614abd3e28 h1:rXtMUoERVyQ+lz
 github.com/shimmeringbee/da v0.0.0-20240620203531-59614abd3e28/go.mod h1:jUKTa353LvJT3TAdwtmfGEbcxkYbG58h0gbASRf0FIs=
 github.com/shimmeringbee/da v0.0.0-20240621202518-c4ba1b61593d h1:b0pgl4liNcXKi07Y3nVuzZ1uLKPJdkFA6/Y7hsUNSzM=
 github.com/shimmeringbee/da v0.0.0-20240621202518-c4ba1b61593d/go.mod h1:jUKTa353LvJT3TAdwtmfGEbcxkYbG58h0gbASRf0FIs=
+github.com/shimmeringbee/da v0.0.0-20240622202110-ccbf24700388 h1:opK7x4lWbylMm5PfCzixiG7s07FtinqNlbCat+Md7+c=
+github.com/shimmeringbee/da v0.0.0-20240622202110-ccbf24700388/go.mod h1:jUKTa353LvJT3TAdwtmfGEbcxkYbG58h0gbASRf0FIs=
+github.com/shimmeringbee/da v0.0.0-20240623195712-c921021ae9f9 h1:beGPxE5b7k6Pz7ND7Ii1S4zf01S5tmQQlW3eI6FW/z4=
+github.com/shimmeringbee/da v0.0.0-20240623195712-c921021ae9f9/go.mod h1:jUKTa353LvJT3TAdwtmfGEbcxkYbG58h0gbASRf0FIs=
 github.com/shimmeringbee/logwrap v0.1.3 h1:1PqPGdgbeQxACQqc6RUWERn7EnpA1jbiHzXVYFa7q2A=
 github.com/shimmeringbee/logwrap v0.1.3/go.mod h1:NBAcZCUl6aFOGnWTs8m67EUAmWFZXRhoRQf5nknY8W0=
 github.com/shimmeringbee/persistence v0.0.0-20240615183316-1a60e6781413 h1:0t4xEtg+kXXATiryn0m9p5OmsvDUvh2BPG+r7Vcpvy4=
@@ -50,6 +54,12 @@ github.com/shimmeringbee/zcl v0.0.0-20240614104719-4eee02c0ffd1/go.mod h1:DeGINQ
 github.com/shimmeringbee/zda v0.0.0-20240618200946-9e2582f9f071/go.mod h1:+zEIalrasR0Zn8+w8r6VjhJx2MSdLZ7m0JF8YqkmRb4=
 github.com/shimmeringbee/zda v0.0.0-20240621202942-b98e015ff3ea h1:E4O4n2lE00pIiGuyxXep4TTxPbQSDzOdjUNjYVyJkCw=
 github.com/shimmeringbee/zda v0.0.0-20240621202942-b98e015ff3ea/go.mod h1:+sSpzUWmNxe7Lc7Vq/gt0shVAqvJk4I9iBWtrpSY4fo=
+github.com/shimmeringbee/zda v0.0.0-20240621205704-3043385eeb6e h1:ypW77yaWLVxuSPPz5xC2ytegRPCMFNq+Q3azdqDlXgo=
+github.com/shimmeringbee/zda v0.0.0-20240621205704-3043385eeb6e/go.mod h1:+sSpzUWmNxe7Lc7Vq/gt0shVAqvJk4I9iBWtrpSY4fo=
+github.com/shimmeringbee/zda v0.0.0-20240623194350-5e9da94b2df8 h1:1il0JsVXJTFh7liZyD7CJUpq0IWvTAFSdx7RSw4UmJk=
+github.com/shimmeringbee/zda v0.0.0-20240623194350-5e9da94b2df8/go.mod h1:WZ56WurDPDIBFq5q9M/vYrUjCbOwhEoZOPWcmK+Dlo8=
+github.com/shimmeringbee/zda v0.0.0-20240623200321-6a738c45220a h1:O0w5rSqhj3DSB9J/X8nQfhr9izObD/p5cWQK6brvmt0=
+github.com/shimmeringbee/zda v0.0.0-20240623200321-6a738c45220a/go.mod h1:6MVEU39eqnal1EZVnVM4//hQJRYFqkicaXeJoV6eGcQ=
 github.com/shimmeringbee/zigbee v0.0.0-20240614103911-3a30074e1528/go.mod h1:BDCm9qtlJANPiLY+YRQac/0awPxeUd3FUxUFPh+1w/s=
 github.com/shimmeringbee/zigbee v0.0.0-20240614104723-f4c0c0231568 h1:DnZ/kbXJZtihjqB7mz92hhUeP0+v0jYl5DJIznWdlL4=
 github.com/shimmeringbee/zigbee v0.0.0-20240614104723-f4c0c0231568/go.mod h1:BDCm9qtlJANPiLY+YRQac/0awPxeUd3FUxUFPh+1w/s=

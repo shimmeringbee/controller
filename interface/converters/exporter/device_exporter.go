@@ -70,6 +70,8 @@ func (de *DeviceExporter) ExportCapability(pctx context.Context, uncastCapabilit
 		retVal = de.convertDeviceDiscovery(ctx, capability)
 	case capabilities.EnumerateDevice:
 		retVal = de.convertEnumerateDevice(ctx, capability)
+	case capabilities.Identify:
+		retVal = de.convertIdentify(ctx, capability)
 	case capabilities.AlarmSensor:
 		retVal = de.convertAlarmSensor(ctx, capability)
 	case capabilities.OnOff:
@@ -78,6 +80,8 @@ func (de *DeviceExporter) ExportCapability(pctx context.Context, uncastCapabilit
 		retVal = de.convertPowerSupply(ctx, capability)
 	case capabilities.AlarmWarningDevice:
 		retVal = de.convertAlarmWarningDevice(ctx, capability)
+	case capabilities.DeviceWorkarounds:
+		retVal = de.convertDeviceWorkarounds(ctx, capability)
 	default:
 		return struct{}{}
 	}
@@ -419,6 +423,49 @@ func (de *DeviceExporter) convertAlarmWarningDevice(ctx context.Context, capabil
 		status.Visual = &state.Visual
 		status.AlarmType = &alarmType
 		status.Duration = &duration
+	}
+
+	return status
+}
+
+type IdentifyStatus struct {
+	Identifying bool
+	Duration    *int `json:",omitempty"`
+
+	LastUpdate
+	LastChange
+}
+
+func (de *DeviceExporter) convertIdentify(ctx context.Context, capability capabilities.Identify) interface{} {
+	state, err := capability.Status(ctx)
+	if err != nil {
+		return nil
+	}
+
+	status := &IdentifyStatus{
+		Identifying: state.Identifying,
+	}
+
+	if state.Identifying {
+		duration := int(state.Remaining / time.Millisecond)
+		status.Duration = &duration
+	}
+
+	return status
+}
+
+type DeviceWorkaroundsStatus struct {
+	Enabled []string
+}
+
+func (de *DeviceExporter) convertDeviceWorkarounds(ctx context.Context, capability capabilities.DeviceWorkarounds) interface{} {
+	state, err := capability.Enabled(ctx)
+	if err != nil {
+		return nil
+	}
+
+	status := &DeviceWorkaroundsStatus{
+		Enabled: state,
 	}
 
 	return status

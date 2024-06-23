@@ -362,6 +362,50 @@ func Test_convertAlarmWarningDevice(t *testing.T) {
 	})
 }
 
+func TestDeviceExporter_convertIdentify(t *testing.T) {
+	t.Run("retrieves and returns all data from Identify", func(t *testing.T) {
+		mid := capabilitymocks.Identify{}
+		defer mid.AssertExpectations(t)
+
+		retVal := capabilities.IdentifyState{
+			Identifying: true,
+			Remaining:   60 * time.Second,
+		}
+
+		mid.Mock.On("Status", mock.Anything).Return(retVal, nil)
+
+		time := 60000
+
+		expected := &IdentifyStatus{
+			Identifying: true,
+			Duration:    &time,
+		}
+
+		dc := DeviceExporter{}
+		actual := dc.convertIdentify(context.Background(), &mid)
+
+		assert.Equal(t, expected, actual)
+	})
+}
+
+func TestDeviceExporter_convertDeviceWorkarounds(t *testing.T) {
+	t.Run("retrieves and returns all data from DeviceWorkarounds", func(t *testing.T) {
+		mdw := capabilitymocks.DeviceWorkarounds{}
+		defer mdw.AssertExpectations(t)
+
+		mdw.Mock.On("Enabled", mock.Anything).Return([]string{"Enabled"}, nil)
+
+		expected := &DeviceWorkaroundsStatus{
+			Enabled: []string{"Enabled"},
+		}
+
+		dc := DeviceExporter{}
+		actual := dc.convertDeviceWorkarounds(context.Background(), &mdw)
+
+		assert.Equal(t, expected, actual)
+	})
+}
+
 type mockTemperatureSensorWithUpdateTime struct {
 	mock.Mock
 }
