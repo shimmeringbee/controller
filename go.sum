@@ -60,6 +60,16 @@ github.com/shimmeringbee/zda v0.0.0-20240623194350-5e9da94b2df8 h1:1il0JsVXJTFh7
 github.com/shimmeringbee/zda v0.0.0-20240623194350-5e9da94b2df8/go.mod h1:WZ56WurDPDIBFq5q9M/vYrUjCbOwhEoZOPWcmK+Dlo8=
 github.com/shimmeringbee/zda v0.0.0-20240623200321-6a738c45220a h1:O0w5rSqhj3DSB9J/X8nQfhr9izObD/p5cWQK6brvmt0=
 github.com/shimmeringbee/zda v0.0.0-20240623200321-6a738c45220a/go.mod h1:6MVEU39eqnal1EZVnVM4//hQJRYFqkicaXeJoV6eGcQ=
+github.com/shimmeringbee/zda v0.0.0-20240624191717-82e410e622e3 h1:wo9DmvLIlO3bcBVlT1z4txvp/k090Z42I1P9LS8KEXY=
+github.com/shimmeringbee/zda v0.0.0-20240624191717-82e410e622e3/go.mod h1:6MVEU39eqnal1EZVnVM4//hQJRYFqkicaXeJoV6eGcQ=
+github.com/shimmeringbee/zda v0.0.0-20240624194813-dc513d44229d h1:k772soK0Q+BjcmkKwBB/Si9ELJb+gjKNAprJeyLOZI8=
+github.com/shimmeringbee/zda v0.0.0-20240624194813-dc513d44229d/go.mod h1:6MVEU39eqnal1EZVnVM4//hQJRYFqkicaXeJoV6eGcQ=
+github.com/shimmeringbee/zda v0.0.0-20240624195137-7653b5dd4de4 h1:P5eXPCA6SzBexmMQOiKU3sgZSnLYPN2CLEeAgR43iNo=
+github.com/shimmeringbee/zda v0.0.0-20240624195137-7653b5dd4de4/go.mod h1:6MVEU39eqnal1EZVnVM4//hQJRYFqkicaXeJoV6eGcQ=
+github.com/shimmeringbee/zda v0.0.0-20240624195551-c167d878e1da h1:acFu41zVvTlEwG7GQNNlWLGmz68AS7tppLNmq/KEebk=
+github.com/shimmeringbee/zda v0.0.0-20240624195551-c167d878e1da/go.mod h1:6MVEU39eqnal1EZVnVM4//hQJRYFqkicaXeJoV6eGcQ=
+github.com/shimmeringbee/zda v0.0.0-20240624195806-ca1926a7d05d h1:sVJ4Xx5PlVNKMlXJLWY3oxpJ2nagbFMBiJJXTs6uvCs=
+github.com/shimmeringbee/zda v0.0.0-20240624195806-ca1926a7d05d/go.mod h1:6MVEU39eqnal1EZVnVM4//hQJRYFqkicaXeJoV6eGcQ=
 github.com/shimmeringbee/zigbee v0.0.0-20240614103911-3a30074e1528/go.mod h1:BDCm9qtlJANPiLY+YRQac/0awPxeUd3FUxUFPh+1w/s=
 github.com/shimmeringbee/zigbee v0.0.0-20240614104723-f4c0c0231568 h1:DnZ/kbXJZtihjqB7mz92hhUeP0+v0jYl5DJIznWdlL4=
 github.com/shimmeringbee/zigbee v0.0.0-20240614104723-f4c0c0231568/go.mod h1:BDCm9qtlJANPiLY+YRQac/0awPxeUd3FUxUFPh+1w/s=

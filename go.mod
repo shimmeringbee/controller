@@ -13,7 +13,7 @@ require (
 	github.com/shimmeringbee/da v0.0.0-20240623195712-c921021ae9f9
 	github.com/shimmeringbee/logwrap v0.1.3
 	github.com/shimmeringbee/persistence v0.0.0-20240615183316-1a60e6781413
-	github.com/shimmeringbee/zda v0.0.0-20240623200321-6a738c45220a
+	github.com/shimmeringbee/zda v0.0.0-20240624195806-ca1926a7d05d
 	github.com/shimmeringbee/zigbee v0.0.0-20240614104723-f4c0c0231568
 	github.com/shimmeringbee/zstack v0.0.0-20240619203415-f90b5dc77243
 	github.com/stretchr/testify v1.9.0
