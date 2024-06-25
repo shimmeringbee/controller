@@ -30,22 +30,16 @@ func eventToCapability(v interface{}) (da.Device, da.Capability, bool) {
 		return e.Device, capabilities.AlarmSensorFlag, true
 	case capabilities.AlarmWarningDeviceUpdate:
 		return e.Device, capabilities.AlarmWarningDeviceFlag, true
-	case capabilities.ColorStatusUpdate:
-		return e.Device, capabilities.ColorFlag, true
 	case capabilities.DeviceDiscoveryEnabled:
 		return e.Gateway.Self(), capabilities.DeviceDiscoveryFlag, true
 	case capabilities.DeviceDiscoveryDisabled:
 		return e.Gateway.Self(), capabilities.DeviceDiscoveryFlag, true
 	case capabilities.EnumerateDeviceStart:
 		return e.Device, capabilities.EnumerateDeviceFlag, true
-	case capabilities.EnumerateDeviceFailure:
+	case capabilities.EnumerateDeviceStopped:
 		return e.Device, capabilities.EnumerateDeviceFlag, true
-	case capabilities.EnumerateDeviceSuccess:
-		return e.Device, capabilities.EnumerateDeviceFlag, true
-	case capabilities.IlluminationSensorState:
+	case capabilities.IlluminationSensorUpdate:
 		return e.Device, capabilities.IlluminationSensorFlag, true
-	case capabilities.LevelStatusUpdate:
-		return e.Device, capabilities.LevelFlag, true
 	case capabilities.LocalDebugStart:
 		return e.Device, capabilities.LocalDebugFlag, true
 	case capabilities.LocalDebugSuccess:
@@ -58,15 +52,15 @@ func eventToCapability(v interface{}) (da.Device, da.Capability, bool) {
 		return e.Device, capabilities.MessageCaptureDebugFlag, true
 	case capabilities.MessageCaptureStop:
 		return e.Device, capabilities.MessageCaptureDebugFlag, true
-	case capabilities.OccupancySensorState:
+	case capabilities.OccupancySensorUpdate:
 		return e.Device, capabilities.OccupancySensorFlag, true
-	case capabilities.OnOffState:
+	case capabilities.OnOffUpdate:
 		return e.Device, capabilities.OnOffFlag, true
 	case capabilities.PowerStatusUpdate:
 		return e.Device, capabilities.PowerSupplyFlag, true
-	case capabilities.PressureSensorState:
+	case capabilities.PressureSensorUpdate:
 		return e.Device, capabilities.PressureSensorFlag, true
-	case capabilities.RelativeHumiditySensorState:
+	case capabilities.RelativeHumiditySensorUpdate:
 		return e.Device, capabilities.RelativeHumiditySensorFlag, true
 	case capabilities.RemoteDebugStart:
 		return e.Device, capabilities.RemoteDebugFlag, true
@@ -74,10 +68,10 @@ func eventToCapability(v interface{}) (da.Device, da.Capability, bool) {
 		return e.Device, capabilities.RemoteDebugFlag, true
 	case capabilities.RemoteDebugFailure:
 		return e.Device, capabilities.RemoteDebugFlag, true
-	case capabilities.TemperatureSensorState:
+	case capabilities.TemperatureSensorUpdate:
 		return e.Device, capabilities.TemperatureSensorFlag, true
 	default:
-		return da.BaseDevice{}, 0, false
+		return nil, 0, false
 	}
 }
 
@@ -85,12 +79,9 @@ func (w websocketEventMapper) MapEvent(ctx context.Context, v interface{}) ([][]
 	switch e := v.(type) {
 	case da.DeviceAdded:
 		return w.generateDeviceMessages(ctx, e.Device), nil
-	case da.DeviceLoaded:
+	case capabilities.EnumerateDeviceStopped:
 		return w.generateDeviceMessages(ctx, e.Device), nil
-	case capabilities.EnumerateDeviceSuccess:
-		return w.generateDeviceMessages(ctx, e.Device), nil
-	case capabilities.EnumerateDeviceFailure:
-		return w.generateDeviceMessages(ctx, e.Device), nil
+
 	case da.DeviceRemoved:
 		return w.generateDeviceRemove(e.Device.Identifier())
 
@@ -219,14 +210,14 @@ func (w websocketEventMapper) generateDeviceUpdateMessage(ctx context.Context, d
 }
 
 func (w websocketEventMapper) generateDeviceUpdateCapabilityMessage(ctx context.Context, daDevice da.Device, capFlag da.Capability) ([][]byte, error) {
-	uncastCapability := daDevice.Gateway().Capability(capFlag)
+	uncastCapability := daDevice.Capability(capFlag)
 
 	basic, ok := uncastCapability.(da.BasicCapability)
 	if !ok {
 		return nil, nil
 	}
 
-	out := w.deviceExporter.ExportCapability(ctx, daDevice, uncastCapability)
+	out := w.deviceExporter.ExportCapability(ctx, uncastCapability)
 
 	data, err := json.Marshal(DeviceUpdateCapabilityMessage{
 		DeviceMessage: DeviceMessage{

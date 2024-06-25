@@ -52,7 +52,7 @@ func main() {
 	eventbus := state.NewEventBus()
 
 	l.LogInfo(ctx, "Initialising device organiser.")
-	deviceOrganiser := state.NewDeviceOrganiser(section.Section("Organiser"))
+	deviceOrganiser := state.NewDeviceOrganiser(section.Section("Organiser"), state.NullEventPublisher)
 
 	gwMux := state.NewGatewayMux(eventbus)
 

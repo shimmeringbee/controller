@@ -705,7 +705,7 @@ func TestDeviceOrganiser_Devices(t *testing.T) {
 			DeviceIdentifier: "id",
 		})
 
-		do := NewDeviceOrganiser(memory.New(), NullEventPublisher)
+		do := NewDeviceOrganiser(memory.New(), mep)
 
 		do.AddDevice("id")
 		zone := do.NewZone("name")
@@ -799,7 +799,7 @@ func TestDeviceOrganiser_persistZones(t *testing.T) {
 		three := do.NewZone("three")
 		four := do.NewZone("four")
 
-		err = do.ReorderZoneBefore(four.Identifier, one.Identifier)
+		err := do.ReorderZoneBefore(four.Identifier, one.Identifier)
 		assert.NoError(t, err)
 
 		err = do.MoveZone(two.Identifier, one.Identifier)

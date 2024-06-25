@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/gorilla/websocket"
 	"github.com/shimmeringbee/controller/state"
+	"github.com/shimmeringbee/logwrap"
+	"github.com/shimmeringbee/logwrap/impl/discard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -40,11 +42,12 @@ func Test_websocketController(t *testing.T) {
 		inputEvent := "event"
 		expectedData := []byte("data")
 		mem.On("InitialEvents", mock.Anything).Return([][]byte{}, nil)
-		mem.On("MapEvent", mock.Anything, inputEvent).Return(expectedData, nil)
+		mem.On("MapEvent", mock.Anything, inputEvent).Return([][]byte{expectedData}, nil)
 
 		wc := websocketController{
 			eventbus:    eb,
 			eventMapper: &mem,
+			logger:      logwrap.New(discard.Discard()),
 		}
 
 		c, teardown, err := serverAndConnect(wc.serveWebsocket)
@@ -73,6 +76,7 @@ func Test_websocketController(t *testing.T) {
 		wc := websocketController{
 			eventbus:    eb,
 			eventMapper: &mem,
+			logger:      logwrap.New(discard.Discard()),
 		}
 
 		c, teardown, err := serverAndConnect(wc.serveWebsocket)

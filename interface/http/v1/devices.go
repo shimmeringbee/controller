@@ -19,7 +19,7 @@ const DefaultHttpOutputLayer string = "http"
 type deviceExporter interface {
 	ExportDevice(context.Context, da.Device) exporter.ExportedDevice
 	ExportSimpleDevice(context.Context, da.Device) exporter.ExportedSimpleDevice
-	ExportCapability(context.Context, da.Device, interface{}) interface{}
+	ExportCapability(context.Context, interface{}) interface{}
 }
 
 type deviceController struct {

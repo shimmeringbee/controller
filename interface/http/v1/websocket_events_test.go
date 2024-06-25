@@ -8,6 +8,7 @@ import (
 	"github.com/shimmeringbee/da/capabilities"
 	damocks "github.com/shimmeringbee/da/capabilities/mocks"
 	"github.com/shimmeringbee/da/mocks"
+	"github.com/shimmeringbee/persistence/impl/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
@@ -15,7 +16,7 @@ import (
 
 func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 	t.Run("maps an event from a capability of a device", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
@@ -32,24 +33,22 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 		mgw := mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
-		daDevice := da.BaseDevice{
-			DeviceIdentifier:   SimpleIdentifier{id: "device"},
-			DeviceCapabilities: []da.Capability{capabilities.OnOffFlag},
-			DeviceGateway:      &mgw,
-		}
-
 		moo := damocks.OnOff{}
 		defer moo.AssertExpectations(t)
 
-		moo.Mock.On("Name").Return("OnOff")
-		moo.Mock.On("Status", mock.Anything, daDevice).Return(true, nil)
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		mgw.On("Capability", capabilities.OnOffFlag).Return(&moo)
+		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
+		mdev.On("Capability", capabilities.OnOffFlag).Return(&moo)
+
+		moo.Mock.On("Name").Return("OnOff")
+		moo.Mock.On("Status", mock.Anything).Return(true, nil)
 
 		expectedInitial := [][]byte{[]byte(`{"Type":"DeviceUpdateCapability","Identifier":"device","Capability":"OnOff","Payload":{"State":true}}`)}
 
-		actualInitial, err := wem.MapEvent(context.TODO(), capabilities.OnOffState{
-			Device: daDevice,
+		actualInitial, err := wem.MapEvent(context.TODO(), capabilities.OnOffUpdate{
+			Device: mdev,
 		})
 
 		assert.NoError(t, err)
@@ -57,30 +56,30 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 	})
 
 	t.Run("maps addition of device", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
 		mgw := mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
-		daDevice := da.BaseDevice{
-			DeviceIdentifier:   SimpleIdentifier{id: "device"},
-			DeviceCapabilities: []da.Capability{capabilities.HasProductInformationFlag},
-			DeviceGateway:      &mgw,
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		mhpi := damocks.HasProductInformation{}
+		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
+		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
+		mdev.On("Gateway").Return(&mgw)
+
+		mhpi := damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
-		mhpi.On("Name").Return("HasProductInformation")
-		mhpi.On("ProductInformation", mock.Anything, daDevice).Return(capabilities.ProductInformation{
-			Present:      capabilities.Name | capabilities.Manufacturer,
+		mhpi.On("Name").Return("ProductInformation")
+		mhpi.On("Get", mock.Anything).Return(capabilities.ProductInfo{
 			Manufacturer: "Manufacturer",
 			Name:         "Name",
 		}, nil)
 
-		mgw.On("Capability", capabilities.HasProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
 
 		gm.On("GatewayName", &mgw).Return("gwname", true)
 
@@ -93,42 +92,42 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 			},
 		}
 
-		actualData, err := wem.MapEvent(context.TODO(), da.DeviceAdded{Device: daDevice})
+		actualData, err := wem.MapEvent(context.TODO(), da.DeviceAdded{Device: mdev})
 
 		expectedData := [][]byte{
-			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["HasProductInformation"],"Gateway":"gwname"}`),
-			[]byte(`{"Type":"DeviceUpdateCapability","Identifier":"device","Capability":"HasProductInformation","Payload":{"Name":"Name","Manufacturer":"Manufacturer"}}`),
+			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["ProductInformation"],"Gateway":"gwname"}`),
+			[]byte(`{"Type":"DeviceUpdateCapability","Identifier":"device","Capability":"ProductInformation","Payload":{"Name":"Name","Manufacturer":"Manufacturer"}}`),
 		}
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedData, actualData)
 	})
 
-	t.Run("maps loading of device", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
+	t.Run("maps stopped enumeration of device", func(t *testing.T) {
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
 		mgw := mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
-		daDevice := da.BaseDevice{
-			DeviceIdentifier:   SimpleIdentifier{id: "device"},
-			DeviceCapabilities: []da.Capability{capabilities.HasProductInformationFlag},
-			DeviceGateway:      &mgw,
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		mhpi := damocks.HasProductInformation{}
+		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
+		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
+		mdev.On("Gateway").Return(&mgw)
+
+		mhpi := damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
-		mhpi.On("Name").Return("HasProductInformation")
-		mhpi.On("ProductInformation", mock.Anything, daDevice).Return(capabilities.ProductInformation{
-			Present:      capabilities.Name | capabilities.Manufacturer,
+		mhpi.On("Name").Return("ProductInformation")
+		mhpi.On("Get", mock.Anything).Return(capabilities.ProductInfo{
 			Manufacturer: "Manufacturer",
 			Name:         "Name",
 		}, nil)
 
-		mgw.On("Capability", capabilities.HasProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
 
 		gm.On("GatewayName", &mgw).Return("gwname", true)
 
@@ -141,107 +140,11 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 			},
 		}
 
-		actualData, err := wem.MapEvent(context.TODO(), da.DeviceLoaded{Device: daDevice})
+		actualData, err := wem.MapEvent(context.TODO(), capabilities.EnumerateDeviceStopped{Device: mdev})
 
 		expectedData := [][]byte{
-			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["HasProductInformation"],"Gateway":"gwname"}`),
-			[]byte(`{"Type":"DeviceUpdateCapability","Identifier":"device","Capability":"HasProductInformation","Payload":{"Name":"Name","Manufacturer":"Manufacturer"}}`),
-		}
-
-		assert.NoError(t, err)
-		assert.Equal(t, expectedData, actualData)
-	})
-
-	t.Run("maps successful enumeration of device", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
-		gm := &state.MockGatewayMapper{}
-		defer gm.AssertExpectations(t)
-
-		mgw := mocks.Gateway{}
-		defer mgw.AssertExpectations(t)
-
-		daDevice := da.BaseDevice{
-			DeviceIdentifier:   SimpleIdentifier{id: "device"},
-			DeviceCapabilities: []da.Capability{capabilities.HasProductInformationFlag},
-			DeviceGateway:      &mgw,
-		}
-
-		mhpi := damocks.HasProductInformation{}
-		defer mhpi.AssertExpectations(t)
-
-		mhpi.On("Name").Return("HasProductInformation")
-		mhpi.On("ProductInformation", mock.Anything, daDevice).Return(capabilities.ProductInformation{
-			Present:      capabilities.Name | capabilities.Manufacturer,
-			Manufacturer: "Manufacturer",
-			Name:         "Name",
-		}, nil)
-
-		mgw.On("Capability", capabilities.HasProductInformationFlag).Return(&mhpi)
-
-		gm.On("GatewayName", &mgw).Return("gwname", true)
-
-		wem := websocketEventMapper{
-			deviceOrganiser: &do,
-			gatewayMapper:   gm,
-			deviceExporter: &exporter.DeviceExporter{
-				DeviceOrganiser: &do,
-				GatewayMapper:   gm,
-			},
-		}
-
-		actualData, err := wem.MapEvent(context.TODO(), capabilities.EnumerateDeviceSuccess{Device: daDevice})
-
-		expectedData := [][]byte{
-			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["HasProductInformation"],"Gateway":"gwname"}`),
-			[]byte(`{"Type":"DeviceUpdateCapability","Identifier":"device","Capability":"HasProductInformation","Payload":{"Name":"Name","Manufacturer":"Manufacturer"}}`),
-		}
-
-		assert.NoError(t, err)
-		assert.Equal(t, expectedData, actualData)
-	})
-
-	t.Run("maps failure of enumeration of device", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
-		gm := &state.MockGatewayMapper{}
-		defer gm.AssertExpectations(t)
-
-		mgw := mocks.Gateway{}
-		defer mgw.AssertExpectations(t)
-
-		daDevice := da.BaseDevice{
-			DeviceIdentifier:   SimpleIdentifier{id: "device"},
-			DeviceCapabilities: []da.Capability{capabilities.HasProductInformationFlag},
-			DeviceGateway:      &mgw,
-		}
-
-		mhpi := damocks.HasProductInformation{}
-		defer mhpi.AssertExpectations(t)
-
-		mhpi.On("Name").Return("HasProductInformation")
-		mhpi.On("ProductInformation", mock.Anything, daDevice).Return(capabilities.ProductInformation{
-			Present:      capabilities.Name | capabilities.Manufacturer,
-			Manufacturer: "Manufacturer",
-			Name:         "Name",
-		}, nil)
-
-		mgw.On("Capability", capabilities.HasProductInformationFlag).Return(&mhpi)
-
-		gm.On("GatewayName", &mgw).Return("gwname", true)
-
-		wem := websocketEventMapper{
-			deviceOrganiser: &do,
-			gatewayMapper:   gm,
-			deviceExporter: &exporter.DeviceExporter{
-				DeviceOrganiser: &do,
-				GatewayMapper:   gm,
-			},
-		}
-
-		actualData, err := wem.MapEvent(context.TODO(), capabilities.EnumerateDeviceFailure{Device: daDevice})
-
-		expectedData := [][]byte{
-			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["HasProductInformation"],"Gateway":"gwname"}`),
-			[]byte(`{"Type":"DeviceUpdateCapability","Identifier":"device","Capability":"HasProductInformation","Payload":{"Name":"Name","Manufacturer":"Manufacturer"}}`),
+			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["ProductInformation"],"Gateway":"gwname"}`),
+			[]byte(`{"Type":"DeviceUpdateCapability","Identifier":"device","Capability":"ProductInformation","Payload":{"Name":"Name","Manufacturer":"Manufacturer"}}`),
 		}
 
 		assert.NoError(t, err)
@@ -249,27 +152,28 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 	})
 
 	t.Run("maps device metadata update", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
 		mgw := mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
-		daDevice := da.BaseDevice{
-			DeviceIdentifier:   SimpleIdentifier{id: "device"},
-			DeviceCapabilities: []da.Capability{capabilities.HasProductInformationFlag},
-			DeviceGateway:      &mgw,
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		gm.On("Device", "device").Return(daDevice, true)
+		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
+		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
+		mdev.On("Gateway").Return(&mgw)
 
-		mhpi := damocks.HasProductInformation{}
+		gm.On("Device", "device").Return(mdev, true)
+
+		mhpi := damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
-		mhpi.On("Name").Return("HasProductInformation")
+		mhpi.On("Name").Return("ProductInformation")
 
-		mgw.On("Capability", capabilities.HasProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
 
 		gm.On("GatewayName", &mgw).Return("gwname", true)
 
@@ -282,10 +186,10 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 			},
 		}
 
-		actualData, err := wem.MapEvent(context.TODO(), state.DeviceMetadataUpdate{Identifier: daDevice.DeviceIdentifier.String()})
+		actualData, err := wem.MapEvent(context.TODO(), state.DeviceMetadataUpdate{Identifier: mdev.Identifier().String()})
 
 		expectedData := [][]byte{
-			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["HasProductInformation"],"Gateway":"gwname"}`),
+			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["ProductInformation"],"Gateway":"gwname"}`),
 		}
 
 		assert.NoError(t, err)
@@ -293,27 +197,28 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 	})
 
 	t.Run("maps device added to zone event", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
 		mgw := mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
-		daDevice := da.BaseDevice{
-			DeviceIdentifier:   SimpleIdentifier{id: "device"},
-			DeviceCapabilities: []da.Capability{capabilities.HasProductInformationFlag},
-			DeviceGateway:      &mgw,
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		gm.On("Device", "device").Return(daDevice, true)
+		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
+		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
+		mdev.On("Gateway").Return(&mgw)
 
-		mhpi := damocks.HasProductInformation{}
+		gm.On("Device", "device").Return(mdev, true)
+
+		mhpi := damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
-		mhpi.On("Name").Return("HasProductInformation")
+		mhpi.On("Name").Return("ProductInformation")
 
-		mgw.On("Capability", capabilities.HasProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
 
 		gm.On("GatewayName", &mgw).Return("gwname", true)
 
@@ -326,10 +231,10 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 			},
 		}
 
-		actualData, err := wem.MapEvent(context.TODO(), state.DeviceAddedToZone{DeviceIdentifier: daDevice.DeviceIdentifier.String()})
+		actualData, err := wem.MapEvent(context.TODO(), state.DeviceAddedToZone{DeviceIdentifier: mdev.Identifier().String()})
 
 		expectedData := [][]byte{
-			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["HasProductInformation"],"Gateway":"gwname"}`),
+			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["ProductInformation"],"Gateway":"gwname"}`),
 		}
 
 		assert.NoError(t, err)
@@ -337,27 +242,28 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 	})
 
 	t.Run("maps device removed from zone event", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
 		mgw := mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
-		daDevice := da.BaseDevice{
-			DeviceIdentifier:   SimpleIdentifier{id: "device"},
-			DeviceCapabilities: []da.Capability{capabilities.HasProductInformationFlag},
-			DeviceGateway:      &mgw,
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		gm.On("Device", "device").Return(daDevice, true)
+		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
+		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
+		mdev.On("Gateway").Return(&mgw)
 
-		mhpi := damocks.HasProductInformation{}
+		gm.On("Device", "device").Return(mdev, true)
+
+		mhpi := damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
-		mhpi.On("Name").Return("HasProductInformation")
+		mhpi.On("Name").Return("ProductInformation")
 
-		mgw.On("Capability", capabilities.HasProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
 
 		gm.On("GatewayName", &mgw).Return("gwname", true)
 
@@ -370,10 +276,10 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 			},
 		}
 
-		actualData, err := wem.MapEvent(context.TODO(), state.DeviceRemovedFromZone{DeviceIdentifier: daDevice.DeviceIdentifier.String()})
+		actualData, err := wem.MapEvent(context.TODO(), state.DeviceRemovedFromZone{DeviceIdentifier: mdev.Identifier().String()})
 
 		expectedData := [][]byte{
-			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["HasProductInformation"],"Gateway":"gwname"}`),
+			[]byte(`{"Type":"DeviceUpdate","Metadata":{},"Identifier":"device","Capabilities":["ProductInformation"],"Gateway":"gwname"}`),
 		}
 
 		assert.NoError(t, err)
@@ -428,8 +334,8 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 		wem := websocketEventMapper{}
 
 		actualData, err := wem.MapEvent(context.TODO(), da.DeviceRemoved{
-			Device: da.BaseDevice{
-				DeviceIdentifier: SimpleIdentifier{id: "one"},
+			Device: mocks.SimpleDevice{
+				SIdentifier: SimpleIdentifier{id: "one"},
 			},
 		})
 
@@ -442,7 +348,7 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 
 func TestWebsocketEventMapper_InitialEvents(t *testing.T) {
 	t.Run("returns slice of slice of bytes for messages describing a set of nested zones", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
@@ -471,7 +377,7 @@ func TestWebsocketEventMapper_InitialEvents(t *testing.T) {
 	})
 
 	t.Run("returns slice of slice of bytes for messages describing a set of root zones", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
@@ -496,7 +402,7 @@ func TestWebsocketEventMapper_InitialEvents(t *testing.T) {
 	})
 
 	t.Run("returns a gateway, with one device with a capability inside a zone", func(t *testing.T) {
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
@@ -508,27 +414,27 @@ func TestWebsocketEventMapper_InitialEvents(t *testing.T) {
 		mgw := mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
-		daDevice := da.BaseDevice{
-			DeviceIdentifier:   SimpleIdentifier{id: "device"},
-			DeviceCapabilities: []da.Capability{capabilities.HasProductInformationFlag},
-			DeviceGateway:      &mgw,
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
 
-		mgw.On("Devices").Return([]da.Device{daDevice})
-		mgw.On("Capabilities").Return([]da.Capability{capabilities.HasProductInformationFlag})
-		mgw.On("Self").Return(da.BaseDevice{DeviceIdentifier: SimpleIdentifier{"selfdevice"}})
+		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
+		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
+		mdev.On("Gateway").Return(&mgw)
 
-		mhpi := damocks.HasProductInformation{}
+		mgw.On("Devices").Return([]da.Device{mdev})
+		mgw.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
+		mgw.On("Self").Return(mocks.SimpleDevice{SIdentifier: SimpleIdentifier{"selfdevice"}})
+
+		mhpi := damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
-		mhpi.On("Name").Return("HasProductInformation")
-		mhpi.On("ProductInformation", mock.Anything, daDevice).Return(capabilities.ProductInformation{
-			Present:      capabilities.Name | capabilities.Manufacturer,
+		mhpi.On("Name").Return("ProductInformation")
+		mhpi.On("Get", mock.Anything).Return(capabilities.ProductInfo{
 			Manufacturer: "Manufacturer",
 			Name:         "Name",
 		}, nil)
 
-		mgw.On("Capability", capabilities.HasProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
 
 		gm.On("GatewayName", &mgw).Return("gwname", true)
 		gm.On("Gateways").Return(map[string]da.Gateway{"gwname": &mgw})
@@ -544,9 +450,9 @@ func TestWebsocketEventMapper_InitialEvents(t *testing.T) {
 
 		expectedInitial := [][]byte{
 			[]byte(`{"Type":"ZoneUpdate","Identifier":1,"Name":"root","Parent":0,"After":0}`),
-			[]byte(`{"Type":"GatewayUpdate","Identifier":"gwname","Capabilities":["HasProductInformation"],"SelfDevice":"selfdevice"}`),
-			[]byte(`{"Type":"DeviceUpdate","Metadata":{"Name":"device name","Zones":[1]},"Identifier":"device","Capabilities":["HasProductInformation"],"Gateway":"gwname"}`),
-			[]byte(`{"Type":"DeviceUpdateCapability","Identifier":"device","Capability":"HasProductInformation","Payload":{"Name":"Name","Manufacturer":"Manufacturer"}}`),
+			[]byte(`{"Type":"GatewayUpdate","Identifier":"gwname","Capabilities":["ProductInformation"],"SelfDevice":"selfdevice"}`),
+			[]byte(`{"Type":"DeviceUpdate","Metadata":{"Name":"device name","Zones":[1]},"Identifier":"device","Capabilities":["ProductInformation"],"Gateway":"gwname"}`),
+			[]byte(`{"Type":"DeviceUpdateCapability","Identifier":"device","Capability":"ProductInformation","Payload":{"Name":"Name","Manufacturer":"Manufacturer"}}`),
 		}
 
 		actualInitial, err := wem.InitialEvents(context.Background())

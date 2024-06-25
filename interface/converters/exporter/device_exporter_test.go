@@ -81,19 +81,20 @@ func TestDeviceExporter_ExportSimpleDevice(t *testing.T) {
 		mockCapOne := mocks.BasicCapability{}
 		defer mockCapOne.AssertExpectations(t)
 		mockCapOne.On("Name").Return("capOne")
-		mgwOne.On("Capability", capOne).Return(&mockCapOne)
 
-		do := state.NewDeviceOrganiser(state.NullEventPublisher)
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 		do.NewZone("one")
 		do.AddDevice("one-one")
 		do.NameDevice("one-one", "fancyname")
 		do.AddDeviceToZone("one-one", 1)
 
-		input := da.BaseDevice{
-			DeviceGateway:      &mgwOne,
-			DeviceIdentifier:   SimpleIdentifier{id: "one-one"},
-			DeviceCapabilities: []da.Capability{capOne},
-		}
+		mdev := &mocks.MockDevice{}
+		defer mdev.AssertExpectations(t)
+
+		mdev.On("Identifier").Return(SimpleIdentifier{id: "one-one"})
+		mdev.On("Capabilities").Return([]da.Capability{capOne})
+		mdev.On("Capability", capOne).Return(&mockCapOne)
+		mdev.On("Gateway").Return(&mgwOne)
 
 		expected := ExportedSimpleDevice{
 			Identifier:   "one-one",
@@ -108,10 +109,10 @@ func TestDeviceExporter_ExportSimpleDevice(t *testing.T) {
 		mgm := state.MockGatewayMapper{}
 		defer mgm.AssertExpectations(t)
 
-		mgm.On("GatewayName", mock.Anything).Return("gw", true)
+		mgm.On("GatewayName", &mgwOne).Return("gw", true)
 
 		dc := DeviceExporter{DeviceOrganiser: &do, GatewayMapper: &mgm}
-		actual := dc.ExportSimpleDevice(context.Background(), input)
+		actual := dc.ExportSimpleDevice(context.Background(), mdev)
 
 		assert.Equal(t, expected, actual)
 	})

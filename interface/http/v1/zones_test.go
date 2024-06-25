@@ -440,7 +440,7 @@ func Test_zoneController_updateZone(t *testing.T) {
 	})
 
 	t.Run("updates an individual zone, moving before", func(t *testing.T) {
-<		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
+		do := state.NewDeviceOrganiser(memory.New(), state.NullEventPublisher)
 		do.NewZone("one")
 		do.NewZone("two")
 
