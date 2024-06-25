@@ -36,7 +36,7 @@ func Test_websocketController(t *testing.T) {
 	t.Run("sends a marshalled and formatted version of the eventbus message to the websocket connection", func(t *testing.T) {
 		eb := state.NewEventBus()
 
-		mem := mockEventMapper{}
+		mem := &mockEventMapper{}
 		defer mem.AssertExpectations(t)
 
 		inputEvent := "event"
@@ -46,7 +46,7 @@ func Test_websocketController(t *testing.T) {
 
 		wc := websocketController{
 			eventbus:    eb,
-			eventMapper: &mem,
+			eventMapper: mem,
 			logger:      logwrap.New(discard.Discard()),
 		}
 
@@ -67,7 +67,7 @@ func Test_websocketController(t *testing.T) {
 	t.Run("sends initial synchronisation events to the websocket connection", func(t *testing.T) {
 		eb := state.NewEventBus()
 
-		mem := mockEventMapper{}
+		mem := &mockEventMapper{}
 		defer mem.AssertExpectations(t)
 
 		expectedData := []byte("data")
@@ -75,7 +75,7 @@ func Test_websocketController(t *testing.T) {
 
 		wc := websocketController{
 			eventbus:    eb,
-			eventMapper: &mem,
+			eventMapper: mem,
 			logger:      logwrap.New(discard.Discard()),
 		}
 
@@ -96,7 +96,7 @@ type mockEventMapper struct {
 	mock.Mock
 }
 
-func (m *mockEventMapper) MapEvent(ctx context.Context, e interface{}) ([][]byte, error) {
+func (m *mockEventMapper) MapEvent(ctx context.Context, e any) ([][]byte, error) {
 	args := m.Called(ctx, e)
 	return args.Get(0).([][]byte), args.Error(1)
 }

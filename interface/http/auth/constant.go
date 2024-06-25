@@ -7,7 +7,7 @@ const UserIdentityContextKey = "AuthenticatedUserIdentity"
 type AuthenticationProvider interface {
 	AuthenticationMiddleware(next http.Handler) http.Handler
 	AuthenticationRouter() http.Handler
-	AuthenticationType() interface{}
+	AuthenticationType() any
 }
 
 type AuthenticatorType struct {

@@ -44,7 +44,7 @@ func (m *MockOutputLayer) Device(rl RetentionLevel, d da.Device) da.Device {
 	return called.Get(0).(da.Device)
 }
 
-func (m *MockOutputLayer) MaintainedStatus(c da.Capability, d da.Device) interface{} {
+func (m *MockOutputLayer) MaintainedStatus(c da.Capability, d da.Device) any {
 	called := m.Called(c, d)
 	return called.Get(0)
 }

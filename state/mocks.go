@@ -16,7 +16,7 @@ func (m *MockGatewayMapper) Gateways() map[string]da.Gateway {
 	return args.Get(0).(map[string]da.Gateway)
 }
 
-func (m *MockGatewayMapper) Capability(id string, cap da.Capability) interface{} {
+func (m *MockGatewayMapper) Capability(id string, cap da.Capability) any {
 	args := m.Called(id, cap)
 	return args.Get(0)
 }

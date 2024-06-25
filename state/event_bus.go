@@ -5,12 +5,12 @@ import (
 )
 
 type EventPublisher interface {
-	Publish(interface{})
+	Publish(any)
 }
 
 type EventSubscriber interface {
-	Subscribe(chan interface{})
-	Unsubscribe(chan interface{})
+	Subscribe(chan any)
+	Unsubscribe(chan any)
 }
 
 var _ EventPublisher = (*EventBus)(nil)
@@ -18,12 +18,12 @@ var _ EventSubscriber = (*EventBus)(nil)
 
 type nullEventPublisher struct{}
 
-func (_ nullEventPublisher) Publish(interface{}) {}
+func (_ nullEventPublisher) Publish(any) {}
 
 var NullEventPublisher = nullEventPublisher{}
 
 type EventBus struct {
-	channels     []chan interface{}
+	channels     []chan any
 	channelsLock *sync.RWMutex
 }
 
@@ -33,14 +33,14 @@ func NewEventBus() *EventBus {
 	}
 }
 
-func (b *EventBus) Subscribe(ch chan interface{}) {
+func (b *EventBus) Subscribe(ch chan any) {
 	b.channelsLock.Lock()
 	defer b.channelsLock.Unlock()
 
 	b.channels = append(b.channels, ch)
 }
 
-func (b *EventBus) Unsubscribe(ch chan interface{}) {
+func (b *EventBus) Unsubscribe(ch chan any) {
 	b.channelsLock.Lock()
 	defer b.channelsLock.Unlock()
 
@@ -52,7 +52,7 @@ func (b *EventBus) Unsubscribe(ch chan interface{}) {
 	}
 }
 
-func (b *EventBus) Publish(e interface{}) {
+func (b *EventBus) Publish(e any) {
 	b.channelsLock.RLock()
 	defer b.channelsLock.RUnlock()
 

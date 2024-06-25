@@ -12,7 +12,7 @@ type MockEventPublisher struct {
 	mock.Mock
 }
 
-func (m *MockEventPublisher) Publish(v interface{}) {
+func (m *MockEventPublisher) Publish(v any) {
 	m.Called(v)
 }
 

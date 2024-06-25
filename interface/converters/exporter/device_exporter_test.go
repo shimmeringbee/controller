@@ -51,7 +51,7 @@ func TestDeviceExporter_ExportDevice(t *testing.T) {
 
 		expected := ExportedDevice{
 			Identifier:   "one-one",
-			Capabilities: map[string]interface{}{"capOne": struct{}{}},
+			Capabilities: map[string]any{"capOne": struct{}{}},
 			Metadata: state.DeviceMetadata{
 				Name:  "fancyname",
 				Zones: []int{1},
@@ -119,7 +119,7 @@ func TestDeviceExporter_ExportSimpleDevice(t *testing.T) {
 }
 
 func Test_convertHasProductInformation(t *testing.T) {
-	t.Run("retrieves and returns all data from HasProductInformation", func(t *testing.T) {
+	t.Run("retrieves and returns all data from ProductInformation", func(t *testing.T) {
 		mhpi := capabilitymocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
@@ -129,14 +129,14 @@ func Test_convertHasProductInformation(t *testing.T) {
 			Serial:       "serial",
 		}, nil)
 
-		expected := &HasProductInformation{
+		expected := &ProductInformation{
 			Name:         "name",
 			Manufacturer: "manufacturer",
 			Serial:       "serial",
 		}
 
 		dc := DeviceExporter{}
-		actual := dc.convertHasProductInformation(context.Background(), &mhpi)
+		actual := dc.convertProductInformation(context.Background(), &mhpi)
 
 		assert.Equal(t, expected, actual)
 	})

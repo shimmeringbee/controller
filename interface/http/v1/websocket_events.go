@@ -11,7 +11,7 @@ import (
 )
 
 type eventMapper interface {
-	MapEvent(ctx context.Context, e interface{}) ([][]byte, error)
+	MapEvent(ctx context.Context, e any) ([][]byte, error)
 	InitialEvents(ctx context.Context) ([][]byte, error)
 }
 
@@ -24,7 +24,7 @@ type websocketEventMapper struct {
 }
 
 // EventToCapability maps a device abstraction capabilities event message back to the capability flag.
-func eventToCapability(v interface{}) (da.Device, da.Capability, bool) {
+func eventToCapability(v any) (da.Device, da.Capability, bool) {
 	switch e := v.(type) {
 	case capabilities.AlarmSensorUpdate:
 		return e.Device, capabilities.AlarmSensorFlag, true
@@ -77,7 +77,7 @@ func eventToCapability(v interface{}) (da.Device, da.Capability, bool) {
 	}
 }
 
-func (w websocketEventMapper) MapEvent(ctx context.Context, v interface{}) ([][]byte, error) {
+func (w websocketEventMapper) MapEvent(ctx context.Context, v any) ([][]byte, error) {
 	switch e := v.(type) {
 	case da.DeviceAdded:
 		return w.generateDeviceMessages(ctx, e.Device), nil
@@ -359,7 +359,7 @@ type DeviceUpdateCapabilityMessage struct {
 	DeviceMessage
 	Identifier string
 	Capability string
-	Payload    interface{}
+	Payload    any
 }
 
 type DeviceRemoveMessage struct {

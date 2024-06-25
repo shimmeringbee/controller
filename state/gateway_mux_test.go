@@ -198,6 +198,6 @@ type mockEventPublisher struct {
 	mock.Mock
 }
 
-func (m *mockEventPublisher) Publish(e interface{}) {
+func (m *mockEventPublisher) Publish(e any) {
 	m.Called(e)
 }

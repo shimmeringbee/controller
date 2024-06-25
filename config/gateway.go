@@ -10,7 +10,7 @@ import (
 type GatewayConfig struct {
 	Name   string `json:"-"`
 	Type   string
-	Config interface{}
+	Config any
 }
 
 func (g *GatewayConfig) UnmarshalJSON(data []byte) error {
@@ -41,7 +41,7 @@ type ZDAConfig struct {
 
 type ZDAProvider struct {
 	Type   string
-	Config interface{}
+	Config any
 }
 
 func (g *ZDAProvider) UnmarshalJSON(data []byte) error {

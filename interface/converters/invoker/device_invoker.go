@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type Invoker func(ctx context.Context, s layers.OutputStack, l string, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error)
+type Invoker func(ctx context.Context, s layers.OutputStack, l string, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (any, error)
 
 type ActionError string
 
@@ -22,7 +22,7 @@ const CapabilityNotSupported = ActionError("capability not available on device")
 const ActionNotSupported = ActionError("action not available on capability")
 const ActionUserError = ActionError("user provided bad data")
 
-func InvokeDeviceAction(ctx context.Context, s layers.OutputStack, l string, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (interface{}, error) {
+func InvokeDeviceAction(ctx context.Context, s layers.OutputStack, l string, r layers.RetentionLevel, dad da.Device, capabilityName string, actionName string, payload []byte) (any, error) {
 	invokeCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -87,7 +87,7 @@ func resolveOutputLayerAndRetention(l string, r layers.RetentionLevel, payload [
 	return l, r, nil
 }
 
-func doDeviceCapabilityAction(ctx context.Context, c interface{}, a string, b []byte) (interface{}, error) {
+func doDeviceCapabilityAction(ctx context.Context, c any, a string, b []byte) (any, error) {
 	switch cast := c.(type) {
 	case capabilities.DeviceDiscovery:
 		return doDeviceDiscovery(ctx, cast, a, b)
@@ -108,7 +108,7 @@ type DeviceDiscoveryEnable struct {
 	Duration int
 }
 
-func doDeviceDiscovery(ctx context.Context, c capabilities.DeviceDiscovery, a string, b []byte) (interface{}, error) {
+func doDeviceDiscovery(ctx context.Context, c capabilities.DeviceDiscovery, a string, b []byte) (any, error) {
 	switch a {
 	case "Enable":
 		input := DeviceDiscoveryEnable{}
@@ -125,7 +125,7 @@ func doDeviceDiscovery(ctx context.Context, c capabilities.DeviceDiscovery, a st
 	return nil, ActionNotSupported
 }
 
-func doEnumerateDevice(ctx context.Context, c capabilities.EnumerateDevice, a string) (interface{}, error) {
+func doEnumerateDevice(ctx context.Context, c capabilities.EnumerateDevice, a string) (any, error) {
 	switch a {
 	case "Enumerate":
 		return struct{}{}, c.Enumerate(ctx)
@@ -134,7 +134,7 @@ func doEnumerateDevice(ctx context.Context, c capabilities.EnumerateDevice, a st
 	return nil, ActionNotSupported
 }
 
-func doOnOff(ctx context.Context, c capabilities.OnOff, a string) (interface{}, error) {
+func doOnOff(ctx context.Context, c capabilities.OnOff, a string) (any, error) {
 	switch a {
 	case "On":
 		return struct{}{}, c.On(ctx)
@@ -179,7 +179,7 @@ func stringToAlertType(alertType string) (capabilities.AlertType, bool) {
 	return 0, false
 }
 
-func doAlarmWarningDevice(ctx context.Context, c capabilities.AlarmWarningDevice, a string, b []byte) (interface{}, error) {
+func doAlarmWarningDevice(ctx context.Context, c capabilities.AlarmWarningDevice, a string, b []byte) (any, error) {
 	switch a {
 	case "Alarm":
 		input := AlarmWarningDeviceAlarm{}
@@ -223,7 +223,7 @@ type RemoveDevice struct {
 	Force bool
 }
 
-func doDeviceRemoval(ctx context.Context, c capabilities.DeviceRemoval, a string, b []byte) (interface{}, error) {
+func doDeviceRemoval(ctx context.Context, c capabilities.DeviceRemoval, a string, b []byte) (any, error) {
 	switch a {
 	case "Remove":
 		input := RemoveDevice{}

@@ -58,7 +58,7 @@ func (a Authenticator) AuthenticationMiddleware(next http.Handler) http.Handler 
 	})
 }
 
-func (a Authenticator) AuthenticationType() interface{} {
+func (a Authenticator) AuthenticationType() any {
 	return auth.AuthenticatorType{
 		Type: "jwt",
 	}
@@ -100,7 +100,7 @@ func (a Authenticator) Verify(jwtString string) (string, error) {
 	return claims.Subject, nil
 }
 
-func (a Authenticator) keyLookup(token *jwt.Token) (interface{}, error) {
+func (a Authenticator) keyLookup(token *jwt.Token) (any, error) {
 	if token.Header["alg"] != "ES256" {
 		return nil, errors.New("unacceptable algorithm in JWT")
 	}

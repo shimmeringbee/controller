@@ -155,7 +155,7 @@ func (i *Interface) publishDeviceCapability(ctx context.Context, daDevice da.Dev
 	}
 }
 
-func (i *Interface) publishDeviceCapabilityAggregated(ctx context.Context, topic string, result interface{}) error {
+func (i *Interface) publishDeviceCapabilityAggregated(ctx context.Context, topic string, result any) error {
 	payload, err := json.Marshal(result)
 	if err != nil {
 		return fmt.Errorf("failed to marshal result: %w", err)
@@ -175,7 +175,7 @@ func (i *Interface) Disconnected() {
 func (i *Interface) Start() {
 	i.stop = make(chan bool, 1)
 
-	ch := make(chan interface{}, 100)
+	ch := make(chan any, 100)
 	i.EventSubscriber.Subscribe(ch)
 
 	go i.handleEvents(ch)
@@ -187,7 +187,7 @@ func (i *Interface) Stop() {
 	}
 }
 
-func (i *Interface) handleEvents(ch chan interface{}) {
+func (i *Interface) handleEvents(ch chan any) {
 	for {
 		select {
 		case event := <-ch:
@@ -200,7 +200,7 @@ func (i *Interface) handleEvents(ch chan interface{}) {
 
 const MaximumServiceUpdateTime = 1 * time.Second
 
-func (i *Interface) serviceUpdateOnEvent(e interface{}) {
+func (i *Interface) serviceUpdateOnEvent(e any) {
 	ctx, cancel := context.WithTimeout(context.Background(), MaximumServiceUpdateTime)
 	defer cancel()
 
@@ -232,7 +232,7 @@ func (i *Interface) serviceUpdateOnEvent(e interface{}) {
 	}
 }
 
-func (i *Interface) publishDeviceCapabilityIndividual(ctx context.Context, topic string, result interface{}) error {
+func (i *Interface) publishDeviceCapabilityIndividual(ctx context.Context, topic string, result any) error {
 	switch c := result.(type) {
 	case *exporter.AlarmSensor:
 		return i.publishDeviceCapabilityIndividualAlarmSensor(ctx, topic, c)
@@ -252,7 +252,7 @@ func (i *Interface) publishDeviceCapabilityIndividual(ctx context.Context, topic
 		return i.publishDeviceCapabilityIndividualRelativeHumiditySensor(ctx, topic, c)
 	case *exporter.TemperatureSensor:
 		return i.publishDeviceCapabilityIndividualTemperatureSensor(ctx, topic, c)
-	case *exporter.HasProductInformation:
+	case *exporter.ProductInformation:
 		return i.publishDeviceCapabilityIndividualHasProductInformation(ctx, topic, c)
 	}
 
@@ -397,7 +397,7 @@ func (i *Interface) publishDeviceCapabilityIndividualTemperatureSensor(ctx conte
 	return nil
 }
 
-func (i *Interface) publishDeviceCapabilityIndividualHasProductInformation(ctx context.Context, topic string, c *exporter.HasProductInformation) error {
+func (i *Interface) publishDeviceCapabilityIndividualHasProductInformation(ctx context.Context, topic string, c *exporter.ProductInformation) error {
 	if err := i.Publisher(ctx, fmt.Sprintf("%s/Product", topic), fmtString(c.Name)); err != nil {
 		return fmt.Errorf("failed to publish data to mqtt: %w", err)
 	}
@@ -413,7 +413,7 @@ func (i *Interface) publishDeviceCapabilityIndividualHasProductInformation(ctx c
 	return nil
 }
 
-func fmtPtrToJSON(v interface{}) []byte {
+func fmtPtrToJSON(v any) []byte {
 	if v == nil {
 		return []byte("null")
 	}

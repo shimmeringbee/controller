@@ -7,7 +7,7 @@ import (
 
 func TestEventBus(t *testing.T) {
 	t.Run("subscribing to the bus results in published events being received", func(t *testing.T) {
-		listenCh := make(chan interface{}, 1)
+		listenCh := make(chan any, 1)
 		expectedEvent := struct{}{}
 
 		eb := NewEventBus()
@@ -23,7 +23,7 @@ func TestEventBus(t *testing.T) {
 	})
 
 	t.Run("channels can be unsubscribed from eventbus", func(t *testing.T) {
-		listenCh := make(chan interface{}, 1)
+		listenCh := make(chan any, 1)
 		expectedEvent := struct{}{}
 
 		eb := NewEventBus()

@@ -34,7 +34,7 @@ func (z *websocketController) serveWebsocket(w http.ResponseWriter, r *http.Requ
 const WebsocketConnectionEventBufferSize = 16
 
 func (z *websocketController) handleConnection(c *websocket.Conn) error {
-	eventsCh := make(chan interface{}, WebsocketConnectionEventBufferSize)
+	eventsCh := make(chan any, WebsocketConnectionEventBufferSize)
 	shutdownCh := make(chan struct{})
 	defer close(eventsCh)
 	defer func() {
@@ -56,7 +56,7 @@ func (z *websocketController) handleConnection(c *websocket.Conn) error {
 	return z.serviceIncoming(c)
 }
 
-func (z *websocketController) serviceOutgoing(c *websocket.Conn, events [][]byte, ch chan interface{}, shutCh chan struct{}) {
+func (z *websocketController) serviceOutgoing(c *websocket.Conn, events [][]byte, ch chan any, shutCh chan struct{}) {
 	for _, d := range events {
 		if err := c.WriteMessage(websocket.TextMessage, d); err != nil {
 			z.logger.LogError(context.Background(), "Failed to send initial message to websocket.", logwrap.Err(err))

@@ -114,8 +114,8 @@ func main() {
 	l.LogInfo(ctx, "Shut down complete.")
 }
 
-func updateDeviceOrganiserFromMux(do *state.DeviceOrganiser) chan interface{} {
-	ch := make(chan interface{}, 100)
+func updateDeviceOrganiserFromMux(do *state.DeviceOrganiser) chan any {
+	ch := make(chan any, 100)
 
 	go func() {
 		for {

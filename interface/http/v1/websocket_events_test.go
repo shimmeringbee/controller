@@ -30,17 +30,17 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 			},
 		}
 
-		mgw := mocks.Gateway{}
+		mgw := &mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
-		moo := damocks.OnOff{}
+		moo := &damocks.OnOff{}
 		defer moo.AssertExpectations(t)
 
 		mdev := &mocks.MockDevice{}
 		defer mdev.AssertExpectations(t)
 
 		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
-		mdev.On("Capability", capabilities.OnOffFlag).Return(&moo)
+		mdev.On("Capability", capabilities.OnOffFlag).Return(moo)
 
 		moo.Mock.On("Name").Return("OnOff")
 		moo.Mock.On("Status", mock.Anything).Return(true, nil)
@@ -60,7 +60,7 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
-		mgw := mocks.Gateway{}
+		mgw := &mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
 		mdev := &mocks.MockDevice{}
@@ -68,9 +68,9 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 
 		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
 		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
-		mdev.On("Gateway").Return(&mgw)
+		mdev.On("Gateway").Return(mgw)
 
-		mhpi := damocks.ProductInformation{}
+		mhpi := &damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
 		mhpi.On("Name").Return("ProductInformation")
@@ -79,9 +79,9 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 			Name:         "Name",
 		}, nil)
 
-		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(mhpi)
 
-		gm.On("GatewayName", &mgw).Return("gwname", true)
+		gm.On("GatewayName", mgw).Return("gwname", true)
 
 		wem := websocketEventMapper{
 			deviceOrganiser: &do,
@@ -108,7 +108,7 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
-		mgw := mocks.Gateway{}
+		mgw := &mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
 		mdev := &mocks.MockDevice{}
@@ -116,9 +116,9 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 
 		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
 		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
-		mdev.On("Gateway").Return(&mgw)
+		mdev.On("Gateway").Return(mgw)
 
-		mhpi := damocks.ProductInformation{}
+		mhpi := &damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
 		mhpi.On("Name").Return("ProductInformation")
@@ -127,9 +127,9 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 			Name:         "Name",
 		}, nil)
 
-		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(mhpi)
 
-		gm.On("GatewayName", &mgw).Return("gwname", true)
+		gm.On("GatewayName", mgw).Return("gwname", true)
 
 		wem := websocketEventMapper{
 			deviceOrganiser: &do,
@@ -156,7 +156,7 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
-		mgw := mocks.Gateway{}
+		mgw := &mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
 		mdev := &mocks.MockDevice{}
@@ -164,18 +164,18 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 
 		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
 		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
-		mdev.On("Gateway").Return(&mgw)
+		mdev.On("Gateway").Return(mgw)
 
 		gm.On("Device", "device").Return(mdev, true)
 
-		mhpi := damocks.ProductInformation{}
+		mhpi := &damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
 		mhpi.On("Name").Return("ProductInformation")
 
-		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(mhpi)
 
-		gm.On("GatewayName", &mgw).Return("gwname", true)
+		gm.On("GatewayName", mgw).Return("gwname", true)
 
 		wem := websocketEventMapper{
 			deviceOrganiser: &do,
@@ -201,7 +201,7 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
-		mgw := mocks.Gateway{}
+		mgw := &mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
 		mdev := &mocks.MockDevice{}
@@ -209,18 +209,18 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 
 		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
 		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
-		mdev.On("Gateway").Return(&mgw)
+		mdev.On("Gateway").Return(mgw)
 
 		gm.On("Device", "device").Return(mdev, true)
 
-		mhpi := damocks.ProductInformation{}
+		mhpi := &damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
 		mhpi.On("Name").Return("ProductInformation")
 
-		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(mhpi)
 
-		gm.On("GatewayName", &mgw).Return("gwname", true)
+		gm.On("GatewayName", mgw).Return("gwname", true)
 
 		wem := websocketEventMapper{
 			deviceOrganiser: &do,
@@ -246,7 +246,7 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 		gm := &state.MockGatewayMapper{}
 		defer gm.AssertExpectations(t)
 
-		mgw := mocks.Gateway{}
+		mgw := &mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
 		mdev := &mocks.MockDevice{}
@@ -254,18 +254,18 @@ func TestWebsocketEventMapper_MapEvent(t *testing.T) {
 
 		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
 		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
-		mdev.On("Gateway").Return(&mgw)
+		mdev.On("Gateway").Return(mgw)
 
 		gm.On("Device", "device").Return(mdev, true)
 
-		mhpi := damocks.ProductInformation{}
+		mhpi := &damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
 		mhpi.On("Name").Return("ProductInformation")
 
-		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(mhpi)
 
-		gm.On("GatewayName", &mgw).Return("gwname", true)
+		gm.On("GatewayName", mgw).Return("gwname", true)
 
 		wem := websocketEventMapper{
 			deviceOrganiser: &do,
@@ -411,7 +411,7 @@ func TestWebsocketEventMapper_InitialEvents(t *testing.T) {
 		do.NameDevice("device", "device name")
 		do.AddDeviceToZone("device", 1)
 
-		mgw := mocks.Gateway{}
+		mgw := &mocks.Gateway{}
 		defer mgw.AssertExpectations(t)
 
 		mdev := &mocks.MockDevice{}
@@ -419,13 +419,13 @@ func TestWebsocketEventMapper_InitialEvents(t *testing.T) {
 
 		mdev.On("Identifier").Return(SimpleIdentifier{id: "device"})
 		mdev.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
-		mdev.On("Gateway").Return(&mgw)
+		mdev.On("Gateway").Return(mgw)
 
 		mgw.On("Devices").Return([]da.Device{mdev})
 		mgw.On("Capabilities").Return([]da.Capability{capabilities.ProductInformationFlag})
 		mgw.On("Self").Return(mocks.SimpleDevice{SIdentifier: SimpleIdentifier{"selfdevice"}})
 
-		mhpi := damocks.ProductInformation{}
+		mhpi := &damocks.ProductInformation{}
 		defer mhpi.AssertExpectations(t)
 
 		mhpi.On("Name").Return("ProductInformation")
@@ -434,10 +434,10 @@ func TestWebsocketEventMapper_InitialEvents(t *testing.T) {
 			Name:         "Name",
 		}, nil)
 
-		mdev.On("Capability", capabilities.ProductInformationFlag).Return(&mhpi)
+		mdev.On("Capability", capabilities.ProductInformationFlag).Return(mhpi)
 
-		gm.On("GatewayName", &mgw).Return("gwname", true)
-		gm.On("Gateways").Return(map[string]da.Gateway{"gwname": &mgw})
+		gm.On("GatewayName", mgw).Return("gwname", true)
+		gm.On("Gateways").Return(map[string]da.Gateway{"gwname": mgw})
 
 		wem := websocketEventMapper{
 			deviceOrganiser: &do,

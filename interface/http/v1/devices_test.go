@@ -52,7 +52,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 		expectedDeviceOne := exporter.ExportedDevice{
 			Identifier:   "one-one",
-			Capabilities: map[string]interface{}{"capOne": struct{}{}},
+			Capabilities: map[string]any{"capOne": struct{}{}},
 			Gateway:      "one",
 		}
 
@@ -66,7 +66,7 @@ func Test_deviceController_listDevices(t *testing.T) {
 
 		expectedDeviceTwo := exporter.ExportedDevice{
 			Identifier:   "two-two",
-			Capabilities: map[string]interface{}{"capTwo": struct{}{}},
+			Capabilities: map[string]any{"capTwo": struct{}{}},
 			Gateway:      "two",
 		}
 
@@ -84,12 +84,12 @@ func Test_deviceController_listDevices(t *testing.T) {
 		expectedDevices := map[string]exporter.ExportedDevice{
 			"one-one": {
 				Identifier:   "one-one",
-				Capabilities: map[string]interface{}{"capOne": map[string]interface{}{}},
+				Capabilities: map[string]any{"capOne": map[string]any{}},
 				Gateway:      "one",
 			},
 			"two-two": {
 				Identifier:   "two-two",
-				Capabilities: map[string]interface{}{"capTwo": map[string]interface{}{}},
+				Capabilities: map[string]any{"capTwo": map[string]any{}},
 				Gateway:      "two",
 			},
 		}
@@ -135,7 +135,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 		expectedDeviceOne := exporter.ExportedDevice{
 			Identifier:   "one-one",
-			Capabilities: map[string]interface{}{"capOne": struct{}{}},
+			Capabilities: map[string]any{"capOne": struct{}{}},
 			Gateway:      "one",
 		}
 
@@ -147,7 +147,7 @@ func Test_deviceController_getDevice(t *testing.T) {
 
 		expectedDevice := exporter.ExportedDevice{
 			Identifier:   "one-one",
-			Capabilities: map[string]interface{}{"capOne": map[string]interface{}{}},
+			Capabilities: map[string]any{"capOne": map[string]any{}},
 			Gateway:      "one",
 		}
 

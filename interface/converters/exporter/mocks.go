@@ -20,7 +20,7 @@ func (m *MockDeviceExporter) ExportSimpleDevice(ctx context.Context, daDevice da
 	return args.Get(0).(ExportedSimpleDevice)
 }
 
-func (m *MockDeviceExporter) ExportCapability(ctx context.Context, e interface{}) interface{} {
+func (m *MockDeviceExporter) ExportCapability(ctx context.Context, e any) any {
 	args := m.Called(ctx, e)
 	return args.Get(0)
 }

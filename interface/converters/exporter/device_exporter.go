@@ -12,7 +12,7 @@ import (
 type ExportedDevice struct {
 	Metadata     state.DeviceMetadata
 	Identifier   string
-	Capabilities map[string]interface{}
+	Capabilities map[string]any
 	Gateway      string
 }
 
@@ -37,7 +37,7 @@ type DeviceExporter struct {
 }
 
 func (de *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) ExportedDevice {
-	capabilityList := map[string]interface{}{}
+	capabilityList := map[string]any{}
 
 	for _, capFlag := range daDevice.Capabilities() {
 		uncastCapability := daDevice.Capability(capFlag)
@@ -80,15 +80,15 @@ func (de *DeviceExporter) ExportSimpleDevice(ctx context.Context, daDevice da.De
 	}
 }
 
-func (de *DeviceExporter) ExportCapability(pctx context.Context, uncastCapability interface{}) interface{} {
+func (de *DeviceExporter) ExportCapability(pctx context.Context, uncastCapability any) any {
 	ctx, cancel := context.WithTimeout(pctx, DefaultCapabilityTimeout)
 	defer cancel()
 
-	var retVal interface{}
+	var retVal any
 
 	switch capability := uncastCapability.(type) {
 	case capabilities.ProductInformation:
-		retVal = de.convertHasProductInformation(ctx, capability)
+		retVal = de.convertProductInformation(ctx, capability)
 	case capabilities.TemperatureSensor:
 		retVal = de.convertTemperatureSensor(ctx, capability)
 	case capabilities.RelativeHumiditySensor:
@@ -172,20 +172,20 @@ func (lct *LastChange) SetChangeTime(t time.Time) {
 	lct.LastChange = &nullableTime
 }
 
-type HasProductInformation struct {
+type ProductInformation struct {
 	Name         string `json:",omitempty"`
 	Manufacturer string `json:",omitempty"`
 	Serial       string `json:",omitempty"`
 	Version      string `json:",omitempty"`
 }
 
-func (de *DeviceExporter) convertHasProductInformation(ctx context.Context, hpi capabilities.ProductInformation) interface{} {
+func (de *DeviceExporter) convertProductInformation(ctx context.Context, hpi capabilities.ProductInformation) any {
 	pi, err := hpi.Get(ctx)
 	if err != nil {
 		return nil
 	}
 
-	return &HasProductInformation{
+	return &ProductInformation{
 		Name:         pi.Name,
 		Manufacturer: pi.Manufacturer,
 		Serial:       pi.Serial,
@@ -199,7 +199,7 @@ type TemperatureSensor struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertTemperatureSensor(ctx context.Context, ts capabilities.TemperatureSensor) interface{} {
+func (de *DeviceExporter) convertTemperatureSensor(ctx context.Context, ts capabilities.TemperatureSensor) any {
 	tsReadings, err := ts.Reading(ctx)
 	if err != nil {
 		return nil
@@ -216,7 +216,7 @@ type RelativeHumiditySensor struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertRelativeHumiditySensor(ctx context.Context, rhs capabilities.RelativeHumiditySensor) interface{} {
+func (de *DeviceExporter) convertRelativeHumiditySensor(ctx context.Context, rhs capabilities.RelativeHumiditySensor) any {
 	rhReadings, err := rhs.Reading(ctx)
 	if err != nil {
 		return nil
@@ -233,7 +233,7 @@ type PressureSensor struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertPressureSensor(ctx context.Context, ps capabilities.PressureSensor) interface{} {
+func (de *DeviceExporter) convertPressureSensor(ctx context.Context, ps capabilities.PressureSensor) any {
 	psReadings, err := ps.Reading(ctx)
 	if err != nil {
 		return nil
@@ -251,7 +251,7 @@ type DeviceDiscovery struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertDeviceDiscovery(ctx context.Context, dd capabilities.DeviceDiscovery) interface{} {
+func (de *DeviceExporter) convertDeviceDiscovery(ctx context.Context, dd capabilities.DeviceDiscovery) any {
 	discoveryState, err := dd.Status(ctx)
 	if err != nil {
 		return nil
@@ -277,7 +277,7 @@ type EnumerateDevice struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertEnumerateDevice(ctx context.Context, ed capabilities.EnumerateDevice) interface{} {
+func (de *DeviceExporter) convertEnumerateDevice(ctx context.Context, ed capabilities.EnumerateDevice) any {
 	enumerateDeviceState, err := ed.Status(ctx)
 	if err != nil {
 		return nil
@@ -310,7 +310,7 @@ type AlarmSensor struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertAlarmSensor(ctx context.Context, as capabilities.AlarmSensor) interface{} {
+func (de *DeviceExporter) convertAlarmSensor(ctx context.Context, as capabilities.AlarmSensor) any {
 	alarmSensorState, err := as.Status(ctx)
 	if err != nil {
 		return nil
@@ -333,7 +333,7 @@ type OnOff struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertOnOff(ctx context.Context, oo capabilities.OnOff) interface{} {
+func (de *DeviceExporter) convertOnOff(ctx context.Context, oo capabilities.OnOff) any {
 	state, err := oo.Status(ctx)
 	if err != nil {
 		return nil
@@ -365,7 +365,7 @@ type PowerBatteryStatus struct {
 	Available      *bool    `json:",omitempty"`
 }
 
-func (de *DeviceExporter) convertPowerSupply(ctx context.Context, capability capabilities.PowerSupply) interface{} {
+func (de *DeviceExporter) convertPowerSupply(ctx context.Context, capability capabilities.PowerSupply) any {
 	state, err := capability.Status(ctx)
 	if err != nil {
 		return nil
@@ -434,7 +434,7 @@ type AlarmWarningDeviceStatus struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertAlarmWarningDevice(ctx context.Context, capability capabilities.AlarmWarningDevice) interface{} {
+func (de *DeviceExporter) convertAlarmWarningDevice(ctx context.Context, capability capabilities.AlarmWarningDevice) any {
 	state, err := capability.Status(ctx)
 	if err != nil {
 		return nil
@@ -465,7 +465,7 @@ type IdentifyStatus struct {
 	LastChange
 }
 
-func (de *DeviceExporter) convertIdentify(ctx context.Context, capability capabilities.Identify) interface{} {
+func (de *DeviceExporter) convertIdentify(ctx context.Context, capability capabilities.Identify) any {
 	state, err := capability.Status(ctx)
 	if err != nil {
 		return nil
@@ -487,7 +487,7 @@ type DeviceWorkaroundsStatus struct {
 	Enabled []string
 }
 
-func (de *DeviceExporter) convertDeviceWorkarounds(ctx context.Context, capability capabilities.DeviceWorkarounds) interface{} {
+func (de *DeviceExporter) convertDeviceWorkarounds(ctx context.Context, capability capabilities.DeviceWorkarounds) any {
 	state, err := capability.Enabled(ctx)
 	if err != nil {
 		return nil

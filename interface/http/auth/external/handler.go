@@ -31,7 +31,7 @@ func (a Authenticator) AuthenticationRouter() http.Handler {
 	return mux.NewRouter()
 }
 
-func (a Authenticator) AuthenticationType() interface{} {
+func (a Authenticator) AuthenticationType() any {
 	return auth.AuthenticatorType{
 		Type: "external",
 	}

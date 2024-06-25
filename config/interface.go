@@ -9,7 +9,7 @@ import (
 type InterfaceConfig struct {
 	Name   string `json:"-"`
 	Type   string
-	Config interface{}
+	Config any
 }
 
 func (g *InterfaceConfig) UnmarshalJSON(data []byte) error {
