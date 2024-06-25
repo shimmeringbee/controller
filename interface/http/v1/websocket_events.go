@@ -38,6 +38,8 @@ func eventToCapability(v interface{}) (da.Device, da.Capability, bool) {
 		return e.Device, capabilities.EnumerateDeviceFlag, true
 	case capabilities.EnumerateDeviceStopped:
 		return e.Device, capabilities.EnumerateDeviceFlag, true
+	case capabilities.IdentifyUpdate:
+		return e.Device, capabilities.IdentifyFlag, true
 	case capabilities.IlluminationSensorUpdate:
 		return e.Device, capabilities.IlluminationSensorFlag, true
 	case capabilities.LocalDebugStart:
