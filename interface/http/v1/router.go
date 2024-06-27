@@ -40,7 +40,7 @@ func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOr
 		deviceOrganiser: deviceOrganiser,
 	}
 
-	wc := websocketController{
+	wc := eventsController{
 		eventbus:    eventbus,
 		eventMapper: exporter.NewEventExporter(mapper, deviceConverter, deviceOrganiser),
 		logger:      l,
@@ -65,7 +65,8 @@ func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOr
 	protected.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.addSubzoneToZone).Methods("PUT")
 	protected.HandleFunc("/zones/{identifier}/subzones/{subzoneIdentifier}", zc.removeSubzoneToZone).Methods("DELETE")
 
-	protected.HandleFunc("/websocket", wc.serveWebsocket).Methods("GET")
+	protected.HandleFunc("/events/sse", wc.serveServerSideEvent).Methods("GET")
+	protected.HandleFunc("/events/ws", wc.serveWebsocket).Methods("GET")
 
 	apiRoot := mux.NewRouter()
 	apiRoot.Handle("/openapi.json", http.FileServer(http.FS(openapi))).Methods("GET")

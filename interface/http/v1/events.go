@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/shimmeringbee/controller/interface/converters/exporter"
 	"github.com/shimmeringbee/controller/state"
@@ -11,15 +12,46 @@ import (
 	"time"
 )
 
-var wsUpgrader = websocket.Upgrader{}
-
-type websocketController struct {
+type eventsController struct {
 	eventbus    state.EventSubscriber
 	eventMapper exporter.EventExporter
 	logger      logwrap.Logger
 }
 
-func (z *websocketController) serveWebsocket(w http.ResponseWriter, r *http.Request) {
+const ConnectionEventBufferSize = 16
+
+func (z *eventsController) serveServerSideEvent(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Expose-Headers", "Content-Type")
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	doneCh := r.Context().Done()
+	eventsCh := make(chan any, ConnectionEventBufferSize)
+
+	z.eventbus.Subscribe(eventsCh)
+	defer z.eventbus.Unsubscribe(eventsCh)
+
+	flusher := w.(http.Flusher)
+
+	z.sendLoop(func(b []byte) error {
+		data := append(b, '\n', '\n')
+		if n, err := w.Write(data); err != nil {
+			return err
+		} else if len(data) != n {
+			return fmt.Errorf("failed to send full event: %d != %d", len(data), n)
+		}
+
+		flusher.Flush()
+		return nil
+	}, eventsCh, doneCh)
+}
+
+var wsUpgrader = websocket.Upgrader{}
+
+func (z *eventsController) serveWebsocket(w http.ResponseWriter, r *http.Request) {
 	c, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -27,44 +59,46 @@ func (z *websocketController) serveWebsocket(w http.ResponseWriter, r *http.Requ
 	}
 	defer c.Close()
 
-	err = z.handleConnection(c)
+	err = z.serverWebsocketConnection(c)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 }
 
-const WebsocketConnectionEventBufferSize = 16
-
-func (z *websocketController) handleConnection(c *websocket.Conn) error {
-	eventsCh := make(chan any, WebsocketConnectionEventBufferSize)
+func (z *eventsController) serverWebsocketConnection(c *websocket.Conn) error {
+	eventsCh := make(chan any, ConnectionEventBufferSize)
 	shutdownCh := make(chan struct{})
-	defer close(eventsCh)
+
+	z.eventbus.Subscribe(eventsCh)
+
 	defer func() {
+		z.eventbus.Unsubscribe(eventsCh)
+		close(eventsCh)
+
 		shutdownCh <- struct{}{}
 		close(shutdownCh)
 	}()
 
-	z.eventbus.Subscribe(eventsCh)
-	defer z.eventbus.Unsubscribe(eventsCh)
-
-	initCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	initialEvents, err := z.eventMapper.InitialEvents(initCtx)
-	cancel()
-	if err != nil {
-		return err
-	}
-
-	go z.serviceOutgoing(c, initialEvents, eventsCh, shutdownCh)
+	go z.sendLoop(func(b []byte) error {
+		return c.WriteMessage(websocket.TextMessage, b)
+	}, eventsCh, shutdownCh)
 	return z.serviceIncoming(c)
 }
 
-func (z *websocketController) serviceOutgoing(c *websocket.Conn, events []any, ch chan any, shutCh chan struct{}) {
+func (z *eventsController) sendLoop(publish func([]byte) error, ch chan any, shutCh <-chan struct{}) {
+	initCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	events, err := z.eventMapper.InitialEvents(initCtx)
+	cancel()
+	if err != nil {
+		return
+	}
+
 	for _, e := range events {
 		if d, err := json.Marshal(e); err != nil {
 			z.logger.LogError(context.Background(), "Failed to marshal message to websocket.", logwrap.Err(err))
 			return
 		} else {
-			if err := c.WriteMessage(websocket.TextMessage, d); err != nil {
+			if err := publish(d); err != nil {
 				z.logger.LogError(context.Background(), "Failed to send initial message to websocket.", logwrap.Err(err))
 				return
 			}
@@ -74,6 +108,10 @@ func (z *websocketController) serviceOutgoing(c *websocket.Conn, events []any, c
 	for {
 		select {
 		case event := <-ch:
+			if event == nil {
+				return
+			}
+
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			es, err := z.eventMapper.MapEvent(ctx, event)
 			cancel()
@@ -88,7 +126,7 @@ func (z *websocketController) serviceOutgoing(c *websocket.Conn, events []any, c
 					z.logger.LogError(context.Background(), "Failed to marshal message to websocket.", logwrap.Err(err))
 					return
 				} else {
-					if err := c.WriteMessage(websocket.TextMessage, d); err != nil {
+					if err := publish(d); err != nil {
 						z.logger.LogError(ctx, "Failed to send messages to websocket.", logwrap.Err(err))
 						return
 					}
@@ -100,7 +138,7 @@ func (z *websocketController) serviceOutgoing(c *websocket.Conn, events []any, c
 	}
 }
 
-func (z *websocketController) serviceIncoming(c *websocket.Conn) error {
+func (z *eventsController) serviceIncoming(c *websocket.Conn) error {
 	for {
 		_, _, err := c.ReadMessage()
 		if err != nil {

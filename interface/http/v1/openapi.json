@@ -36,8 +36,8 @@
       "description": "Access to zone hierarchy, used to fetch data about zones and devices"
     },
     {
-      "name": "websocket",
-      "description": "Websocket for asynchronous notifications."
+      "name": "events",
+      "description": "Events for asynchronous notifications."
     }
   ],
   "paths": {
@@ -917,7 +917,7 @@
         }
       }
     },
-    "/websocket": {
+    "/events/sse": {
       "get": {
         "security": [
           {
@@ -928,9 +928,34 @@
           }
         ],
         "tags": [
-          "websocket"
+          "events"
         ],
-        "summary": "Receive asynchronous events",
+        "summary": "Receive events via Server Side Events",
+        "description": "Provides an asynchronous stream device and zone events, targeted for maintaining state in an application. Intended for use by the EventSource browser API.",
+        "responses": {
+          "401": {
+            "description": "unauthorised, provide suitable authentication credentials"
+          },
+          "403": {
+            "description": "forbidden, credentials provided are valid but do not permit action requested"
+          }
+        }
+      }
+    },
+    "/events/ws": {
+      "get": {
+        "security": [
+          {
+            "basicAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "events"
+        ],
+        "summary": "Receive events via a Websocket",
         "description": "Provides an asynchronous stream device and zone events, targeted for maintaining state in an application. A WebSocket client must be used, this is included here for informational purposes and will not function. Please note an appropriate form of HTTP authentication must be used before the connection upgrade.",
         "parameters": [
           {

@@ -213,16 +213,18 @@ func (w eventExporter) generateDeviceUpdateCapabilityMessage(ctx context.Context
 
 	out := w.deviceExporter.ExportCapability(ctx, uncastCapability)
 
-	return []any{DeviceUpdateCapabilityMessage{
-		DeviceMessage: DeviceMessage{
-			Message: Message{
-				Type: DeviceUpdateCapabilityMessageName,
+	return []any{
+		DeviceUpdateCapabilityMessage{
+			DeviceMessage: DeviceMessage{
+				Message: Message{
+					Type: DeviceUpdateCapabilityMessageName,
+				},
 			},
+			Identifier: daDevice.Identifier().String(),
+			Capability: basic.Name(),
+			Payload:    out,
 		},
-		Identifier: daDevice.Identifier().String(),
-		Capability: basic.Name(),
-		Payload:    out,
-	}}, nil
+	}, nil
 }
 
 func (w eventExporter) generateZoneUpdateMessage(zone state.Zone, after int) (any, error) {
