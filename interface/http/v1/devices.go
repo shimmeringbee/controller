@@ -9,22 +9,15 @@ import (
 	"github.com/shimmeringbee/controller/interface/converters/invoker"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/state"
-	"github.com/shimmeringbee/da"
 	"io/ioutil"
 	"net/http"
 )
 
 const DefaultHttpOutputLayer string = "http"
 
-type deviceExporter interface {
-	ExportDevice(context.Context, da.Device) exporter.ExportedDevice
-	ExportSimpleDevice(context.Context, da.Device) exporter.ExportedSimpleDevice
-	ExportCapability(context.Context, any) any
-}
-
 type deviceController struct {
 	gatewayMapper   state.GatewayMapper
-	deviceExporter  deviceExporter
+	deviceExporter  exporter.DeviceExporter
 	deviceInvoker   invoker.Invoker
 	deviceOrganiser *state.DeviceOrganiser
 	stack           layers.OutputStack

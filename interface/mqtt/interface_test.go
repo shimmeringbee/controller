@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/shimmeringbee/controller/interface/converters/exporter"
 	"github.com/shimmeringbee/controller/interface/converters/invoker"
 	"github.com/shimmeringbee/controller/layers"
 	"github.com/shimmeringbee/controller/state"
@@ -68,7 +69,7 @@ func TestInterface_Connected(t *testing.T) {
 		mdev.On("Capability", capFlagOne).Return(hpi)
 		mdev.On("Capability", capFlagTwo).Return(oo)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishStateOnConnect: true, PublishAggregatedState: true}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishStateOnConnect: true, PublishAggregatedState: true, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m := &MockPublisher{}
 		defer m.AssertExpectations(t)
@@ -202,7 +203,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.AlarmSensorFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Alarms":{"General":true}}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -237,7 +238,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.AlarmSensorFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `true`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Alarms/General", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -278,7 +279,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.AlarmWarningDeviceFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Warning":true,"AlarmType":"Fire","Volume":0.5,"Visual":true,"Duration":60000}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -319,7 +320,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.AlarmWarningDeviceFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Warning", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/AlarmType", mdev.Identifier().String(), name), []byte(`Fire`)).Return(nil)
@@ -362,7 +363,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Discovering":true,"Duration":60000}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -402,7 +403,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Discovering", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Duration", mdev.Identifier().String(), name), []byte(`60000`)).Return(nil)
@@ -441,7 +442,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Discovering":false}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -480,7 +481,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.DeviceDiscoveryFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Discovering", mdev.Identifier().String(), name), []byte(`false`)).Return(nil)
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Duration", mdev.Identifier().String(), name), []byte(`0`)).Return(nil)
@@ -517,7 +518,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Enumerating":true,"Status":{}}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -554,7 +555,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Enumerating", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
 
@@ -591,7 +592,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Enumerating":false,"Status":{}}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -632,7 +633,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.EnumerateDeviceFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Enumerating", mdev.Identifier().String(), name), []byte(`false`)).Return(nil)
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Status/OnOff/Attached", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
@@ -667,7 +668,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.OnOffFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"State":true}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -702,7 +703,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.OnOffFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Current", mdev.Identifier().String(), name), []byte(`true`)).Return(nil)
 
@@ -755,7 +756,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.PowerSupplyFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Mains":[{"Voltage":220,"Frequency":50,"Available":true}],"Battery":[{"Voltage":3.8,"MaximumVoltage":4.2,"MinimumVoltage":3.7,"Remaining":0.8,"Available":true}]}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -809,7 +810,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.PowerSupplyFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Mains/0/Voltage", mdev.Identifier().String(), name), []byte(`220.000000`)).Return(nil)
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Mains/0/Frequency", mdev.Identifier().String(), name), []byte(`50.000000`)).Return(nil)
@@ -855,7 +856,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.PressureSensorFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Readings":[{"Value":1024000}]}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -894,7 +895,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.PressureSensorFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", mdev.Identifier().String(), name), []byte(`1024000.000000`)).Return(nil)
 
@@ -932,7 +933,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.RelativeHumiditySensorFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Readings":[{"Value":0.8}]}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -971,7 +972,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.RelativeHumiditySensorFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", mdev.Identifier().String(), name), []byte(`0.800000`)).Return(nil)
 
@@ -1009,7 +1010,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.TemperatureSensorFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Readings":[{"Value":290}]}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)
@@ -1048,7 +1049,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.TemperatureSensorFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", mdev.Identifier().String(), name), []byte(`290.000000`)).Return(nil)
 
@@ -1087,7 +1088,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.TemperatureSensorFlag).Return(mc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishIndividualState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s/Reading/0/Value", mdev.Identifier().String(), name), []byte(`290.000000`)).Return(nil)
 
@@ -1136,7 +1137,7 @@ func TestInterface_serviceUpdateOnEvent(t *testing.T) {
 
 		mdev.On("Capability", capabilities.TemperatureSensorFlag).Return(tmc)
 
-		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish}
+		i := Interface{GatewayMux: mapper, Logger: logwrap.New(discard.Discard()), PublishAggregatedState: true, Publisher: m.Publish, deviceExporter: exporter.NewDeviceExporter(nil, nil)}
 
 		expectedPayload := `{"Enumerating":false,"Status":{}}`
 		m.On("Publish", mock.Anything, fmt.Sprintf("devices/%s/capabilities/%s", mdev.Identifier().String(), name), []byte(expectedPayload)).Return(nil)

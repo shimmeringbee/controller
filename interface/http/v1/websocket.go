@@ -2,7 +2,9 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/gorilla/websocket"
+	"github.com/shimmeringbee/controller/interface/converters/exporter"
 	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/logwrap"
 	"net/http"
@@ -13,7 +15,7 @@ var wsUpgrader = websocket.Upgrader{}
 
 type websocketController struct {
 	eventbus    state.EventSubscriber
-	eventMapper eventMapper
+	eventMapper exporter.EventExporter
 	logger      logwrap.Logger
 }
 
@@ -56,11 +58,16 @@ func (z *websocketController) handleConnection(c *websocket.Conn) error {
 	return z.serviceIncoming(c)
 }
 
-func (z *websocketController) serviceOutgoing(c *websocket.Conn, events [][]byte, ch chan any, shutCh chan struct{}) {
-	for _, d := range events {
-		if err := c.WriteMessage(websocket.TextMessage, d); err != nil {
-			z.logger.LogError(context.Background(), "Failed to send initial message to websocket.", logwrap.Err(err))
+func (z *websocketController) serviceOutgoing(c *websocket.Conn, events []any, ch chan any, shutCh chan struct{}) {
+	for _, e := range events {
+		if d, err := json.Marshal(e); err != nil {
+			z.logger.LogError(context.Background(), "Failed to marshal message to websocket.", logwrap.Err(err))
 			return
+		} else {
+			if err := c.WriteMessage(websocket.TextMessage, d); err != nil {
+				z.logger.LogError(context.Background(), "Failed to send initial message to websocket.", logwrap.Err(err))
+				return
+			}
 		}
 	}
 
@@ -71,15 +78,20 @@ func (z *websocketController) serviceOutgoing(c *websocket.Conn, events [][]byte
 			es, err := z.eventMapper.MapEvent(ctx, event)
 			cancel()
 
-			for _, e := range es {
-				if err != nil {
-					z.logger.LogError(ctx, "Failed to map event to websocket message.", logwrap.Err(err), logwrap.Datum("event", event))
-					continue
-				}
+			if err != nil {
+				z.logger.LogError(ctx, "Failed to map event to websocket message.", logwrap.Err(err), logwrap.Datum("event", event))
+				continue
+			}
 
-				if err := c.WriteMessage(websocket.TextMessage, e); err != nil {
-					z.logger.LogError(ctx, "Failed to send messages to websocket.", logwrap.Err(err))
+			for _, e := range es {
+				if d, err := json.Marshal(e); err != nil {
+					z.logger.LogError(context.Background(), "Failed to marshal message to websocket.", logwrap.Err(err))
 					return
+				} else {
+					if err := c.WriteMessage(websocket.TextMessage, d); err != nil {
+						z.logger.LogError(ctx, "Failed to send messages to websocket.", logwrap.Err(err))
+						return
+					}
 				}
 			}
 		case <-shutCh:

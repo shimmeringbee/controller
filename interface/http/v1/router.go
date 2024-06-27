@@ -18,14 +18,11 @@ var openapi embed.FS
 func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOrganiser, stack layers.OutputStack, l logwrap.Logger, ap auth.AuthenticationProvider, eventbus state.EventSubscriber) http.Handler {
 	protected := mux.NewRouter()
 
-	deviceConverter := exporter.DeviceExporter{
-		GatewayMapper:   mapper,
-		DeviceOrganiser: deviceOrganiser,
-	}
+	deviceConverter := exporter.NewDeviceExporter(deviceOrganiser, mapper)
 
 	dc := deviceController{
 		gatewayMapper:   mapper,
-		deviceExporter:  &deviceConverter,
+		deviceExporter:  deviceConverter,
 		deviceInvoker:   invoker.InvokeDeviceAction,
 		deviceOrganiser: deviceOrganiser,
 		stack:           stack,
@@ -34,23 +31,19 @@ func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOr
 	gc := gatewayController{
 		gatewayMapper:    mapper,
 		gatewayConverter: exporter.ExportGateway,
-		deviceConverter:  &deviceConverter,
+		deviceConverter:  deviceConverter,
 	}
 
 	zc := zoneController{
 		gatewayMapper:   mapper,
-		deviceConverter: &deviceConverter,
+		deviceConverter: deviceConverter,
 		deviceOrganiser: deviceOrganiser,
 	}
 
 	wc := websocketController{
-		eventbus: eventbus,
-		eventMapper: websocketEventMapper{
-			gatewayMapper:   mapper,
-			deviceOrganiser: deviceOrganiser,
-			deviceExporter:  &deviceConverter,
-		},
-		logger: l,
+		eventbus:    eventbus,
+		eventMapper: exporter.NewEventExporter(mapper, deviceConverter, deviceOrganiser),
+		logger:      l,
 	}
 
 	protected.HandleFunc("/devices", dc.listDevices).Methods("GET")

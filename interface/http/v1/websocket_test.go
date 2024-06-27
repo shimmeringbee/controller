@@ -40,9 +40,8 @@ func Test_websocketController(t *testing.T) {
 		defer mem.AssertExpectations(t)
 
 		inputEvent := "event"
-		expectedData := []byte("data")
-		mem.On("InitialEvents", mock.Anything).Return([][]byte{}, nil)
-		mem.On("MapEvent", mock.Anything, inputEvent).Return([][]byte{expectedData}, nil)
+		mem.On("InitialEvents", mock.Anything).Return([]any{}, nil)
+		mem.On("MapEvent", mock.Anything, inputEvent).Return([]any{"data"}, nil)
 
 		wc := websocketController{
 			eventbus:    eb,
@@ -61,7 +60,7 @@ func Test_websocketController(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, websocket.TextMessage, mt)
-		assert.Equal(t, expectedData, actualData)
+		assert.Equal(t, "\"data\"", string(actualData))
 	})
 
 	t.Run("sends initial synchronisation events to the websocket connection", func(t *testing.T) {
@@ -70,8 +69,7 @@ func Test_websocketController(t *testing.T) {
 		mem := &mockEventMapper{}
 		defer mem.AssertExpectations(t)
 
-		expectedData := []byte("data")
-		mem.On("InitialEvents", mock.Anything).Return([][]byte{expectedData}, nil)
+		mem.On("InitialEvents", mock.Anything).Return([]any{"data"}, nil)
 
 		wc := websocketController{
 			eventbus:    eb,
@@ -88,7 +86,7 @@ func Test_websocketController(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, websocket.TextMessage, mt)
-		assert.Equal(t, expectedData, actualData)
+		assert.Equal(t, "\"data\"", string(actualData))
 	})
 }
 
@@ -96,12 +94,12 @@ type mockEventMapper struct {
 	mock.Mock
 }
 
-func (m *mockEventMapper) MapEvent(ctx context.Context, e any) ([][]byte, error) {
+func (m *mockEventMapper) MapEvent(ctx context.Context, e any) ([]any, error) {
 	args := m.Called(ctx, e)
-	return args.Get(0).([][]byte), args.Error(1)
+	return args.Get(0).([]any), args.Error(1)
 }
 
-func (m *mockEventMapper) InitialEvents(ctx context.Context) ([][]byte, error) {
+func (m *mockEventMapper) InitialEvents(ctx context.Context) ([]any, error) {
 	args := m.Called(ctx)
-	return args.Get(0).([][]byte), args.Error(1)
+	return args.Get(0).([]any), args.Error(1)
 }

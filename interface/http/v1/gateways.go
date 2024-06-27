@@ -14,7 +14,7 @@ type gatewayConverter func(da.Gateway) exporter.ExportedGateway
 type gatewayController struct {
 	gatewayMapper    gw.GatewayMapper
 	gatewayConverter gatewayConverter
-	deviceConverter  deviceExporter
+	deviceConverter  exporter.DeviceExporter
 	deviceOrganiser  *gw.DeviceOrganiser
 }
 

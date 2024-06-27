@@ -2,7 +2,6 @@ package exporter
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
@@ -31,12 +30,19 @@ type ExportedGateway struct {
 
 const DefaultCapabilityTimeout = 1 * time.Second
 
-type DeviceExporter struct {
+type deviceExporter struct {
 	DeviceOrganiser *state.DeviceOrganiser
 	GatewayMapper   state.GatewayMapper
 }
 
-func (de *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) ExportedDevice {
+func NewDeviceExporter(do *state.DeviceOrganiser, gm state.GatewayMapper) DeviceExporter {
+	return &deviceExporter{
+		DeviceOrganiser: do,
+		GatewayMapper:   gm,
+	}
+}
+
+func (de *deviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) ExportedDevice {
 	capabilityList := map[string]any{}
 
 	for _, capFlag := range daDevice.Capabilities() {
@@ -58,7 +64,7 @@ func (de *DeviceExporter) ExportDevice(ctx context.Context, daDevice da.Device) 
 	}
 }
 
-func (de *DeviceExporter) ExportSimpleDevice(ctx context.Context, daDevice da.Device) ExportedSimpleDevice {
+func (de *deviceExporter) ExportSimpleDevice(ctx context.Context, daDevice da.Device) ExportedSimpleDevice {
 	capabilityList := []string{}
 
 	for _, capFlag := range daDevice.Capabilities() {
@@ -80,7 +86,7 @@ func (de *DeviceExporter) ExportSimpleDevice(ctx context.Context, daDevice da.De
 	}
 }
 
-func (de *DeviceExporter) ExportCapability(pctx context.Context, uncastCapability any) any {
+func (de *deviceExporter) ExportCapability(pctx context.Context, uncastCapability any) any {
 	ctx, cancel := context.WithTimeout(pctx, DefaultCapabilityTimeout)
 	defer cancel()
 
@@ -134,52 +140,7 @@ func (de *DeviceExporter) ExportCapability(pctx context.Context, uncastCapabilit
 	return retVal
 }
 
-type SettableUpdateTime interface {
-	SetUpdateTime(time.Time)
-}
-
-type SettableChangeTime interface {
-	SetChangeTime(time.Time)
-}
-
-type NullableTime time.Time
-
-func (n NullableTime) MarshalJSON() ([]byte, error) {
-	under := time.Time(n)
-
-	if under.IsZero() {
-		return []byte("null"), nil
-	} else {
-		return json.Marshal(under)
-	}
-}
-
-type LastUpdate struct {
-	LastUpdate *NullableTime `json:",omitempty"`
-}
-
-func (lut *LastUpdate) SetUpdateTime(t time.Time) {
-	nullableTime := NullableTime(t)
-	lut.LastUpdate = &nullableTime
-}
-
-type LastChange struct {
-	LastChange *NullableTime `json:",omitempty"`
-}
-
-func (lct *LastChange) SetChangeTime(t time.Time) {
-	nullableTime := NullableTime(t)
-	lct.LastChange = &nullableTime
-}
-
-type ProductInformation struct {
-	Name         string `json:",omitempty"`
-	Manufacturer string `json:",omitempty"`
-	Serial       string `json:",omitempty"`
-	Version      string `json:",omitempty"`
-}
-
-func (de *DeviceExporter) convertProductInformation(ctx context.Context, hpi capabilities.ProductInformation) any {
+func (de *deviceExporter) convertProductInformation(ctx context.Context, hpi capabilities.ProductInformation) any {
 	pi, err := hpi.Get(ctx)
 	if err != nil {
 		return nil
@@ -193,13 +154,7 @@ func (de *DeviceExporter) convertProductInformation(ctx context.Context, hpi cap
 	}
 }
 
-type TemperatureSensor struct {
-	Readings []capabilities.TemperatureReading
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertTemperatureSensor(ctx context.Context, ts capabilities.TemperatureSensor) any {
+func (de *deviceExporter) convertTemperatureSensor(ctx context.Context, ts capabilities.TemperatureSensor) any {
 	tsReadings, err := ts.Reading(ctx)
 	if err != nil {
 		return nil
@@ -210,13 +165,7 @@ func (de *DeviceExporter) convertTemperatureSensor(ctx context.Context, ts capab
 	}
 }
 
-type RelativeHumiditySensor struct {
-	Readings []capabilities.RelativeHumidityReading
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertRelativeHumiditySensor(ctx context.Context, rhs capabilities.RelativeHumiditySensor) any {
+func (de *deviceExporter) convertRelativeHumiditySensor(ctx context.Context, rhs capabilities.RelativeHumiditySensor) any {
 	rhReadings, err := rhs.Reading(ctx)
 	if err != nil {
 		return nil
@@ -227,13 +176,7 @@ func (de *DeviceExporter) convertRelativeHumiditySensor(ctx context.Context, rhs
 	}
 }
 
-type PressureSensor struct {
-	Readings []capabilities.PressureReading
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertPressureSensor(ctx context.Context, ps capabilities.PressureSensor) any {
+func (de *deviceExporter) convertPressureSensor(ctx context.Context, ps capabilities.PressureSensor) any {
 	psReadings, err := ps.Reading(ctx)
 	if err != nil {
 		return nil
@@ -244,14 +187,7 @@ func (de *DeviceExporter) convertPressureSensor(ctx context.Context, ps capabili
 	}
 }
 
-type DeviceDiscovery struct {
-	Discovering bool
-	Duration    int `json:",omitempty"`
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertDeviceDiscovery(ctx context.Context, dd capabilities.DeviceDiscovery) any {
+func (de *deviceExporter) convertDeviceDiscovery(ctx context.Context, dd capabilities.DeviceDiscovery) any {
 	discoveryState, err := dd.Status(ctx)
 	if err != nil {
 		return nil
@@ -265,19 +201,7 @@ func (de *DeviceExporter) convertDeviceDiscovery(ctx context.Context, dd capabil
 	}
 }
 
-type EnumerateDeviceCapability struct {
-	Attached bool
-	Errors   []string
-}
-
-type EnumerateDevice struct {
-	Enumerating bool
-	Status      map[string]EnumerateDeviceCapability
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertEnumerateDevice(ctx context.Context, ed capabilities.EnumerateDevice) any {
+func (de *deviceExporter) convertEnumerateDevice(ctx context.Context, ed capabilities.EnumerateDevice) any {
 	enumerateDeviceState, err := ed.Status(ctx)
 	if err != nil {
 		return nil
@@ -304,13 +228,7 @@ func (de *DeviceExporter) convertEnumerateDevice(ctx context.Context, ed capabil
 	}
 }
 
-type AlarmSensor struct {
-	Alarms map[string]bool
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertAlarmSensor(ctx context.Context, as capabilities.AlarmSensor) any {
+func (de *deviceExporter) convertAlarmSensor(ctx context.Context, as capabilities.AlarmSensor) any {
 	alarmSensorState, err := as.Status(ctx)
 	if err != nil {
 		return nil
@@ -327,13 +245,7 @@ func (de *DeviceExporter) convertAlarmSensor(ctx context.Context, as capabilitie
 	}
 }
 
-type OnOff struct {
-	State bool
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertOnOff(ctx context.Context, oo capabilities.OnOff) any {
+func (de *deviceExporter) convertOnOff(ctx context.Context, oo capabilities.OnOff) any {
 	state, err := oo.Status(ctx)
 	if err != nil {
 		return nil
@@ -344,28 +256,7 @@ func (de *DeviceExporter) convertOnOff(ctx context.Context, oo capabilities.OnOf
 	}
 }
 
-type PowerStatus struct {
-	Mains   []PowerMainsStatus   `json:",omitempty"`
-	Battery []PowerBatteryStatus `json:",omitempty"`
-	LastUpdate
-	LastChange
-}
-
-type PowerMainsStatus struct {
-	Voltage   *float64 `json:",omitempty"`
-	Frequency *float64 `json:",omitempty"`
-	Available *bool    `json:",omitempty"`
-}
-
-type PowerBatteryStatus struct {
-	Voltage        *float64 `json:",omitempty"`
-	MaximumVoltage *float64 `json:",omitempty"`
-	MinimumVoltage *float64 `json:",omitempty"`
-	Remaining      *float64 `json:",omitempty"`
-	Available      *bool    `json:",omitempty"`
-}
-
-func (de *DeviceExporter) convertPowerSupply(ctx context.Context, capability capabilities.PowerSupply) any {
+func (de *deviceExporter) convertPowerSupply(ctx context.Context, capability capabilities.PowerSupply) any {
 	state, err := capability.Status(ctx)
 	if err != nil {
 		return nil
@@ -424,17 +315,7 @@ func (de *DeviceExporter) convertPowerSupply(ctx context.Context, capability cap
 	}
 }
 
-type AlarmWarningDeviceStatus struct {
-	Warning   bool
-	AlarmType *string  `json:",omitempty"`
-	Volume    *float64 `json:",omitempty"`
-	Visual    *bool    `json:",omitempty"`
-	Duration  *int     `json:",omitempty"`
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertAlarmWarningDevice(ctx context.Context, capability capabilities.AlarmWarningDevice) any {
+func (de *deviceExporter) convertAlarmWarningDevice(ctx context.Context, capability capabilities.AlarmWarningDevice) any {
 	state, err := capability.Status(ctx)
 	if err != nil {
 		return nil
@@ -457,15 +338,7 @@ func (de *DeviceExporter) convertAlarmWarningDevice(ctx context.Context, capabil
 	return status
 }
 
-type IdentifyStatus struct {
-	Identifying bool
-	Duration    *int `json:",omitempty"`
-
-	LastUpdate
-	LastChange
-}
-
-func (de *DeviceExporter) convertIdentify(ctx context.Context, capability capabilities.Identify) any {
+func (de *deviceExporter) convertIdentify(ctx context.Context, capability capabilities.Identify) any {
 	state, err := capability.Status(ctx)
 	if err != nil {
 		return nil
@@ -483,11 +356,7 @@ func (de *DeviceExporter) convertIdentify(ctx context.Context, capability capabi
 	return status
 }
 
-type DeviceWorkaroundsStatus struct {
-	Enabled []string
-}
-
-func (de *DeviceExporter) convertDeviceWorkarounds(ctx context.Context, capability capabilities.DeviceWorkarounds) any {
+func (de *deviceExporter) convertDeviceWorkarounds(ctx context.Context, capability capabilities.DeviceWorkarounds) any {
 	state, err := capability.Enabled(ctx)
 	if err != nil {
 		return nil
@@ -498,4 +367,10 @@ func (de *DeviceExporter) convertDeviceWorkarounds(ctx context.Context, capabili
 	}
 
 	return status
+}
+
+type DeviceExporter interface {
+	ExportDevice(context.Context, da.Device) ExportedDevice
+	ExportSimpleDevice(context.Context, da.Device) ExportedSimpleDevice
+	ExportCapability(context.Context, any) any
 }

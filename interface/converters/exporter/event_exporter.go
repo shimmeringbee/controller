@@ -1,25 +1,21 @@
-package v1
+package exporter
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/shimmeringbee/controller/interface/converters/exporter"
 	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/da"
 	"github.com/shimmeringbee/da/capabilities"
 )
 
-type eventMapper interface {
-	MapEvent(ctx context.Context, e any) ([][]byte, error)
-	InitialEvents(ctx context.Context) ([][]byte, error)
+type EventExporter interface {
+	MapEvent(ctx context.Context, e any) ([]any, error)
+	InitialEvents(ctx context.Context) ([]any, error)
 }
 
-var _ eventMapper = (*websocketEventMapper)(nil)
-
-type websocketEventMapper struct {
+type eventExporter struct {
 	gatewayMapper   state.GatewayMapper
-	deviceExporter  deviceExporter
+	deviceExporter  DeviceExporter
 	deviceOrganiser *state.DeviceOrganiser
 }
 
@@ -77,7 +73,15 @@ func eventToCapability(v any) (da.Device, da.Capability, bool) {
 	}
 }
 
-func (w websocketEventMapper) MapEvent(ctx context.Context, v any) ([][]byte, error) {
+func NewEventExporter(gm state.GatewayMapper, de DeviceExporter, do *state.DeviceOrganiser) EventExporter {
+	return &eventExporter{
+		gatewayMapper:   gm,
+		deviceExporter:  de,
+		deviceOrganiser: do,
+	}
+}
+
+func (w eventExporter) MapEvent(ctx context.Context, v any) ([]any, error) {
 	switch e := v.(type) {
 	case da.DeviceAdded:
 		return w.generateDeviceMessages(ctx, e.Device), nil
@@ -122,8 +126,8 @@ func (w websocketEventMapper) MapEvent(ctx context.Context, v any) ([][]byte, er
 	return nil, fmt.Errorf("unimplemented map event")
 }
 
-func (w websocketEventMapper) generateZoneCreate(zc state.ZoneCreate) ([][]byte, error) {
-	data, err := json.Marshal(ZoneUpdateMessage{
+func (w eventExporter) generateZoneCreate(zc state.ZoneCreate) ([]any, error) {
+	return []any{ZoneUpdateMessage{
 		ZoneMessage: ZoneMessage{
 			Identifier: zc.Identifier,
 			Message: Message{
@@ -133,13 +137,11 @@ func (w websocketEventMapper) generateZoneCreate(zc state.ZoneCreate) ([][]byte,
 		Name:   zc.Name,
 		Parent: 0,
 		After:  zc.AfterZone,
-	})
-
-	return [][]byte{data}, err
+	}}, nil
 }
 
-func (w websocketEventMapper) generateZoneUpdate(zu state.ZoneUpdate) ([][]byte, error) {
-	data, err := json.Marshal(ZoneUpdateMessage{
+func (w eventExporter) generateZoneUpdate(zu state.ZoneUpdate) ([]any, error) {
+	return []any{ZoneUpdateMessage{
 		ZoneMessage: ZoneMessage{
 			Identifier: zu.Identifier,
 			Message: Message{
@@ -149,69 +151,59 @@ func (w websocketEventMapper) generateZoneUpdate(zu state.ZoneUpdate) ([][]byte,
 		Name:   zu.Name,
 		Parent: zu.ParentZone,
 		After:  zu.AfterZone,
-	})
-
-	return [][]byte{data}, err
+	}}, nil
 }
 
-func (w websocketEventMapper) generateZoneRemove(zu state.ZoneRemove) ([][]byte, error) {
-	data, err := json.Marshal(ZoneRemoveMessage{
+func (w eventExporter) generateZoneRemove(zu state.ZoneRemove) ([]any, error) {
+	return []any{ZoneRemoveMessage{
 		ZoneMessage: ZoneMessage{
 			Identifier: zu.Identifier,
 			Message: Message{
 				Type: ZoneRemoveMessageName,
 			},
 		},
-	})
-
-	return [][]byte{data}, err
+	}}, nil
 }
 
-func (w websocketEventMapper) generateDeviceRemove(identifier da.Identifier) ([][]byte, error) {
-	data, err := json.Marshal(DeviceRemoveMessage{
+func (w eventExporter) generateDeviceRemove(identifier da.Identifier) ([]any, error) {
+	return []any{DeviceRemoveMessage{
 		DeviceMessage: DeviceMessage{
 			Message: Message{
 				Type: DeviceRemoveMessageName,
 			},
 		},
 		Identifier: identifier.String(),
-	})
-
-	return [][]byte{data}, err
+	}}, nil
 }
 
-func (w websocketEventMapper) generateGatewayUpdateMessage(gwName string, gateway da.Gateway) ([][]byte, error) {
-	exportedGw := exporter.ExportGateway(gateway)
+func (w eventExporter) generateGatewayUpdateMessage(gwName string, gateway da.Gateway) ([]any, error) {
+	exportedGw := ExportGateway(gateway)
 	exportedGw.Identifier = gwName
 
-	data, err := json.Marshal(GatewayUpdateMessage{
+	return []any{GatewayUpdateMessage{
 		GatewayMessage: GatewayMessage{
 			Message: Message{
 				Type: GatewayUpdateMessageName,
 			},
 		},
 		ExportedGateway: exportedGw,
-	})
-
-	return [][]byte{data}, err
+	}}, nil
 }
 
-func (w websocketEventMapper) generateDeviceUpdateMessage(ctx context.Context, d da.Device) ([][]byte, error) {
+func (w eventExporter) generateDeviceUpdateMessage(ctx context.Context, d da.Device) ([]any, error) {
 	exportedDevice := w.deviceExporter.ExportSimpleDevice(ctx, d)
 
-	data, err := json.Marshal(DeviceUpdateMessage{
+	return []any{DeviceUpdateMessage{
 		DeviceMessage: DeviceMessage{
 			Message: Message{
 				Type: DeviceUpdateMessageName,
 			},
 		},
 		ExportedSimpleDevice: exportedDevice,
-	})
-
-	return [][]byte{data}, err
+	}}, nil
 }
 
-func (w websocketEventMapper) generateDeviceUpdateCapabilityMessage(ctx context.Context, daDevice da.Device, capFlag da.Capability) ([][]byte, error) {
+func (w eventExporter) generateDeviceUpdateCapabilityMessage(ctx context.Context, daDevice da.Device, capFlag da.Capability) ([]any, error) {
 	uncastCapability := daDevice.Capability(capFlag)
 
 	basic, ok := uncastCapability.(da.BasicCapability)
@@ -221,7 +213,7 @@ func (w websocketEventMapper) generateDeviceUpdateCapabilityMessage(ctx context.
 
 	out := w.deviceExporter.ExportCapability(ctx, uncastCapability)
 
-	data, err := json.Marshal(DeviceUpdateCapabilityMessage{
+	return []any{DeviceUpdateCapabilityMessage{
 		DeviceMessage: DeviceMessage{
 			Message: Message{
 				Type: DeviceUpdateCapabilityMessageName,
@@ -230,13 +222,11 @@ func (w websocketEventMapper) generateDeviceUpdateCapabilityMessage(ctx context.
 		Identifier: daDevice.Identifier().String(),
 		Capability: basic.Name(),
 		Payload:    out,
-	})
-
-	return [][]byte{data}, err
+	}}, nil
 }
 
-func (w websocketEventMapper) generateZoneUpdateMessage(zone state.Zone, after int) ([]byte, error) {
-	return json.Marshal(ZoneUpdateMessage{
+func (w eventExporter) generateZoneUpdateMessage(zone state.Zone, after int) (any, error) {
+	return ZoneUpdateMessage{
 		ZoneMessage: ZoneMessage{
 			Message: Message{
 				Type: ZoneUpdateMessageName,
@@ -246,11 +236,11 @@ func (w websocketEventMapper) generateZoneUpdateMessage(zone state.Zone, after i
 		Name:   zone.Name,
 		Parent: zone.ParentZone,
 		After:  after,
-	})
+	}, nil
 }
 
-func (w websocketEventMapper) InitialEvents(ctx context.Context) ([][]byte, error) {
-	var events [][]byte
+func (w eventExporter) InitialEvents(ctx context.Context) ([]any, error) {
+	var events []any
 
 	after := 0
 
@@ -272,8 +262,8 @@ func (w websocketEventMapper) InitialEvents(ctx context.Context) ([][]byte, erro
 	return events, nil
 }
 
-func (w websocketEventMapper) generateDeviceMessages(ctx context.Context, device da.Device) [][]byte {
-	var events [][]byte
+func (w eventExporter) generateDeviceMessages(ctx context.Context, device da.Device) []any {
+	var events []any
 
 	if data, err := w.generateDeviceUpdateMessage(ctx, device); err == nil {
 		events = append(events, data...)
@@ -288,8 +278,8 @@ func (w websocketEventMapper) generateDeviceMessages(ctx context.Context, device
 	return events
 }
 
-func (w websocketEventMapper) initialEventsZone(zone state.Zone, after int) [][]byte {
-	var events [][]byte
+func (w eventExporter) initialEventsZone(zone state.Zone, after int) []any {
+	var events []any
 
 	if data, err := w.generateZoneUpdateMessage(zone, after); err == nil {
 		events = append(events, data)
@@ -304,65 +294,4 @@ func (w websocketEventMapper) initialEventsZone(zone state.Zone, after int) [][]
 	}
 
 	return events
-}
-
-const (
-	ZoneUpdateMessageName = "ZoneUpdate"
-	ZoneRemoveMessageName = "ZoneRemove"
-
-	GatewayUpdateMessageName = "GatewayUpdate"
-
-	DeviceUpdateMessageName           = "DeviceUpdate"
-	DeviceUpdateCapabilityMessageName = "DeviceUpdateCapability"
-	DeviceRemoveMessageName           = "DeviceRemove"
-)
-
-type Message struct {
-	Type string
-}
-
-type ZoneMessage struct {
-	Message
-	Identifier int
-}
-
-type ZoneUpdateMessage struct {
-	ZoneMessage
-	Name   string
-	Parent int
-	After  int
-}
-
-type ZoneRemoveMessage struct {
-	ZoneMessage
-}
-
-type GatewayMessage struct {
-	Message
-}
-
-type GatewayUpdateMessage struct {
-	GatewayMessage
-	exporter.ExportedGateway
-}
-
-type DeviceMessage struct {
-	Message
-}
-
-type DeviceUpdateMessage struct {
-	DeviceMessage
-	exporter.ExportedSimpleDevice
-}
-
-type DeviceUpdateCapabilityMessage struct {
-	DeviceMessage
-	Identifier string
-	Capability string
-	Payload    any
-}
-
-type DeviceRemoveMessage struct {
-	DeviceMessage
-	Identifier string
 }

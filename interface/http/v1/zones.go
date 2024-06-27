@@ -22,7 +22,7 @@ type ExportedZone struct {
 type zoneController struct {
 	deviceOrganiser *state.DeviceOrganiser
 	gatewayMapper   state.GatewayMapper
-	deviceConverter deviceExporter
+	deviceConverter exporter.DeviceExporter
 }
 
 func includesString(haystack []string, needle string) bool {

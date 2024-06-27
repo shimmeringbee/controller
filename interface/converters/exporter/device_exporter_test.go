@@ -64,7 +64,7 @@ func TestDeviceExporter_ExportDevice(t *testing.T) {
 
 		mgm.On("GatewayName", mock.Anything).Return("gw", true)
 
-		dc := DeviceExporter{DeviceOrganiser: &do, GatewayMapper: &mgm}
+		dc := NewDeviceExporter(&do, &mgm)
 		actual := dc.ExportDevice(context.Background(), mdev)
 
 		assert.Equal(t, expected, actual)
@@ -111,7 +111,7 @@ func TestDeviceExporter_ExportSimpleDevice(t *testing.T) {
 
 		mgm.On("GatewayName", &mgwOne).Return("gw", true)
 
-		dc := DeviceExporter{DeviceOrganiser: &do, GatewayMapper: &mgm}
+		dc := NewDeviceExporter(&do, &mgm)
 		actual := dc.ExportSimpleDevice(context.Background(), mdev)
 
 		assert.Equal(t, expected, actual)
@@ -135,7 +135,7 @@ func Test_convertHasProductInformation(t *testing.T) {
 			Serial:       "serial",
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertProductInformation(context.Background(), &mhpi)
 
 		assert.Equal(t, expected, actual)
@@ -161,7 +161,7 @@ func Test_convertTemperatureSensor(t *testing.T) {
 			},
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertTemperatureSensor(context.Background(), &mts)
 
 		assert.Equal(t, expected, actual)
@@ -187,7 +187,7 @@ func Test_convertRelativeHumiditySensor(t *testing.T) {
 			},
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertRelativeHumiditySensor(context.Background(), &mts)
 
 		assert.Equal(t, expected, actual)
@@ -213,7 +213,7 @@ func Test_convertPressureSensor(t *testing.T) {
 			},
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertPressureSensor(context.Background(), &mts)
 
 		assert.Equal(t, expected, actual)
@@ -235,7 +235,7 @@ func Test_convertDeviceDiscovery(t *testing.T) {
 			Duration:    12000,
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertDeviceDiscovery(context.Background(), &mdd)
 
 		assert.Equal(t, expected, actual)
@@ -264,7 +264,7 @@ func Test_convertEnumerateDevice(t *testing.T) {
 			},
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertEnumerateDevice(context.Background(), &med)
 
 		assert.Equal(t, expected, actual)
@@ -288,7 +288,7 @@ func Test_convertAlarmSensor(t *testing.T) {
 			},
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertAlarmSensor(context.Background(), &mas)
 
 		assert.Equal(t, expected, actual)
@@ -306,7 +306,7 @@ func Test_convertOnOff(t *testing.T) {
 			State: true,
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertOnOff(context.Background(), &moo)
 
 		assert.Equal(t, expected, actual)
@@ -368,7 +368,7 @@ func Test_convertPowerStatus(t *testing.T) {
 			},
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertPowerSupply(context.Background(), &mps)
 
 		assert.Equal(t, expected, actual)
@@ -402,7 +402,7 @@ func Test_convertAlarmWarningDevice(t *testing.T) {
 			Duration:  &remainingDuration,
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertAlarmWarningDevice(context.Background(), &mawd)
 
 		assert.Equal(t, expected, actual)
@@ -428,7 +428,7 @@ func TestDeviceExporter_convertIdentify(t *testing.T) {
 			Duration:    &time,
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertIdentify(context.Background(), &mid)
 
 		assert.Equal(t, expected, actual)
@@ -446,7 +446,7 @@ func TestDeviceExporter_convertDeviceWorkarounds(t *testing.T) {
 			Enabled: []string{"Enabled"},
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.convertDeviceWorkarounds(context.Background(), &mdw)
 
 		assert.Equal(t, expected, actual)
@@ -507,7 +507,7 @@ func Test_convertCapabilityWithLastUpdateTime(t *testing.T) {
 			},
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.ExportCapability(context.Background(), &mts)
 
 		assert.Equal(t, expected, actual)
@@ -540,7 +540,7 @@ func Test_convertCapabilityWithLastChangeTime(t *testing.T) {
 			},
 		}
 
-		dc := DeviceExporter{}
+		dc := deviceExporter{}
 		actual := dc.ExportCapability(context.Background(), &mts)
 
 		assert.Equal(t, expected, actual)
