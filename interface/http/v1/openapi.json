@@ -933,6 +933,12 @@
         "summary": "Receive events via Server Side Events",
         "description": "Provides an asynchronous stream device and zone events, targeted for maintaining state in an application. Intended for use by the EventSource browser API.",
         "responses": {
+          "200": {
+            "description": "successfully attached to event stream",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
           "401": {
             "description": "unauthorised, provide suitable authentication credentials"
           },
