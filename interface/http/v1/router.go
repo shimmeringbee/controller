@@ -2,6 +2,7 @@ package v1
 
 import (
 	"embed"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/interface/converters/exporter"
 	"github.com/shimmeringbee/controller/interface/converters/invoker"
@@ -75,5 +76,5 @@ func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOr
 	apiRoot.PathPrefix("/auth").Handler(ap.AuthenticationRouter())
 	apiRoot.PathPrefix("/").Handler(ap.AuthenticationMiddleware(protected))
 
-	return apiRoot
+	return handlers.CORS(handlers.AllowedMethods([]string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodDelete}))(apiRoot)
 }
