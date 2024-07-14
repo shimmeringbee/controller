@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"github.com/gorilla/websocket"
+	"github.com/shimmeringbee/controller/interface/converters/exporter"
 	"github.com/shimmeringbee/controller/state"
 	"github.com/shimmeringbee/logwrap"
 	"github.com/shimmeringbee/logwrap/impl/discard"
@@ -40,9 +41,13 @@ func Test_eventsController_serversideevents(t *testing.T) {
 		mem := &mockEventMapper{}
 		defer mem.AssertExpectations(t)
 
-		inputEvent := "event"
+		inputEvent := exporter.HeartBeatMessage{
+			Message: exporter.Message{
+				Type: exporter.HeartBeatMessageName,
+			},
+		}
 		mem.On("InitialEvents", mock.Anything).Return([]any{}, nil)
-		mem.On("MapEvent", mock.Anything, inputEvent).Return([]any{"data"}, nil)
+		mem.On("MapEvent", mock.Anything, mock.Anything).Return([]any{inputEvent}, nil)
 
 		wc := eventsController{
 			eventbus:    eb,
@@ -60,7 +65,7 @@ func Test_eventsController_serversideevents(t *testing.T) {
 
 		time.Sleep(50 * time.Millisecond)
 
-		eb.Publish(inputEvent)
+		eb.Publish("test")
 
 		time.Sleep(50 * time.Millisecond)
 		done()
@@ -70,7 +75,7 @@ func Test_eventsController_serversideevents(t *testing.T) {
 		d, err := io.ReadAll(result.Body)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "\"data\"\n\n", string(d))
+		assert.Equal(t, "id: 1\nevent: HeartBeat\ndata: {\"Type\":\"HeartBeat\"}\n\n", string(d))
 
 		assert.Equal(t, "*", result.Header.Get("Access-Control-Allow-Origin"))
 		assert.Equal(t, "Content-Type", result.Header.Get("Access-Control-Expose-Headers"))
@@ -85,7 +90,13 @@ func Test_eventsController_serversideevents(t *testing.T) {
 		mem := &mockEventMapper{}
 		defer mem.AssertExpectations(t)
 
-		mem.On("InitialEvents", mock.Anything).Return([]any{"data"}, nil)
+		initialEvent := exporter.HeartBeatMessage{
+			Message: exporter.Message{
+				Type: exporter.HeartBeatMessageName,
+			},
+		}
+
+		mem.On("InitialEvents", mock.Anything).Return([]any{initialEvent}, nil)
 
 		wc := eventsController{
 			eventbus:    eb,
@@ -109,7 +120,7 @@ func Test_eventsController_serversideevents(t *testing.T) {
 		d, err := io.ReadAll(result.Body)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "\"data\"\n\n", string(d))
+		assert.Equal(t, "id: 1\nevent: HeartBeat\ndata: {\"Type\":\"HeartBeat\"}\n\n", string(d))
 
 		assert.Equal(t, "*", result.Header.Get("Access-Control-Allow-Origin"))
 		assert.Equal(t, "Content-Type", result.Header.Get("Access-Control-Expose-Headers"))

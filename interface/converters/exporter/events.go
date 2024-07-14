@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	HeartBeatMessageName = "HeartBeat"
+
 	ZoneUpdateMessageName = "ZoneUpdate"
 	ZoneRemoveMessageName = "ZoneRemove"
 
@@ -19,6 +21,18 @@ const (
 
 type Message struct {
 	Type string
+}
+
+func (m Message) MessageType() string {
+	return m.Type
+}
+
+type Typer interface {
+	MessageType() string
+}
+
+type HeartBeatMessage struct {
+	Message
 }
 
 type ZoneMessage struct {

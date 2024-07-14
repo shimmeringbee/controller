@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/shimmeringbee/controller/interface/converters/exporter"
@@ -36,13 +37,25 @@ func (z *eventsController) serveServerSideEvent(w http.ResponseWriter, r *http.R
 
 	flusher := w.(http.Flusher)
 
-	z.sendLoop(func(b []byte) error {
-		data := append(b, '\n', '\n')
-		if n, err := w.Write(data); err != nil {
-			return err
-		} else if len(data) != n {
-			return fmt.Errorf("failed to send full event: %d != %d", len(data), n)
+	id := 0
+
+	z.sendLoop(func(raw any) error {
+		id += 1
+
+		msg, ok := raw.(exporter.Typer)
+		if !ok {
+			return errors.New("unable to cast message")
 		}
+
+		data, err := json.Marshal(raw)
+		if err != nil {
+			z.logger.LogError(context.Background(), "Failed to marshal message to sse.", logwrap.Err(err))
+			return fmt.Errorf("failed to marshal message: %w", err)
+		}
+
+		fmt.Fprintf(w, "id: %d\n", id)
+		fmt.Fprintf(w, "event: %s\n", msg.MessageType())
+		fmt.Fprintf(w, "data: %s\n\n", string(data))
 
 		flusher.Flush()
 		return nil
@@ -79,13 +92,19 @@ func (z *eventsController) serverWebsocketConnection(c *websocket.Conn) error {
 		close(shutdownCh)
 	}()
 
-	go z.sendLoop(func(b []byte) error {
-		return c.WriteMessage(websocket.TextMessage, b)
+	go z.sendLoop(func(raw any) error {
+		data, err := json.Marshal(raw)
+		if err != nil {
+			z.logger.LogError(context.Background(), "Failed to marshal message to websocket.", logwrap.Err(err))
+			return fmt.Errorf("failed to marshal message: %w", err)
+		}
+
+		return c.WriteMessage(websocket.TextMessage, data)
 	}, eventsCh, shutdownCh)
 	return z.serviceIncoming(c)
 }
 
-func (z *eventsController) sendLoop(publish func([]byte) error, ch chan any, shutCh <-chan struct{}) {
+func (z *eventsController) sendLoop(publish func(any) error, ch chan any, shutCh <-chan struct{}) {
 	initCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	events, err := z.eventMapper.InitialEvents(initCtx)
 	cancel()
@@ -94,19 +113,28 @@ func (z *eventsController) sendLoop(publish func([]byte) error, ch chan any, shu
 	}
 
 	for _, e := range events {
-		if d, err := json.Marshal(e); err != nil {
-			z.logger.LogError(context.Background(), "Failed to marshal message to websocket.", logwrap.Err(err))
+		if err := publish(e); err != nil {
+			z.logger.LogError(context.Background(), "Failed to send initial message to websocket.", logwrap.Err(err))
 			return
-		} else {
-			if err := publish(d); err != nil {
-				z.logger.LogError(context.Background(), "Failed to send initial message to websocket.", logwrap.Err(err))
-				return
-			}
 		}
 	}
 
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
+		case <-ticker.C:
+			var e = &exporter.HeartBeatMessage{
+				Message: exporter.Message{
+					Type: exporter.HeartBeatMessageName,
+				},
+			}
+
+			if err := publish(e); err != nil {
+				z.logger.LogError(context.Background(), "Failed to send heartbeat message to websocket.", logwrap.Err(err))
+				return
+			}
 		case event := <-ch:
 			if event == nil {
 				return
@@ -122,14 +150,9 @@ func (z *eventsController) sendLoop(publish func([]byte) error, ch chan any, shu
 			}
 
 			for _, e := range es {
-				if d, err := json.Marshal(e); err != nil {
-					z.logger.LogError(context.Background(), "Failed to marshal message to websocket.", logwrap.Err(err))
+				if err := publish(e); err != nil {
+					z.logger.LogError(ctx, "Failed to send messages to websocket.", logwrap.Err(err))
 					return
-				} else {
-					if err := publish(d); err != nil {
-						z.logger.LogError(ctx, "Failed to send messages to websocket.", logwrap.Err(err))
-						return
-					}
 				}
 			}
 		case <-shutCh:
