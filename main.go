@@ -52,7 +52,7 @@ func main() {
 	eventbus := state.NewEventBus()
 
 	l.LogInfo(ctx, "Initialising device organiser.")
-	deviceOrganiser := state.NewDeviceOrganiser(section.Section("Organiser"), state.NullEventPublisher)
+	deviceOrganiser := state.NewDeviceOrganiser(section.Section("Organiser"), eventbus)
 
 	gwMux := state.NewGatewayMux(eventbus)
 
@@ -72,6 +72,10 @@ func main() {
 	startedGateways, err := startGateways(gatewayCfgs, gwMux, l, section.Section("Gateway"))
 	if err != nil {
 		l.LogFatal(ctx, "Failed to start gateways.", lw.Err(err))
+	}
+
+	for _, gw := range gwMux.Gateways() {
+		deviceOrganiser.AddDevice(gw.Self().Identifier().String())
 	}
 
 	l.LogInfo(ctx, "Controller ready.")
