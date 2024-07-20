@@ -117,6 +117,9 @@ func (w eventExporter) MapEvent(ctx context.Context, v any) ([]any, error) {
 	case state.ZoneRemove:
 		return w.generateZoneRemove(e)
 
+	case da.CapabilityAdded:
+	case da.CapabilityRemoved:
+
 	default:
 		if d, c, found := eventToCapability(e); found {
 			return w.generateDeviceUpdateCapabilityMessage(ctx, d, c)

@@ -14,7 +14,7 @@ require (
 	github.com/peterbourgon/ff/v3 v3.4.0
 	github.com/shimmeringbee/da v0.0.0-20240714070346-b84fc2e73097
 	github.com/shimmeringbee/logwrap v0.1.3
-	github.com/shimmeringbee/persistence v0.0.0-20240615183316-1a60e6781413
+	github.com/shimmeringbee/persistence v0.0.0-20240720200254-3a2a94e3614d
 	github.com/shimmeringbee/zda v0.0.0-20240714070445-404da6703600
 	github.com/shimmeringbee/zigbee v0.0.0-20240614104723-f4c0c0231568
 	github.com/shimmeringbee/zstack v0.0.0-20240714070814-75c3dd0a3d27

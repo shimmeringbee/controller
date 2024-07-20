@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	pahomqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/gorilla/handlers"
 	gorillamux "github.com/gorilla/mux"
 	"github.com/shimmeringbee/controller/config"
 	"github.com/shimmeringbee/controller/interface/converters/invoker"
@@ -152,8 +153,10 @@ func startHTTPInterface(cfg config.HTTPInterfaceConfig, g *state.GatewayMux, e s
 		r.PathPrefix("/api/pprof").Handler(http.StripPrefix("/api/pprof", pprof.ConstructRouter(authenticator)))
 	}
 
+	handler := handlers.LoggingHandler(os.Stdout, r)
+
 	bindAddress := fmt.Sprintf(":%d", cfg.Port)
-	srv := &http.Server{Addr: bindAddress, Handler: r}
+	srv := &http.Server{Addr: bindAddress, Handler: handler}
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {

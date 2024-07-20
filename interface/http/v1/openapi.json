@@ -673,7 +673,7 @@
         },
         "responses": {
           "200": {
-            "description": "successfully deleted zone",
+            "description": "successfully updated zone",
             "content": {
               "application/json": {}
             }

@@ -76,5 +76,8 @@ func ConstructRouter(mapper state.GatewayMapper, deviceOrganiser *state.DeviceOr
 	apiRoot.PathPrefix("/auth").Handler(ap.AuthenticationRouter())
 	apiRoot.PathPrefix("/").Handler(ap.AuthenticationMiddleware(protected))
 
-	return handlers.CORS(handlers.AllowedMethods([]string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodDelete}))(apiRoot)
+	return handlers.CORS(
+		handlers.AllowedMethods([]string{http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch}),
+		handlers.AllowedHeaders([]string{"content-type"}),
+	)(apiRoot)
 }
