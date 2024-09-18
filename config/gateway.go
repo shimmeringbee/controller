@@ -69,4 +69,8 @@ type ZStackProvider struct {
 		Name string
 		Baud int
 	}
+	TCP struct {
+		Host string
+		Port int
+	}
 }

@@ -15,7 +15,9 @@ import (
 	"github.com/shimmeringbee/zigbee"
 	"github.com/shimmeringbee/zstack"
 	"go.bug.st/serial.v1"
+	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -113,22 +115,34 @@ func startZigbeeProvider(providerCfg config.ZDAProvider, network zigbee.NetworkC
 }
 
 func startZStackProvider(cfg config.ZStackProvider, network zigbee.NetworkConfiguration, l logwrap.Logger, s persistence.Section) (zigbee.Provider, func(), error) {
-	port, err := serial.Open(cfg.Port.Name, &serial.Mode{BaudRate: cfg.Port.Baud})
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open serial port for zstack '%s': %w", cfg.Port.Name, err)
+	var transport io.ReadWriteCloser
+	var err error
+
+	if len(cfg.TCP.Host) != 0 {
+		transport, err = net.Dial("tcp", fmt.Sprintf("%s:%d", cfg.TCP.Host, cfg.TCP.Port))
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to open TCP port for zstack '%s': %w", cfg.Port.Name, err)
+		}
+	} else if len(cfg.Port.Name) != 0 {
+		transport, err = serial.Open(cfg.Port.Name, &serial.Mode{BaudRate: cfg.Port.Baud})
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to open serial port for zstack '%s': %w", cfg.Port.Name, err)
+		}
+	} else {
+		return nil, nil, fmt.Errorf("no valid configuration for zstack connection")
 	}
 
 	wl := logwrap.New(nest.Wrap(l))
 	wl.AddOptionsToLogger(logwrap.Source("zstack"))
 
-	z := zstack.New(port, s.Section("ZStack"))
+	z := zstack.New(transport, s.Section("ZStack"))
 	z.WithLogWrapLogger(wl)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
 	if err := z.Initialise(ctx, network); err != nil {
-		port.Close()
+		transport.Close()
 
 		return nil, nil, fmt.Errorf("failed to initialise zstack: %w", err)
 	}
